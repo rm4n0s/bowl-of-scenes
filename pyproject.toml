@@ -1,0 +1,23 @@
+[project]
+name = "bowl-of-scenes"
+version = "0.1.0"
+description = "GUI application to create batch of images with AI"
+authors = [
+    {name = "Emmanouil Ragiadakos"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "automatic-spoon-client-sync",
+    "click>=8.3.1",
+    "mashumaro>=3.17",
+    "peewee>=3.18.3",
+    "pyside6>=6.10.1",
+    "pytsterrors>=0.4.1",
+    "rembg>=2.0.68",
+    "ruff>=0.14.8",
+]
+license = {text = "GPLv3"}
+
+[tool.uv.sources]
+automatic-spoon-client-sync = { git = "https://github.com/rm4n0s/automatic_spoon_client_sync.git", rev = "main" }
