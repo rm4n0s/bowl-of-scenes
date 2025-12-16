@@ -8,16 +8,13 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "automatic-spoon-client-sync",
-    "click>=8.3.1",
     "mashumaro>=3.17",
-    "peewee>=3.18.3",
-    "pyside6>=6.10.1",
+    "nicegui>=3.4.0",
     "pytsterrors>=0.4.1",
     "rembg>=2.0.68",
-    "ruff>=0.14.8",
+    "yet-another-comfy-client",
 ]
-license = {text = "GPLv3"}
+license = {text = "SSPLv1"}
 
 [tool.uv.sources]
-automatic-spoon-client-sync = { git = "https://github.com/rm4n0s/automatic_spoon_client_sync.git", rev = "main" }
+yet-another-comfy-client = { git = "https://github.com/rm4n0s/yet-another-comfy-client" }

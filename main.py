@@ -1,5 +1,5 @@
 # Copyright © 2025-2026 Emmanouil Ragiadakos
-# SPDX-License-Identifier: GPL-3.0
+# SPDX-License-Identifier: SSPL-1.0
 
 
 def main():
