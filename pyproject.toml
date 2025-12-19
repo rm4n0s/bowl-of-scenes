@@ -6,12 +6,13 @@ authors = [
     {name = "Emmanouil Ragiadakos"}
 ]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
+    "aiosqlite==0.21.0",
     "mashumaro>=3.17",
     "nicegui>=3.4.0",
     "pytsterrors>=0.4.1",
-    "rembg>=2.0.68",
+    "tortoise-orm==0.25.1",
     "yet-another-comfy-client",
 ]
 license = {text = "SSPLv1"}
