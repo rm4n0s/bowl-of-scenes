@@ -4,12 +4,11 @@
 from tortoise import fields
 from tortoise.models import Model
 
-from src.db.models.common import TimestampMixin
+from src.db.records.common import TimestampMixin
 
 
-class Result(TimestampMixin, Model):
+class ProcessRecord(TimestampMixin, Model):
     id = fields.IntField(primary_key=True)
     project_id = fields.IntField()
-    process_id = fields.IntField()
-    code_json = fields.JSONField(null=True)
-    image_path = fields.TextField()
+    order_id = fields.IntField()
+    code_json = fields.JSONField()

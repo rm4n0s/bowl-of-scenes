@@ -4,10 +4,10 @@
 from tortoise import fields
 from tortoise.models import Model
 
-from src.db.models.common import TimestampMixin
+from src.db.records.common import TimestampMixin
 
 
-class Item(TimestampMixin, Model):
+class ItemRecord(TimestampMixin, Model):
     id = fields.IntField(primary_key=True)
     group_id = fields.IntField()
     name = fields.CharField(max_length=100)
@@ -15,5 +15,6 @@ class Item(TimestampMixin, Model):
     positive_prompt = fields.TextField()
     negative_prompt = fields.TextField()
     lora_json = fields.JSONField(null=True)
-    reference_image = fields.TextField(null=True)
+    controlnet_reference_image = fields.TextField(null=True)
+    ipadapter_reference_image = fields.TextField(null=True)
     thumbnail_image = fields.TextField(null=True)

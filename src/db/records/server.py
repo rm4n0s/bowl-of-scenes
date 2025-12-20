@@ -4,10 +4,11 @@
 from tortoise import fields
 from tortoise.models import Model
 
-from src.db.models.common import TimestampMixin
+from src.db.records.common import TimestampMixin
 
 
-class Category(TimestampMixin, Model):
+class ServerRecord(TimestampMixin, Model):
     id = fields.IntField(primary_key=True)
-    name = fields.CharField(max_length=100)
-    
+    name = fields.TextField()
+    host = fields.TextField()
+    is_local = fields.BooleanField()

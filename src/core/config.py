@@ -9,9 +9,9 @@ from mashumaro.mixins.yaml import DataClassYAMLMixin
 @dataclass
 class Config(DataClassYAMLMixin):
     db_path: str
-    results_path: str
-    references_path: str
-    thumbnail_path: str
+    controlnet_references_path: str
+    ipadapter_references_path: str
+    thumbnails_path: str
 
 
 def read_config(filepath: str) -> Config:
