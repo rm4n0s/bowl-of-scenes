@@ -1,11 +1,11 @@
-from .category import CategoryRecord
-from .group import GroupRecord
-from .item import ItemRecord
-from .process import ProcessRecord
-from .project import ProjectRecord
-from .result import ResultRecord
-from .server import ServerRecord
-from .workflow import WorkflowRecord
+from .category_rec import CategoryRecord
+from .group_rec import GroupRecord
+from .item_rec import ItemRecord
+from .process_rec import ProcessRecord
+from .project_rec import ProjectRecord
+from .result_rec import ResultRecord
+from .server_rec import ServerRecord
+from .workflow_rec import WorkflowRecord
 
 __all__ = [
     "CategoryRecord",

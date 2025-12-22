@@ -2,13 +2,20 @@ from dataclasses import asdict
 
 from nicegui import ui
 
-from src.controllers.servers import ServerInput, StatusEnum, add_server, list_servers
+from src.controllers.server_ctrl import (
+    ServerInput,
+    add_server,
+    list_servers,
+)
 
 
 class ServersPage:
+    table: ui.table | None
+
     def __init__(self):
         self.servers = []
         self.selected_server = None
+        self.table = None
 
     async def load_servers(self):
         """Load servers from database"""
@@ -16,6 +23,9 @@ class ServersPage:
         servers_dicts = [asdict(server) for server in srvs]
         print("load_servers", servers_dicts)
         self.servers = servers_dicts
+        if self.table:
+            self.table.rows = self.servers  # Assign new rows
+            self.table.update()
 
     async def create_server(self, data):
         """Create new server"""
@@ -45,7 +55,7 @@ class ServersPage:
             ui.label("Create New Server").classes("text-h6")
 
             name_input = ui.input("Name").props("outlined")
-            ip_input = ui.input("Host").props("outlined")
+            ip_input = ui.input("Host", value="http://127.0.0.1:8188").props("outlined")
             is_local = ui.checkbox("Is Local").props("outlined")
 
             with ui.row():
@@ -75,11 +85,7 @@ class ServersPage:
 
             name_input = ui.input("Name", value=server["name"]).props("outlined")
             host_input = ui.input("Host", value=server["host"]).props("outlined")
-            status_select = ui.select(
-                [StatusEnum.ONLINE, StatusEnum.OFFLINE],
-                label="Status",
-                value=server["status"],
-            ).props("outlined")
+            is_local = ui.checkbox("Is Local").props("outlined")
 
             with ui.row():
                 ui.button("Cancel", on_click=dialog.close)
@@ -90,7 +96,7 @@ class ServersPage:
                         server["id"],
                         name_input.value,
                         host_input.value,
-                        status_select.value,
+                        is_local.value,
                     ),
                 ).props("color=primary")
 
@@ -165,12 +171,12 @@ class ServersPage:
                 },
             ]
             print("self_servers", self.servers)
-            table = ui.table(columns=columns, rows=self.servers, row_key="id").classes(
-                "w-full"
-            )
+            self.table = ui.table(
+                columns=columns, rows=self.servers, row_key="id"
+            ).classes("w-full")
 
             # Add action buttons to each row
-            table.add_slot(
+            self.table.add_slot(
                 "body-cell-actions",
                 """
                 <q-td :props="props">
@@ -180,8 +186,8 @@ class ServersPage:
             """,
             )
 
-            table.on("edit", lambda e: self.show_edit_dialog(e.args))
-            table.on("delete", lambda e: self.show_delete_dialog(e.args))
+            self.table.on("edit", lambda e: self.show_edit_dialog(e.args))
+            self.table.on("delete", lambda e: self.show_delete_dialog(e.args))
 
         await server_table()
 

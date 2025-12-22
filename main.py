@@ -6,9 +6,10 @@ import os
 
 from nicegui import app, ui
 
+from src.controllers.category_ctrl import init_predefined_categories
 from src.core.config import read_config
 from src.database import close_db, init_db
-from src.pages import home, servers
+from src.pages import categories_page, home_page, servers_page, workflows_page
 
 # Initialize pages
 
@@ -31,10 +32,13 @@ async def initialize():
     os.makedirs(config.thumbnails_path, exist_ok=True)
 
     await init_db(config.db_path)
+    await init_predefined_categories()
 
 
-home.init()
-servers.init()
+home_page.init()
+servers_page.init()
+workflows_page.init()
+categories_page.init()
 
 
 def main():
