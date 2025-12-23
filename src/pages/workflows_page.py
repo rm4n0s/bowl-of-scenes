@@ -3,6 +3,7 @@ from dataclasses import asdict
 from typing import Any
 
 from nicegui import ui
+from nicegui.events import UploadEventArguments
 
 from src.controllers.workflow_ctrl import (
     WorkflowInput,
@@ -37,16 +38,15 @@ class WorkflowsPage:
             workflow_json: dict[str, Any] = {}
             save_image_title_input = ui.input("SaveImage's title").props("outlined")
 
-            def handle_upload(event):
-                workflow_json = json.loads(event.file._data)
+            async def handle_upload(event: UploadEventArguments):
+                workflow_json = await event.file.json()
                 title = get_title_from_class_type(workflow_json, "SaveImage")
                 save_image_title_input.value = title
 
             ui.label("Upload Workflow JSON").classes("text-h6")
-            upload = ui.upload(
-                on_upload=lambda e: handle_upload(e), auto_upload=True
-            ).props('accept=".json"')
-            print("hahah", upload)
+            ui.upload(on_upload=lambda e: handle_upload(e), auto_upload=True).props(
+                'accept=".json"'
+            )
             load_image_controlnet_title_input = ui.input(
                 "LoadImage's title for ControlNet"
             ).props("outlined")
@@ -168,7 +168,7 @@ class WorkflowsPage:
     async def handle_delete(self, dialog, item_id):
         # await self.delete_workflow(item_id)
         await self.load_items()
-        ui.notify("Server deleted successfully", type="positive")
+        ui.notify("Workflow deleted successfully", type="positive")
         dialog.close()
 
     async def render(self):
@@ -185,7 +185,6 @@ class WorkflowsPage:
         @ui.refreshable
         async def table():
             await self.load_items()
-            # Table with servers
             columns = [
                 {"name": "id", "label": "ID", "field": "id", "align": "left"},
                 {"name": "name", "label": "Name", "field": "name", "align": "left"},

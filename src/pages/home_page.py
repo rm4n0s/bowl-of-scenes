@@ -9,3 +9,4 @@ def init():
         ui.link("Servers", "/servers")
         ui.link("Workflows", "/workflows")
         ui.link("Categories", "/categories")
+        ui.link("Groups", "/groups")
