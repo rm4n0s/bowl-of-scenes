@@ -13,6 +13,7 @@ from src.pages import (
     categories_page,
     groups_page,
     home_page,
+    items_page,
     servers_page,
     workflows_page,
 )
@@ -54,6 +55,7 @@ def main():
     workflows_page.init()
     categories_page.init()
     groups_page.init(GLOBAL_CONF)
+    items_page.init(GLOBAL_CONF)
     ui.run()
     print("Hello from bowl-of-scenes!")
 

@@ -1,5 +1,5 @@
 # db_path: ":memory:"
 db_path: ./.private/db.sqlite3
-controlnet_references_path: ./.private/generated_images
-ipadapter_references_path: ./.private/poses_images
-thumbnails_path: ./.private/huggingface
+controlnet_references_path: ./.private/controlnet_images
+ipadapter_references_path: ./.private/ipadapter_images
+thumbnails_path: ./.private/thumbnail_images
