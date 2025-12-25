@@ -14,6 +14,7 @@ from src.pages import (
     groups_page,
     home_page,
     items_page,
+    projects_page,
     servers_page,
     workflows_page,
 )
@@ -54,6 +55,7 @@ def main():
     servers_page.init()
     workflows_page.init()
     categories_page.init()
+    projects_page.init()
     groups_page.init(GLOBAL_CONF)
     items_page.init(GLOBAL_CONF)
     ui.run()

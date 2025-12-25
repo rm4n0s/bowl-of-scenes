@@ -17,6 +17,7 @@ class StatusEnum(enum.StrEnum):
 class ServerInput:
     name: str
     host: str
+    code_name: str
     is_local: bool
 
 
@@ -25,12 +26,18 @@ class ServerOutput:
     id: int
     name: str
     host: str
+    code_name: str
     is_local: bool
     status: StatusEnum
 
 
 async def add_server(input: ServerInput):
-    await ServerRecord.create(name=input.name, host=input.host, is_local=input.is_local)
+    await ServerRecord.create(
+        name=input.name,
+        host=input.host,
+        code_name=input.code_name,
+        is_local=input.is_local,
+    )
 
 
 async def list_servers() -> list[ServerOutput]:
@@ -45,7 +52,12 @@ async def list_servers() -> list[ServerOutput]:
             status = StatusEnum.OFFLINE
 
         sout = ServerOutput(
-            id=sr.id, name=sr.name, host=sr.host, is_local=sr.is_local, status=status
+            id=sr.id,
+            name=sr.name,
+            host=sr.host,
+            is_local=sr.is_local,
+            code_name=sr.code_name,
+            status=status,
         )
         server_outs.append(sout)
     return server_outs

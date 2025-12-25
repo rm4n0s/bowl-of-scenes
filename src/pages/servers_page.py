@@ -27,22 +27,6 @@ class ServersPage:
             self.table.rows = self.servers  # Assign new rows
             self.table.update()
 
-    async def create_server(self, data):
-        """Create new server"""
-        input = ServerInput(
-            name=data["name"], host=data["host"], is_local=data["is_local"]
-        )
-        await add_server(input)
-        await self.load_servers()
-        ui.notify("Server created successfully", type="positive")
-
-    async def update_server(self, server_id, data):
-        """Update existing server"""
-        # server = await ServerRecord.get(id=server_id)
-        # await server.update_from_dict(data).save()
-        await self.load_servers()
-        ui.notify("Server updated successfully", type="positive")
-
     async def delete_server(self, server_id):
         """Delete server"""
         # await ServerRecord.filter(id=server_id).delete()
@@ -55,7 +39,10 @@ class ServersPage:
             ui.label("Create New Server").classes("text-h6")
 
             name_input = ui.input("Name").props("outlined")
-            ip_input = ui.input("Host", value="http://127.0.0.1:8188").props("outlined")
+            host_input = ui.input("Host", value="http://127.0.0.1:8188").props(
+                "outlined"
+            )
+            code_name_input = ui.input("Code name").props("outlined")
             is_local = ui.checkbox("Is Local").props("outlined")
 
             with ui.row():
@@ -63,19 +50,31 @@ class ServersPage:
                 ui.button(
                     "Create",
                     on_click=lambda: self.handle_create(
-                        dialog, name_input.value, ip_input.value, is_local.value
+                        dialog,
+                        name_input.value,
+                        host_input.value,
+                        code_name_input.value,
+                        is_local.value,
                     ),
                 ).props("color=primary")
 
         dialog.open()
 
-    async def handle_create(self, dialog, name: str, host: str, is_local: bool):
+    async def handle_create(
+        self, dialog, name: str, host: str, code_name: str, is_local: bool
+    ):
         """Handle server creation"""
         if not name or not host:
             ui.notify("Name and IP are required", type="negative")
             return
 
-        await self.create_server({"name": name, "host": host, "is_local": is_local})
+        input = ServerInput(
+            name=name, host=host, code_name=code_name, is_local=is_local
+        )
+        await add_server(input)
+        await self.load_servers()
+        ui.notify("Server created successfully", type="positive")
+
         dialog.close()
 
     def show_edit_dialog(self, server):
@@ -85,6 +84,9 @@ class ServersPage:
 
             name_input = ui.input("Name", value=server["name"]).props("outlined")
             host_input = ui.input("Host", value=server["host"]).props("outlined")
+            code_name_input = ui.input("Code name", value=server["code_name"]).props(
+                "outlined"
+            )
             is_local = ui.checkbox("Is Local").props("outlined")
 
             with ui.row():
@@ -96,21 +98,21 @@ class ServersPage:
                         server["id"],
                         name_input.value,
                         host_input.value,
+                        code_name_input.value,
                         is_local.value,
                     ),
                 ).props("color=primary")
 
         dialog.open()
 
-    async def handle_update(self, dialog, server_id, name, host, is_local):
+    async def handle_update(self, dialog, server_id, name, host, code_name, is_local):
         """Handle server update"""
         if not name or not host:
             ui.notify("Name and IP are required", type="negative")
             return
 
-        await self.update_server(
-            server_id, {"name": name, "host": host, "is_local": is_local}
-        )
+        await self.load_servers()
+        ui.notify("Server updated successfully", type="positive")
         dialog.close()
 
     def show_delete_dialog(self, server):
@@ -153,8 +155,14 @@ class ServersPage:
                 {"name": "host", "label": "Host", "field": "host", "align": "left"},
                 {
                     "name": "is_local",
-                    "label": "is_local",
+                    "label": "Is Local",
                     "field": "is_local",
+                    "align": "left",
+                },
+                {
+                    "name": "code_name",
+                    "label": "Code name",
+                    "field": "code_name",
                     "align": "left",
                 },
                 {

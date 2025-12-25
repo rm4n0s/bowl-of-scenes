@@ -2,10 +2,10 @@ from dataclasses import asdict
 
 from nicegui import ui
 
-from src.controllers.category_ctrl import CategoryInput, add_category, list_categories
+from src.controllers.project_ctrl import ProjectInput, add_project, list_projects
 
 
-class CategoriesPage:
+class ProjectsPage:
     table: ui.table | None
 
     def __init__(self):
@@ -14,16 +14,16 @@ class CategoriesPage:
         self.table = None
 
     async def load_items(self):
-        cats = await list_categories()
-        cats_dicts = [asdict(cat) for cat in cats]
-        self.items = cats_dicts
+        prs = await list_projects()
+        prs_dicts = [asdict(pr) for pr in prs]
+        self.items = prs_dicts
         if self.table:
             self.table.rows = self.items  # Assign new rows
             self.table.update()
 
     def show_create_dialog(self):
         with ui.dialog() as dialog, ui.card():
-            ui.label("Create New Category").classes("text-h6")
+            ui.label("Create New Project").classes("text-h6")
 
             name_input = ui.input("Name").props("outlined")
 
@@ -44,18 +44,18 @@ class CategoriesPage:
         dialog,
         name: str,
     ):
-        input = CategoryInput(
+        input = ProjectInput(
             name=name,
         )
 
-        await add_category(input)
+        await add_project(input)
         await self.load_items()
-        ui.notify("Category created successfully", type="positive")
+        ui.notify("Project created successfully", type="positive")
         dialog.close()
 
     def show_edit_dialog(self, item):
         with ui.dialog() as dialog, ui.card():
-            ui.label("Edit Category").classes("text-h6")
+            ui.label("Edit Project").classes("text-h6")
 
             name_input = ui.input("Name", value=item["name"]).props("outlined")
 
@@ -79,7 +79,7 @@ class CategoriesPage:
         name: str,
     ):
         await self.load_items()
-        ui.notify("Category updated successfully", type="positive")
+        ui.notify("Project updated successfully", type="positive")
         dialog.close()
 
     def show_delete_dialog(self, item):
@@ -97,17 +97,17 @@ class CategoriesPage:
 
     async def handle_delete(self, dialog, item_id):
         await self.load_items()
-        ui.notify("Category deleted successfully", type="positive")
+        ui.notify("Project deleted successfully", type="positive")
         dialog.close()
 
     async def render(self):
         """Render the CRUD page"""
-        ui.label("Category Management").classes("text-h4 q-mb-md")
+        ui.label("Project Management").classes("text-h4 q-mb-md")
 
         # Action buttons
         with ui.row().classes("q-mb-md"):
             ui.button(
-                "Add Category", icon="add", on_click=self.show_create_dialog
+                "Add Project", icon="add", on_click=self.show_create_dialog
             ).props("color=primary")
             ui.button("Refresh", icon="refresh", on_click=self.load_items)
 
@@ -147,9 +147,9 @@ class CategoriesPage:
 
 
 def init():
-    @ui.page("/categories")
+    @ui.page("/projects")
     async def page():
         ui.dark_mode().auto()
-        page = CategoriesPage()
+        page = ProjectsPage()
         await page.render()
         await page.load_items()

@@ -19,3 +19,11 @@ license = {text = "SSPLv1"}
 
 [tool.uv.sources]
 yet-another-comfy-client = { git = "https://github.com/rm4n0s/yet-another-comfy-client" }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

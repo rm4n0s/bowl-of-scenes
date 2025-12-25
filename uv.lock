@@ -173,6 +173,11 @@ dependencies = [
     { name = "yet-another-comfy-client" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aiosqlite", specifier = "==0.21.0" },
@@ -182,6 +187,9 @@ requires-dist = [
     { name = "tortoise-orm", specifier = "==0.25.1" },
     { name = "yet-another-comfy-client", git = "https://github.com/rm4n0s/yet-another-comfy-client" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.0.2" }]
 
 [[package]]
 name = "certifi"
