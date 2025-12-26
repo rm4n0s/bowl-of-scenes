@@ -6,7 +6,6 @@ def test_parser():
     cmd = parser.parse(
         "server -$ workflow_anime: character x  poses(~jumping) x emotions(sad)"
     )
-
     assert cmd.server_code_name == "server"
     assert cmd.workflow_code_name == "workflow_anime"
     assert cmd.group_selections[0].group_code_name == "character"

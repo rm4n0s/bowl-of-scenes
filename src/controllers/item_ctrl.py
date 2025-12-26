@@ -1,6 +1,7 @@
 import os
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from nicegui.elements.upload_files import FileUpload
 
@@ -15,6 +16,7 @@ class ItemInput:
     code_name: str
     positive_prompt: str
     negative_prompt: str
+    lora: dict[str, Any] | None
     controlnet_reference_image: FileUpload | None
     ipadapter_reference_image: FileUpload | None
     thumbnail_image: FileUpload | None
@@ -28,6 +30,7 @@ class ItemOutput:
     code_name: str
     positive_prompt: str
     negative_prompt: str
+    lora: dict[str, Any] | None
     controlnet_reference_image: str | None
     ipadapter_reference_image: str | None
     thumbnail_image: str | None
@@ -56,12 +59,15 @@ async def add_item(conf: Config, input: ItemInput):
         )
         await input.controlnet_reference_image.save(controlnt_ref_path)
 
+    lora = input.lora
+
     await ItemRecord.create(
         group_id=input.group_id,
         name=input.name,
         code_name=input.code_name,
         positive_prompt=input.positive_prompt,
         negative_prompt=input.negative_prompt,
+        lora=lora,
         controlnet_reference_image=controlnt_ref_path,
         ipadapter_reference_image=ipadapter_ref_path,
         thumbnail_image=thumbnail_path,
@@ -79,6 +85,7 @@ async def list_items(group_id: int) -> list[ItemOutput]:
             code_name=rec.code_name,
             positive_prompt=rec.positive_prompt,
             negative_prompt=rec.negative_prompt,
+            lora=rec.lora,
             controlnet_reference_image=rec.controlnet_reference_image,
             ipadapter_reference_image=rec.ipadapter_reference_image,
             thumbnail_image=rec.thumbnail_image,

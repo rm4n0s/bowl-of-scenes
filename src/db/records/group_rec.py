@@ -13,4 +13,5 @@ class GroupRecord(TimestampMixin, Model):
     category_id = fields.IntField(null=True)
     use_controlnet = fields.BooleanField()
     use_ip_adapter = fields.BooleanField()
+    use_lora = fields.BooleanField()
     thumbnail_image = fields.TextField(null=True)

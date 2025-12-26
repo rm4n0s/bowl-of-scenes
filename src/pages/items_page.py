@@ -1,7 +1,9 @@
+import json
 from dataclasses import asdict
 
 from fastapi import HTTPException
 from nicegui import ui
+from nicegui.elements.textarea import Textarea
 from nicegui.elements.upload_files import FileUpload
 from nicegui.events import MultiUploadEventArguments
 
@@ -37,6 +39,10 @@ class ItemsPage:
             code_name_input = ui.input("Code Name").props("outlined")
             positive_prompt_input = ui.input("Positive prompt").props("outlined")
             negative_prompt_input = ui.input("Negative prompt").props("outlined")
+
+            lora_input = None
+            if self.group.use_lora:
+                lora_input = ui.textarea("LoRA in JSON").props("outlined")
 
             ipadapter_reference_image_input = None
             if self.group.use_ip_adapter:
@@ -94,6 +100,7 @@ class ItemsPage:
                         code_name_input.value,
                         positive_prompt_input.value,
                         negative_prompt_input.value,
+                        lora_input,
                         controlnet_reference_image_input,
                         ipadapter_reference_image_input,
                         thumbnail_image_input,
@@ -109,17 +116,24 @@ class ItemsPage:
         code_name: str,
         positive_prompt: str,
         negative_prompt: str,
+        lora_input: Textarea | None,
         controlnet_reference_image: FileUpload | None,
         ipadapter_reference_image: FileUpload | None,
         thumbnail_image: FileUpload | None,
     ):
         print("thumbnail_image uploaded", thumbnail_image is not None)
+        lora = None
+        if lora_input is not None:
+            if len(lora_input.value) > 0:
+                lora = json.loads(lora_input.value)
+
         input = ItemInput(
             self.group.id,
             name=name,
             code_name=code_name,
             positive_prompt=positive_prompt,
             negative_prompt=negative_prompt,
+            lora=lora,
             controlnet_reference_image=controlnet_reference_image,
             ipadapter_reference_image=ipadapter_reference_image,
             thumbnail_image=thumbnail_image,
@@ -134,10 +148,20 @@ class ItemsPage:
         with ui.dialog() as dialog, ui.card():
             ui.label("Edit Item").classes("text-h6")
 
-            name_input = ui.input("Name").props("outlined")
-            code_name_input = ui.input("Code Name").props("outlined")
-            positive_prompt_input = ui.input("Positive prompt").props("outlined")
-            negative_prompt_input = ui.input("Negative prompt").props("outlined")
+            name_input = ui.input("Name", value=item["name"]).props("outlined")
+            code_name_input = ui.input("Code Name", value=item["code_name"]).props(
+                "outlined"
+            )
+            positive_prompt_input = ui.input(
+                "Positive prompt", value=item["positive_prompt"]
+            ).props("outlined")
+            negative_prompt_input = ui.input(
+                "Negative prompt", value=item["negative_prompt"]
+            ).props("outlined")
+
+            lora_input = None
+            if self.group.use_lora:
+                lora_input = ui.textarea("LoRA in JSON").props("outlined")
 
             ipadapter_reference_image_input = None
             if self.group.use_ip_adapter:
@@ -196,6 +220,7 @@ class ItemsPage:
                         code_name_input.value,
                         positive_prompt_input.value,
                         negative_prompt_input.value,
+                        lora_input,
                         controlnet_reference_image_input,
                         ipadapter_reference_image_input,
                         thumbnail_image_input,
@@ -212,6 +237,7 @@ class ItemsPage:
         code_name: str,
         positive_prompt: str,
         negative_prompt: str,
+        lora_input: Textarea | None,
         controlnet_reference_image: FileUpload | None,
         ipadapter_reference_image: FileUpload | None,
         thumbnail_image: FileUpload | None,

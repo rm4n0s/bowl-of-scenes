@@ -40,6 +40,8 @@ class GroupsPage:
             category_id_input = ui.select(
                 cat_dicts, label="Categories", value=categories[0].id
             )
+
+            use_lora_input = ui.checkbox("Uuse LoRA").props("outlined")
             use_controlnet_input = ui.checkbox("Use ControlNet").props("outlined")
             use_ip_adapter_input = ui.checkbox("Use IP Adapter").props("outlined")
             thumbnail_image_input = None
@@ -68,6 +70,7 @@ class GroupsPage:
                         description_input.value,
                         code_name_input.value,
                         category_id_input.value,  # pyright: ignore[reportArgumentType]
+                        use_lora_input.value,
                         use_controlnet_input.value,
                         use_ip_adapter_input.value,
                         thumbnail_image_input,
@@ -83,6 +86,7 @@ class GroupsPage:
         description: str,
         code_name: str,
         category_id: int,
+        use_lora: bool,
         use_controlnet: bool,
         use_ip_adapter: bool,
         thumbnail_image: FileUpload | None,
@@ -93,6 +97,7 @@ class GroupsPage:
             description=description,
             code_name=code_name,
             category_id=category_id,
+            use_lora=use_lora,
             use_controlnet=use_controlnet,
             use_ip_adapter=use_ip_adapter,
             thumbnail_image=thumbnail_image,
@@ -115,6 +120,7 @@ class GroupsPage:
             description_input = ui.input("Description").props("outlined")
             code_name_input = ui.input("Code Name").props("outlined")
             category_id_input = ui.select(cat_dicts, value=categories[0].id)
+            use_lora_input = ui.checkbox("Use LoRA").props("outlined")
             use_controlnet_input = ui.checkbox("Use ControlNet").props("outlined")
             use_ip_adapter_input = ui.checkbox("Use IP Adapter").props("outlined")
             thumbnail_image_input = None
@@ -139,6 +145,7 @@ class GroupsPage:
                         description_input.value,
                         code_name_input.value,
                         category_id_input.value,  # pyright: ignore[reportArgumentType]
+                        use_lora_input.value,
                         use_controlnet_input.value,
                         use_ip_adapter_input.value,
                         thumbnail_image_input,
@@ -155,6 +162,7 @@ class GroupsPage:
         description: str,
         code_name: str,
         category_id: int,
+        use_lora: bool,
         use_controlnet: bool,
         use_ip_adapter: bool,
         thumbnail_image: FileUpload | None,
@@ -212,6 +220,12 @@ class GroupsPage:
                     "name": "category_id",
                     "label": "Category",
                     "field": "category_id",
+                    "align": "left",
+                },
+                {
+                    "name": "use_lora",
+                    "label": "Uses lora",
+                    "field": "use_lora",
                     "align": "left",
                 },
                 {

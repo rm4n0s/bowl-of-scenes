@@ -14,6 +14,7 @@ class GroupInput:
     description: str
     code_name: str
     category_id: int
+    use_lora: bool
     use_controlnet: bool
     use_ip_adapter: bool
     thumbnail_image: FileUpload | None
@@ -26,6 +27,7 @@ class GroupOutput:
     description: str
     code_name: str
     category_id: int
+    use_lora: bool
     use_controlnet: bool
     use_ip_adapter: bool
     thumbnail_image: str | None
@@ -43,6 +45,7 @@ async def add_group(conf: Config, input: GroupInput):
         description=input.description,
         code_name=input.code_name,
         category_id=input.category_id,
+        use_lora=input.use_lora,
         use_controlnet=input.use_controlnet,
         use_ip_adapter=input.use_ip_adapter,
         thumbnail_image=thumbnail_path,
@@ -59,6 +62,7 @@ async def list_groups() -> list[GroupOutput]:
             description=rec.description,
             code_name=rec.code_name,
             category_id=rec.category_id,
+            use_lora=rec.use_lora,
             use_controlnet=rec.use_controlnet,
             use_ip_adapter=rec.use_ip_adapter,
             thumbnail_image=rec.thumbnail_image,
@@ -79,6 +83,7 @@ async def get_group(id: int) -> GroupOutput | None:
         description=rec.description,
         code_name=rec.code_name,
         category_id=rec.category_id,
+        use_lora=rec.use_lora,
         use_controlnet=rec.use_controlnet,
         use_ip_adapter=rec.use_ip_adapter,
         thumbnail_image=rec.thumbnail_image,

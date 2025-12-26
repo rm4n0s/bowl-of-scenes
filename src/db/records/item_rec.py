@@ -11,6 +11,7 @@ class ItemRecord(TimestampMixin, Model):
     code_name = fields.CharField(unique=True, max_length=100)
     positive_prompt = fields.TextField()
     negative_prompt = fields.TextField()
+    lora = fields.JSONField(null=True)
     controlnet_reference_image = fields.TextField(null=True)
     ipadapter_reference_image = fields.TextField(null=True)
     thumbnail_image = fields.TextField(null=True)

@@ -10,3 +10,4 @@ def init():
         ui.link("Workflows", "/workflows")
         ui.link("Categories", "/categories")
         ui.link("Groups", "/groups")
+        ui.link("Projects", "/projects")
