@@ -128,7 +128,7 @@ class ItemsPage:
                 lora = json.loads(lora_input.value)
 
         input = ItemInput(
-            self.group.id,
+            group_id=self.group.id,
             name=name,
             code_name=code_name,
             positive_prompt=positive_prompt,
@@ -258,9 +258,6 @@ class ItemsPage:
                 ).props("color=negative")
 
         dialog.open()
-
-    def redirect_to_items(self, item):
-        ui.navigate.to(f"/groups/{item['id']}/items")
 
     async def handle_delete(self, dialog, item_id):
         # await self.delete_workflow(item_id)

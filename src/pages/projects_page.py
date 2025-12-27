@@ -100,6 +100,9 @@ class ProjectsPage:
         ui.notify("Project deleted successfully", type="positive")
         dialog.close()
 
+    def redirect_to_commands(self, project):
+        ui.navigate.to(f"/projects/{project['id']}/commands")
+
     async def render(self):
         """Render the CRUD page"""
         ui.label("Project Management").classes("text-h4 q-mb-md")
@@ -134,14 +137,16 @@ class ProjectsPage:
                 "body-cell-actions",
                 """
                 <q-td :props="props">
-                    <q-btn flat dense icon="edit" @click="$parent.$emit('edit', props.row)" />
-                    <q-btn flat dense icon="delete" color="negative" @click="$parent.$emit('delete', props.row)" />
+                    <q-btn flat dense icon="edit" class="q-mr-sm"  @click="$parent.$emit('edit', props.row)" />
+                    <q-btn flat dense icon="delete" class="q-mr-xl"  color="negative" @click="$parent.$emit('delete', props.row)" />
+                    <q-btn flat dense icon="table"   @click="$parent.$emit('show_commands', props.row)" />
                 </q-td>
             """,
             )
 
             self.table.on("edit", lambda e: self.show_edit_dialog(e.args))
             self.table.on("delete", lambda e: self.show_delete_dialog(e.args))
+            self.table.on("show_commands", lambda e: self.redirect_to_commands(e.args))
 
         await table()
 

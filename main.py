@@ -11,6 +11,7 @@ from src.core.config import Config, read_config
 from src.database import close_db, init_db
 from src.pages import (
     categories_page,
+    commands_page,
     groups_page,
     home_page,
     items_page,
@@ -56,6 +57,7 @@ def main():
     workflows_page.init()
     categories_page.init()
     projects_page.init()
+    commands_page.init(GLOBAL_CONF)
     groups_page.init(GLOBAL_CONF)
     items_page.init(GLOBAL_CONF)
     ui.run()
