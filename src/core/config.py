@@ -9,6 +9,7 @@ from mashumaro.mixins.yaml import DataClassYAMLMixin
 @dataclass
 class Config(DataClassYAMLMixin):
     db_path: str
+    result_path: str
     controlnet_references_path: str
     ipadapter_references_path: str
     thumbnails_path: str

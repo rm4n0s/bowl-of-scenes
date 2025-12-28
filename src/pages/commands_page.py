@@ -2,10 +2,12 @@ from dataclasses import asdict
 
 from fastapi import HTTPException
 from nicegui import ui
+from nicegui.elements.label import Label
 
 from src.controllers.command_ctrl.command_ctrl import (
     CommandInput,
     add_command,
+    delete_command,
     list_commands,
 )
 from src.controllers.project_ctrl import ProjectOutput, get_project
@@ -34,7 +36,7 @@ class CommandsPage:
             ui.label("Create New Item").classes("text-h6")
 
             code_input = ui.textarea("Code").props("outlined")
-
+            error_label = ui.label("").classes("text-red-600")
             with ui.row():
                 ui.button("Cancel", on_click=dialog.close)
                 ui.button(
@@ -42,22 +44,23 @@ class CommandsPage:
                     on_click=lambda: self.handle_create(
                         dialog,
                         code_input.value,
+                        error_label,
                     ),
                 ).props("color=primary")
 
         dialog.open()
 
-    async def handle_create(
-        self,
-        dialog,
-        code: str,
-    ):
+    async def handle_create(self, dialog, code: str, error_label: Label):
         input = CommandInput(
             project_id=self.project.id,
             code=code,
         )
 
-        await add_command(input)
+        errors = await add_command(input)
+        if errors is not None:
+            ui.notify("Command didn't created", type="negative")
+            error_label.set_text(str(errors))
+            return
         await self.load_items()
         ui.notify("Command created successfully", type="positive")
         dialog.close()
@@ -108,7 +111,7 @@ class CommandsPage:
         ui.navigate.to(f"/commands/{item['id']}/results")
 
     async def handle_delete(self, dialog, item_id):
-        # await self.delete_workflow(item_id)
+        await delete_command(item_id)
         await self.load_items()
         ui.notify("Command deleted successfully", type="positive")
         dialog.close()
@@ -129,6 +132,12 @@ class CommandsPage:
             await self.load_items()
             columns = [
                 {"name": "id", "label": "ID", "field": "id", "align": "left"},
+                {
+                    "name": "order",
+                    "label": "Order",
+                    "field": "order",
+                    "align": "left",
+                },
                 {
                     "name": "command_code",
                     "label": "Code",
@@ -153,6 +162,7 @@ class CommandsPage:
                 <q-td :props="props">
                     <q-btn flat dense icon="edit" class="q-mr-sm"  @click="$parent.$emit('edit', props.row)" />
                     <q-btn flat dense icon="delete" class="q-mr-xl"  color="negative" @click="$parent.$emit('delete', props.row)" />
+                    <q-btn flat dense icon="start" class="q-mr-xl"   @click="$parent.$emit('run_command', props.row)" />
                     <q-btn flat dense icon="table"   @click="$parent.$emit('show_results', props.row)" />
                 </q-td>
             """,

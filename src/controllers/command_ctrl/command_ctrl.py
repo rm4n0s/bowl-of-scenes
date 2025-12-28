@@ -4,6 +4,10 @@ from typing import Any
 from tortoise.expressions import F
 
 from src.controllers.command_ctrl.command_parser import PromptLanguageParser
+from src.controllers.command_ctrl.command_validator import (
+    ValidationResult,
+    validate_code_names,
+)
 from src.db.records import CommandRecord
 
 
@@ -22,7 +26,9 @@ class CommandOutput:
     command_json: dict[str, Any]
 
 
-async def add_command(input: CommandInput, insert_at: int | None = None):
+async def add_command(
+    input: CommandInput, insert_at: int | None = None
+) -> list[str] | None:
     """
     Add a new command. If insert_at is specified, insert at that position,
     otherwise append to the end.
@@ -46,6 +52,10 @@ async def add_command(input: CommandInput, insert_at: int | None = None):
 
     parser = PromptLanguageParser()
     command = parser.parse(input.code)
+    valid_res = await validate_code_names(command)
+    if not valid_res.is_valid:
+        return valid_res.errors
+
     print("command_json", command)
     await CommandRecord.create(
         project_id=input.project_id,

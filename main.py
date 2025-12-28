@@ -27,6 +27,7 @@ GLOBAL_CONF: Config | None = None
 
 async def initialize():
     assert GLOBAL_CONF
+    os.makedirs(GLOBAL_CONF.result_path, exist_ok=True)
     os.makedirs(GLOBAL_CONF.controlnet_references_path, exist_ok=True)
     os.makedirs(GLOBAL_CONF.ipadapter_references_path, exist_ok=True)
     os.makedirs(GLOBAL_CONF.thumbnails_path, exist_ok=True)

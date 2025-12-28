@@ -1,7 +1,7 @@
 import json
 import re
-from dataclasses import asdict, dataclass
-from typing import Dict, List, Optional, Set, Union
+from dataclasses import dataclass
+from typing import Optional, Set
 
 
 @dataclass
@@ -9,7 +9,7 @@ class GroupSelection:
     """Represents a group with optional inclusions/exclusions"""
 
     group_code_name: str
-    include_only: Optional[List[str]] = None  # Specific items to include
+    include_only: Optional[list[str]] = None  # Specific items to include
     exclude: Optional[Set[str]] = None  # Items to exclude
 
     def to_dict(self):
@@ -26,7 +26,7 @@ class ParsedCommand:
 
     server_code_name: str
     workflow_code_name: str
-    group_selections: List[GroupSelection]
+    group_selections: list[GroupSelection]
 
     def to_dict(self):
         return {
@@ -79,7 +79,7 @@ class PromptLanguageParser:
             group_selections=group_selections,
         )
 
-    def _parse_groups(self, groups_part: str) -> List[GroupSelection]:
+    def _parse_groups(self, groups_part: str) -> list[GroupSelection]:
         """Parse the groups portion of the command"""
         # Split by 'x' to get individual group expressions
         group_expressions = [g.strip() for g in groups_part.split("x")]
