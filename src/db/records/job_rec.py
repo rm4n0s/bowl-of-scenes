@@ -1,5 +1,4 @@
 import enum
-from tkinter.constants import TRUE
 
 from tortoise import fields
 from tortoise.models import Model
@@ -19,9 +18,11 @@ class JobRecord(TimestampMixin, Model):
     command_id = fields.IntField()
     group_item_id_list = fields.JSONField()
     code_str = fields.TextField()
-    comfyui_host = fields.CharField(max_length=100)
+    server_code_name = fields.CharField(max_length=100)
+    server_host = fields.CharField(max_length=100)
     status = fields.CharEnumField(enum_type=JobStatus, default=JobStatus.WAITING)
-    workflow_json = fields.JSONField()
+    workflow_code_name = fields.CharField(max_length=100)
+    comfyui_prompt_id = fields.CharField(max_length=200, null=True, default=None)
     prompt_positive = fields.TextField()
     prompt_negative = fields.TextField()
     reference_controlnet_img = fields.TextField(null=True)

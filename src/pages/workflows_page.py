@@ -35,17 +35,13 @@ class WorkflowsPage:
             name_input = ui.input("Name").props("outlined")
             code_name_input = ui.input("Code name").props("outlined")
             workflow_json: dict[str, Any] = {}
-            save_image_title_input = ui.input("SaveImage's title").props("outlined")
-
-            async def handle_upload(event: UploadEventArguments):
-                workflow_json = await event.file.json()
-                title = get_title_from_class_type(workflow_json, "SaveImage")
-                save_image_title_input.value = title
-
-            ui.label("Upload Workflow JSON").classes("text-h6")
-            ui.upload(on_upload=lambda e: handle_upload(e), auto_upload=True).props(
-                'accept=".json"'
+            positive_prompt_title_input = ui.input("Positive Prompt's title").props(
+                "outlined"
             )
+            negative_prompt_title_input = ui.input("Negative Prompt's title").props(
+                "outlined"
+            )
+            save_image_title_input = ui.input("SaveImage's title").props("outlined")
             load_image_controlnet_title_input = ui.input(
                 "LoadImage's title for ControlNet"
             ).props("outlined")
@@ -53,6 +49,43 @@ class WorkflowsPage:
             load_image_ipadapter_title_input = ui.input(
                 "LoadImage's title for IPAdapter"
             ).props("outlined")
+
+            async def handle_upload(event: UploadEventArguments):
+                nonlocal workflow_json
+                workflow_json = await event.file.json()
+                save_image_titles = get_title_from_class_type(
+                    workflow_json, "SaveImage"
+                )
+                if len(save_image_titles) > 0:
+                    save_image_title_input.value = save_image_titles[0]
+
+                load_image_titles = get_title_from_class_type(
+                    workflow_json, "LoadImage"
+                )
+
+                for title in load_image_titles:
+                    low_title = title.lower()
+                    if "controlnet" in low_title:
+                        load_image_controlnet_title_input.value = title
+
+                    if "ipadapter" in low_title:
+                        load_image_ipadapter_title_input.value = title
+
+                prompt_titles = get_title_from_class_type(
+                    workflow_json, "CLIPTextEncode"
+                )
+                for title in prompt_titles:
+                    low_title = title.lower()
+                    if "positive" in low_title:
+                        positive_prompt_title_input.value = title
+
+                    if "negative" in low_title:
+                        negative_prompt_title_input.value = title
+
+            ui.label("Upload Workflow JSON").classes("text-h6")
+            ui.upload(on_upload=lambda e: handle_upload(e), auto_upload=True).props(
+                'accept=".json"'
+            )
 
             with ui.row():
                 ui.button("Cancel", on_click=dialog.close)
@@ -63,6 +96,8 @@ class WorkflowsPage:
                         name_input.value,
                         code_name_input.value,
                         workflow_json,
+                        positive_prompt_title_input.value,
+                        negative_prompt_title_input.value,
                         load_image_ipadapter_title_input.value,
                         load_image_controlnet_title_input.value,
                         save_image_title_input.value,
@@ -77,6 +112,8 @@ class WorkflowsPage:
         name: str,
         code_name: str,
         workflow_json: dict[str, Any],
+        positive_prompt_title: str,
+        negative_prompt_title: str,
         load_image_ipadapter_title: str,
         load_image_controlnet_title: str,
         save_image_title: str,
@@ -85,6 +122,8 @@ class WorkflowsPage:
             name=name,
             code_name=code_name,
             workflow_json=workflow_json,
+            positive_prompt_title=positive_prompt_title,
+            negative_prompt_title=negative_prompt_title,
             load_image_ipadapter_title=load_image_ipadapter_title,
             load_image_controlnet_title=load_image_controlnet_title,
             save_image_title=save_image_title,
@@ -105,6 +144,12 @@ class WorkflowsPage:
             )
             json_file_path_input = ui.input(
                 "Workflow's JSON file path", value=item["json_file_path"]
+            ).props("outlined")
+            positive_prompt_title_input = ui.input(
+                "Positive Prompt's title", value=item["positive_prompt_title"]
+            ).props("outlined")
+            negative_prompt_title_input = ui.input(
+                "Negative Prompt's title", value=item["negative_prompt_title"]
             ).props("outlined")
             load_image_ipadapter_title_input = ui.input(
                 "LoadImage's for ipadapter's title",
@@ -128,6 +173,8 @@ class WorkflowsPage:
                         name_input.value,
                         code_name_input.value,
                         json_file_path_input.value,
+                        positive_prompt_title_input.value,
+                        negative_prompt_title_input.value,
                         load_image_ipadapter_title_input.value,
                         load_image_controlnet_title_input.value,
                         save_image_title_input.value,
@@ -143,6 +190,8 @@ class WorkflowsPage:
         name: str,
         code_name: str,
         json_file_path: str,
+        positive_prompt_title: str,
+        negative_prompt_title: str,
         load_image_ipadapter_title: str,
         load_image_controlnet_title: str,
         save_image_title: str,

@@ -8,6 +8,8 @@ class WorkflowRecord(TimestampMixin, Model):
     id = fields.IntField(primary_key=True)
     name = fields.CharField(max_length=100)
     code_name = fields.CharField(unique=True, max_length=100)
+    positive_prompt_title = fields.TextField(null=True)
+    negative_prompt_title = fields.TextField(null=True)
     load_image_ipadapter_title = fields.TextField(null=True)
     load_image_controlnet_title = fields.TextField(null=True)
     save_image_title = fields.TextField()

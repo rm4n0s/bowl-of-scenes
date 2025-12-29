@@ -17,11 +17,12 @@ def title_with_class_type_exists(
     return False
 
 
-def get_title_from_class_type(workflow: dict[str, Any], class_type: str) -> str:
+def get_title_from_class_type(workflow: dict[str, Any], class_type: str) -> list[str]:
+    res = []
     for node_id, value in workflow.items():
         node_class_type = value.get("class_type", "").strip()
         if class_type == node_class_type:
             node_title = value.get("_meta", {}).get("title", "").strip()
-            return node_title
+            res.append(node_title)
 
-    return ""
+    return res

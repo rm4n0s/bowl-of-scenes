@@ -7,6 +7,7 @@ import os
 from nicegui import app, ui
 
 from src.controllers.category_ctrl import init_predefined_categories
+from src.controllers.manager_ctrl import Manager
 from src.core.config import Config, read_config
 from src.database import close_db, init_db
 from src.pages import (
@@ -23,10 +24,15 @@ from src.pages import (
 # Initialize pages
 
 GLOBAL_CONF: Config | None = None
+GLOBAL_MANAGER: Manager | None
 
 
 async def initialize():
+    global GLOBAL_CONF
+    global GLOBAL_MANAGER
     assert GLOBAL_CONF
+    assert GLOBAL_MANAGER
+    await GLOBAL_MANAGER.start_background_tasks()
     os.makedirs(GLOBAL_CONF.result_path, exist_ok=True)
     os.makedirs(GLOBAL_CONF.controlnet_references_path, exist_ok=True)
     os.makedirs(GLOBAL_CONF.ipadapter_references_path, exist_ok=True)
@@ -38,6 +44,7 @@ async def initialize():
 
 def main():
     global GLOBAL_CONF
+    global GLOBAL_MANAGER
     parser = argparse.ArgumentParser(
         prog="Bowl Of Scenes",
         description="It is a server for generating images a batch of images based on combination of attributes",
@@ -50,15 +57,18 @@ def main():
     config_path = args.config
 
     GLOBAL_CONF = read_config(config_path)
+    GLOBAL_MANAGER = Manager(GLOBAL_CONF)
 
     app.on_startup(initialize)
     app.on_shutdown(close_db)
+
     home_page.init()
     servers_page.init()
     workflows_page.init()
     categories_page.init()
     projects_page.init()
-    commands_page.init(GLOBAL_CONF)
+
+    commands_page.init(GLOBAL_CONF, GLOBAL_MANAGER)
     groups_page.init(GLOBAL_CONF)
     items_page.init(GLOBAL_CONF)
     ui.run()

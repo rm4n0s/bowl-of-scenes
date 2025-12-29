@@ -6,20 +6,24 @@ from nicegui.elements.label import Label
 
 from src.controllers.command_ctrl.command_ctrl import (
     CommandInput,
+    CommandOutput,
     add_command,
     delete_command,
     list_commands,
 )
+from src.controllers.command_ctrl.command_runner import run_command
+from src.controllers.manager_ctrl import Manager
 from src.controllers.project_ctrl import ProjectOutput, get_project
 from src.core.config import Config
 
 
 class CommandsPage:
-    def __init__(self, conf: Config, project: ProjectOutput):
+    def __init__(self, conf: Config, manager: Manager, project: ProjectOutput):
         self.items = []
         self.selected_item = None
         self.table = None
         self.conf = conf
+        self.manager = manager
         self.project = project
 
     async def load_items(self):
@@ -107,8 +111,18 @@ class CommandsPage:
 
         dialog.open()
 
-    def redirect_to_results(self, item):
-        ui.navigate.to(f"/commands/{item['id']}/results")
+    def redirect_to_results(self, cmd):
+        ui.navigate.to(f"/commands/{cmd['id']}/results")
+
+    async def run_command(self, cmd):
+        cmd_out = CommandOutput(
+            id=cmd["id"],
+            project_id=cmd["project_id"],
+            order=cmd["order"],
+            command_code=cmd["command_code"],
+            command_json=cmd["command_json"],
+        )
+        await run_command(self.conf, self.manager, cmd_out)
 
     async def handle_delete(self, dialog, item_id):
         await delete_command(item_id)
@@ -171,17 +185,20 @@ class CommandsPage:
             self.table.on("edit", lambda e: self.show_edit_dialog(e.args))
             self.table.on("delete", lambda e: self.show_delete_dialog(e.args))
             self.table.on("show_results", lambda e: self.redirect_to_results(e.args))
+            self.table.on("run_command", lambda e: self.run_command(e.args))
 
         await table()
 
 
-def init(conf: Config):
+def init(conf: Config, manager: Manager | None):
     @ui.page("/projects/{project_id}/commands")
     async def page(project_id: int):
         ui.dark_mode().auto()
         project = await get_project(project_id)
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
-        page = CommandsPage(conf, project)
+
+        assert manager is not None
+        page = CommandsPage(conf, manager, project)
         await page.render()
         await page.load_items()

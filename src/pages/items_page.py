@@ -37,8 +37,8 @@ class ItemsPage:
 
             name_input = ui.input("Name").props("outlined")
             code_name_input = ui.input("Code Name").props("outlined")
-            positive_prompt_input = ui.input("Positive prompt").props("outlined")
-            negative_prompt_input = ui.input("Negative prompt").props("outlined")
+            positive_prompt_input = ui.textarea("Positive prompt").props("outlined")
+            negative_prompt_input = ui.textarea("Negative prompt").props("outlined")
 
             lora_input = None
             if self.group.use_lora:
@@ -267,7 +267,7 @@ class ItemsPage:
 
     async def render(self):
         """Render the CRUD page"""
-        ui.label("Items Management").classes("text-h4 q-mb-md")
+        ui.label("Items Management for " + self.group.name).classes("text-h4 q-mb-md")
 
         # Action buttons
         with ui.row().classes("q-mb-md"):

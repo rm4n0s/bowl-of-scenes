@@ -41,7 +41,7 @@ class GroupsPage:
                 cat_dicts, label="Categories", value=categories[0].id
             )
 
-            use_lora_input = ui.checkbox("Uuse LoRA").props("outlined")
+            use_lora_input = ui.checkbox("Use LoRA").props("outlined")
             use_controlnet_input = ui.checkbox("Use ControlNet").props("outlined")
             use_ip_adapter_input = ui.checkbox("Use IP Adapter").props("outlined")
             thumbnail_image_input = None

@@ -43,7 +43,7 @@ class ServersPage:
                 "outlined"
             )
             code_name_input = ui.input("Code name").props("outlined")
-            is_local = ui.checkbox("Is Local").props("outlined")
+            is_local = ui.checkbox("Is Local", value=True).props("outlined")
 
             with ui.row():
                 ui.button("Cancel", on_click=dialog.close)

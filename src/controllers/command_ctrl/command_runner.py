@@ -4,6 +4,7 @@ from itertools import product
 
 from src.controllers.command_ctrl.command_ctrl import CommandOutput
 from src.controllers.command_ctrl.command_parser import PromptLanguageParser
+from src.controllers.manager_ctrl import Manager
 from src.core.config import Config
 from src.db.records import (
     GroupRecord,
@@ -14,7 +15,7 @@ from src.db.records import (
 )
 
 
-async def run(conf: Config, command: CommandOutput):
+async def run_command(conf: Config, manager: Manager, command: CommandOutput):
     parser = PromptLanguageParser()
     cmd = parser.parse(command.command_code)
     server = await ServerRecord.filter(code_name=cmd.server_code_name).first()
@@ -53,6 +54,8 @@ async def run(conf: Config, command: CommandOutput):
         items_per_group.append(items)
 
     combined_items = [list(combo) for combo in product(*items_per_group)]
+
+    jobs = []
     for items in combined_items:
         prompt_positive = ""
         prompt_negative = ""
@@ -61,10 +64,40 @@ async def run(conf: Config, command: CommandOutput):
         lora_list = []
         result_img = os.path.join(conf.result_path, str(uuid.uuid4()) + ".png")
 
-        await JobRecord.create(
+        group_item_id_list = []
+        for item in items:
+            group_item_id_list.append(
+                {
+                    "group_id": item.group_id,
+                    "item_id": item.id,
+                }
+            )
+            if len(item.positive_prompt) > 0:
+                prompt_positive += item.positive_prompt + ", "
+            if len(item.negative_prompt) > 0:
+                prompt_negative += item.negative_prompt + ", "
+            if item.controlnet_reference_image is not None:
+                reference_controlnet_img = item.controlnet_reference_image
+
+            if item.ipadapter_reference_image is not None:
+                reference_ipadapter_img = item.ipadapter_reference_image
+
+            if item.lora is not None:
+                lora_list.append(item.lora)
+
+        job = await JobRecord.create(
             project_id=command.project_id,
             command_id=command.id,
+            group_item_id_list=group_item_id_list,
             code_str=command.command_code,
-            comfyui_host=server.host,
-            workflow_json=workflow.workflow_json,
+            server_code_name=server.code_name,
+            server_host=server.host,
+            workflow_code_name=workflow.code_name,
+            prompt_positive=prompt_positive,
+            prompt_negative=prompt_negative,
+            reference_controlnet_img=reference_controlnet_img,
+            reference_ipadapter_img=reference_ipadapter_img,
+            lora_list=lora_list,
+            result_img=result_img,
         )
+        await manager.add_job(job)
