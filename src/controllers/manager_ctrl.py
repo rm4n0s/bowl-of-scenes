@@ -1,7 +1,7 @@
 import asyncio
 import io
+import os
 from dataclasses import dataclass
-from threading import Thread
 
 from PIL import Image
 from yet_another_comfy_client import (
@@ -114,7 +114,6 @@ class Manager:
                 if wf is None:
                     continue
 
-                print(wf.workflow_json)
                 prompt = edit_prompt(
                     wf.workflow_json,
                     wf.positive_prompt_title,
@@ -127,6 +126,32 @@ class Manager:
                     "text",
                     job.prompt_negative,
                 )
+
+                if (
+                    job.reference_controlnet_img is not None
+                    and wf.load_image_controlnet_title is not None
+                    and len(wf.load_image_controlnet_title) > 0
+                ):
+                    img_path = os.path.abspath(job.reference_controlnet_img)
+                    prompt = edit_prompt(
+                        prompt,
+                        wf.load_image_controlnet_title,
+                        "image",
+                        img_path,
+                    )
+
+                if (
+                    job.reference_ipadapter_img is not None
+                    and wf.load_image_ipadapter_title is not None
+                    and len(wf.load_image_ipadapter_title) > 0
+                ):
+                    img_path = os.path.abspath(job.reference_ipadapter_img)
+                    prompt = edit_prompt(
+                        prompt,
+                        wf.load_image_ipadapter_title,
+                        "image",
+                        img_path,
+                    )
 
                 res = await client.queue_prompt(prompt)
                 job.comfyui_prompt_id = res["prompt_id"]

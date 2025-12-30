@@ -67,7 +67,7 @@ class ItemsPage:
                     if event.files:
                         controlnet_reference_image_input = event.files[0]
 
-                ui.label("Upload IP Adapter image").classes("text-h6")
+                ui.label("Upload Controlnet image").classes("text-h6")
                 ui.upload(
                     on_multi_upload=lambda e: handle_controlnet_upload(e),
                     auto_upload=True,

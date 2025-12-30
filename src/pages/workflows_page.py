@@ -57,7 +57,9 @@ class WorkflowsPage:
                     workflow_json, "SaveImage"
                 )
                 if len(save_image_titles) > 0:
-                    save_image_title_input.value = save_image_titles[0]
+                    save_image_title_input.value = save_image_titles[
+                        len(save_image_titles) - 1
+                    ]
 
                 load_image_titles = get_title_from_class_type(
                     workflow_json, "LoadImage"
