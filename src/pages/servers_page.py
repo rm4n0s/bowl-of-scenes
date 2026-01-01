@@ -7,6 +7,7 @@ from src.controllers.server_ctrl import (
     add_server,
     list_servers,
 )
+from src.pages.common.nav_menu import common_nav_menu
 
 
 class ServersPage:
@@ -205,5 +206,6 @@ def init():
     async def servers_page():
         ui.dark_mode().auto()
         page = ServersPage()
+        await common_nav_menu()
         await page.render()
         await page.load_servers()

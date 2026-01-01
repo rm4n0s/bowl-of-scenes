@@ -7,6 +7,7 @@ from nicegui.events import MultiUploadEventArguments, UploadEventArguments
 from src.controllers.category_ctrl import list_categories
 from src.controllers.group_ctrl import GroupInput, add_group, list_groups
 from src.core.config import Config
+from src.pages.common.nav_menu import common_nav_menu
 
 
 class GroupsPage:
@@ -281,5 +282,6 @@ def init(conf: Config):
     async def page():
         ui.dark_mode().auto()
         page = GroupsPage(conf)
+        await common_nav_menu()
         await page.render()
         await page.load_items()

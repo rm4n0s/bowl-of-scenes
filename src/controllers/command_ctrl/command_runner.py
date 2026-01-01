@@ -55,7 +55,6 @@ async def run_command(conf: Config, manager: Manager, command: CommandOutput):
 
     combined_items = [list(combo) for combo in product(*items_per_group)]
 
-    jobs = []
     for items in combined_items:
         prompt_positive = ""
         prompt_negative = ""

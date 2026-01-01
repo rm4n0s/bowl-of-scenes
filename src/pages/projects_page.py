@@ -3,6 +3,7 @@ from dataclasses import asdict
 from nicegui import ui
 
 from src.controllers.project_ctrl import ProjectInput, add_project, list_projects
+from src.pages.common.nav_menu import common_nav_menu
 
 
 class ProjectsPage:
@@ -156,5 +157,6 @@ def init():
     async def page():
         ui.dark_mode().auto()
         page = ProjectsPage()
+        await common_nav_menu()
         await page.render()
         await page.load_items()

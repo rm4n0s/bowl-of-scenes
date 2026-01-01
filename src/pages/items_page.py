@@ -8,8 +8,9 @@ from nicegui.elements.upload_files import FileUpload
 from nicegui.events import MultiUploadEventArguments
 
 from src.controllers.group_ctrl import GroupOutput, get_group
-from src.controllers.item_ctrl import ItemInput, add_item, list_items
+from src.controllers.item_ctrl import ItemInput, add_item, edit_item, list_items
 from src.core.config import Config
+from src.pages.common.nav_menu import common_nav_menu
 
 
 class ItemsPage:
@@ -42,7 +43,16 @@ class ItemsPage:
 
             lora_input = None
             if self.group.use_lora:
-                lora_input = ui.textarea("LoRA in JSON").props("outlined")
+                lora_input = ui.textarea(
+                    "LoRA in JSON",
+                    value="""
+{
+   "name": "style_lora.safetensors",
+   "strength_model": 0.7,
+   "strength_clip": 0.7
+}
+                    """,
+                ).props("outlined")
 
             ipadapter_reference_image_input = None
             if self.group.use_ip_adapter:
@@ -121,11 +131,10 @@ class ItemsPage:
         ipadapter_reference_image: FileUpload | None,
         thumbnail_image: FileUpload | None,
     ):
-        print("thumbnail_image uploaded", thumbnail_image is not None)
         lora = None
         if lora_input is not None:
             if len(lora_input.value) > 0:
-                lora = json.loads(lora_input.value)
+                lora = lora_input.value
 
         input = ItemInput(
             group_id=self.group.id,
@@ -152,10 +161,10 @@ class ItemsPage:
             code_name_input = ui.input("Code Name", value=item["code_name"]).props(
                 "outlined"
             )
-            positive_prompt_input = ui.input(
+            positive_prompt_input = ui.textarea(
                 "Positive prompt", value=item["positive_prompt"]
             ).props("outlined")
-            negative_prompt_input = ui.input(
+            negative_prompt_input = ui.textarea(
                 "Negative prompt", value=item["negative_prompt"]
             ).props("outlined")
 
@@ -186,7 +195,7 @@ class ItemsPage:
                     if event.files:
                         controlnet_reference_image_input = event.files[0]
 
-                ui.label("Upload IP Adapter image").classes("text-h6")
+                ui.label("Upload Controlnet image").classes("text-h6")
                 ui.upload(
                     on_multi_upload=lambda e: handle_controlnet_upload(e),
                     auto_upload=True,
@@ -242,6 +251,24 @@ class ItemsPage:
         ipadapter_reference_image: FileUpload | None,
         thumbnail_image: FileUpload | None,
     ):
+        lora = None
+        if lora_input is not None:
+            if len(lora_input.value) > 0:
+                lora = lora_input.value
+
+        input = ItemInput(
+            group_id=self.group.id,
+            name=name,
+            code_name=code_name,
+            positive_prompt=positive_prompt,
+            negative_prompt=negative_prompt,
+            lora=lora,
+            controlnet_reference_image=controlnet_reference_image,
+            ipadapter_reference_image=ipadapter_reference_image,
+            thumbnail_image=thumbnail_image,
+        )
+
+        await edit_item(self.conf, item_id, input)
         await self.load_items()
         ui.notify("Item updated successfully", type="positive")
         dialog.close()
@@ -354,5 +381,6 @@ def init(conf: Config):
         if group is None:
             raise HTTPException(status_code=404, detail="Group not found")
         page = ItemsPage(conf, group)
+        await common_nav_menu()
         await page.render()
         await page.load_items()

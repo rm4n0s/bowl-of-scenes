@@ -1,5 +1,6 @@
 import asyncio
 import io
+import json
 import os
 from dataclasses import dataclass
 
@@ -14,6 +15,7 @@ from yet_another_comfy_client import (
 
 from src.controllers.server_ctrl import StatusEnum
 from src.core.config import Config
+from src.core.utils import LoRAInjector
 from src.db.records import JobRecord, ServerRecord, WorkflowRecord
 from src.db.records.job_rec import JobStatus
 
@@ -152,6 +154,11 @@ class Manager:
                         "image",
                         img_path,
                     )
+
+                if job.lora_list is not None and len(job.lora_list) > 0:
+                    inj = LoRAInjector(prompt)
+                    inj.add_multiple_loras(job.lora_list)
+                    prompt = inj.get_workflow()
 
                 res = await client.queue_prompt(prompt)
                 job.comfyui_prompt_id = res["prompt_id"]

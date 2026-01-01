@@ -3,6 +3,7 @@ from dataclasses import asdict
 from nicegui import ui
 
 from src.controllers.category_ctrl import CategoryInput, add_category, list_categories
+from src.pages.common.nav_menu import common_nav_menu
 
 
 class CategoriesPage:
@@ -151,5 +152,6 @@ def init():
     async def page():
         ui.dark_mode().auto()
         page = CategoriesPage()
+        await common_nav_menu()
         await page.render()
         await page.load_items()

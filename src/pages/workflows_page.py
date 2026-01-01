@@ -1,3 +1,4 @@
+import json
 from dataclasses import asdict
 from typing import Any
 
@@ -7,9 +8,12 @@ from nicegui.events import UploadEventArguments
 from src.controllers.workflow_ctrl import (
     WorkflowInput,
     add_workflow,
+    delete_workflow,
+    edit_workflow,
     list_workflows,
 )
 from src.core.utils import get_title_from_class_type
+from src.pages.common.nav_menu import common_nav_menu
 
 
 class WorkflowsPage:
@@ -144,9 +148,14 @@ class WorkflowsPage:
             code_name_input = ui.input("Code name", value=item["code_name"]).props(
                 "outlined"
             )
-            json_file_path_input = ui.input(
-                "Workflow's JSON file path", value=item["json_file_path"]
-            ).props("outlined")
+            workflow_json_str = (
+                ui.textarea(
+                    "Workflow's JSON file path",
+                    value=json.dumps(item["workflow_json"], sort_keys=True, indent=4),
+                )
+                .classes("w-96")
+                .props("outlined rows=15")
+            )
             positive_prompt_title_input = ui.input(
                 "Positive Prompt's title", value=item["positive_prompt_title"]
             ).props("outlined")
@@ -174,7 +183,7 @@ class WorkflowsPage:
                         item["id"],
                         name_input.value,
                         code_name_input.value,
-                        json_file_path_input.value,
+                        workflow_json_str.value,
                         positive_prompt_title_input.value,
                         negative_prompt_title_input.value,
                         load_image_ipadapter_title_input.value,
@@ -188,16 +197,29 @@ class WorkflowsPage:
     async def handle_update(
         self,
         dialog,
-        item_id,
+        workflow_id,
         name: str,
         code_name: str,
-        json_file_path: str,
+        workflow_json_str: str,
         positive_prompt_title: str,
         negative_prompt_title: str,
         load_image_ipadapter_title: str,
         load_image_controlnet_title: str,
         save_image_title: str,
     ):
+        workflow_json = json.loads(workflow_json_str)
+        input = WorkflowInput(
+            name=name,
+            code_name=code_name,
+            workflow_json=workflow_json,
+            positive_prompt_title=positive_prompt_title,
+            negative_prompt_title=negative_prompt_title,
+            load_image_ipadapter_title=load_image_ipadapter_title,
+            load_image_controlnet_title=load_image_controlnet_title,
+            save_image_title=save_image_title,
+        )
+
+        await edit_workflow(workflow_id, input)
         await self.load_items()
         ui.notify("Workflow updated successfully", type="positive")
         dialog.close()
@@ -216,7 +238,7 @@ class WorkflowsPage:
         dialog.open()
 
     async def handle_delete(self, dialog, item_id):
-        # await self.delete_workflow(item_id)
+        await delete_workflow(item_id)
         await self.load_items()
         ui.notify("Workflow deleted successfully", type="positive")
         dialog.close()
@@ -277,5 +299,6 @@ def init():
     async def page():
         ui.dark_mode().auto()
         page = WorkflowsPage()
+        await common_nav_menu()
         await page.render()
         await page.load_items()

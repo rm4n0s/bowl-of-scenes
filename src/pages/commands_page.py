@@ -15,6 +15,7 @@ from src.controllers.command_ctrl.command_runner import run_command
 from src.controllers.manager_ctrl import Manager
 from src.controllers.project_ctrl import ProjectOutput, get_project
 from src.core.config import Config
+from src.pages.common.nav_menu import common_nav_menu
 
 
 class CommandsPage:
@@ -29,7 +30,6 @@ class CommandsPage:
     async def load_items(self):
         cmds = await list_commands(self.project.id)
         cmds_dicts = [asdict(cmd) for cmd in cmds]
-        print("cmds", cmds_dicts)
         self.items = cmds_dicts
         if self.table:
             self.table.rows = self.items  # Assign new rows
@@ -200,5 +200,6 @@ def init(conf: Config, manager: Manager | None):
 
         assert manager is not None
         page = CommandsPage(conf, manager, project)
+        await common_nav_menu()
         await page.render()
         await page.load_items()
