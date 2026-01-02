@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from nicegui.elements.upload_files import FileUpload
 
 from src.core.config import Config
-from src.db.records import GroupRecord
+from src.db.records import GroupRecord, ItemRecord
 
 
 @dataclass
@@ -50,6 +50,34 @@ async def add_group(conf: Config, input: GroupInput):
         use_ip_adapter=input.use_ip_adapter,
         thumbnail_image=thumbnail_path,
     )
+
+
+async def add_group_of_positives_from_text_file(
+    name: str, description: str, code_name: str, category_id: int, text_content: str
+):
+    group = await GroupRecord.create(
+        name=name,
+        description=description,
+        code_name=code_name,
+        category_id=category_id,
+        use_lora=False,
+        use_controlnet=False,
+        use_ip_adapter=False,
+        thumbnail_image=None,
+    )
+
+    for i, v in enumerate(text_content.splitlines()):
+        await ItemRecord.create(
+            group_id=group.id,
+            name=f"{i}",
+            code_name=f"{i}",
+            positive_prompt=v,
+            negative_prompt="",
+            lora=None,
+            controlnet_reference_image=None,
+            ipadapter_reference_image=None,
+            thumbnail_image=None,
+        )
 
 
 async def edit_group(conf: Config, id: int, input: GroupInput):

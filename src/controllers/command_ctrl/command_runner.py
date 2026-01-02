@@ -28,30 +28,66 @@ async def run_command(conf: Config, manager: Manager, command: CommandOutput):
 
     items_per_group: list[list[ItemRecord]] = []
     for group_sel in cmd.group_selections:
-        group_code = group_sel.group_code_name
+        # Handle merged groups
+        if group_sel.is_merged:
+            merged_items: list[ItemRecord] = []
+            assert group_sel.merged_groups is not None
+            for merged_group in group_sel.merged_groups:
+                group_code = merged_group["group_code_name"]
 
-        # Check group exists
-        group = await GroupRecord.filter(code_name=group_code).first()
-        if not group:
-            raise ValueError(f"Group '{group_code}' not found")
+                # Check group exists
+                group = await GroupRecord.filter(code_name=group_code).first()
+                if not group:
+                    raise ValueError(f"Group '{group_code}' not found")
 
-        items: list[ItemRecord] = []
-        if group_sel.exclude is None and group_sel.include_only is None:
-            items = await ItemRecord.filter(group_id=group.id).all()
+                items = []
+                if (
+                    merged_group["exclude"] is None
+                    and merged_group["include_only"] is None
+                ):
+                    items = await ItemRecord.filter(group_id=group.id).all()
 
-        elif group_sel.exclude is not None:
-            items = (
-                await ItemRecord.filter(group_id=group.id)
-                .exclude(code_name__in=group_sel.exclude)
-                .all()
-            )
+                elif merged_group["exclude"] is not None:
+                    items = (
+                        await ItemRecord.filter(group_id=group.id)
+                        .exclude(code_name__in=merged_group["exclude"])
+                        .all()
+                    )
 
-        elif group_sel.include_only is not None:
-            items = await ItemRecord.filter(
-                group_id=group.id, code_name__in=group_sel.include_only
-            ).all()
+                elif merged_group["include_only"] is not None:
+                    items = await ItemRecord.filter(
+                        group_id=group.id, code_name__in=merged_group["include_only"]
+                    ).all()
 
-        items_per_group.append(items)
+                merged_items.extend(items)
+
+            items_per_group.append(merged_items)
+        else:
+            # Handle single group
+            group_code = group_sel.group_code_name
+
+            # Check group exists
+            group = await GroupRecord.filter(code_name=group_code).first()
+            if not group:
+                raise ValueError(f"Group '{group_code}' not found")
+
+            items = []
+            if group_sel.exclude is None and group_sel.include_only is None:
+                items = await ItemRecord.filter(group_id=group.id).all()
+
+            elif group_sel.exclude is not None:
+                items = (
+                    await ItemRecord.filter(group_id=group.id)
+                    .exclude(code_name__in=group_sel.exclude)
+                    .all()
+                )
+
+            elif group_sel.include_only is not None:
+                items = await ItemRecord.filter(
+                    group_id=group.id, code_name__in=group_sel.include_only
+                ).all()
+
+            items_per_group.append(items)
 
     combined_items = [list(combo) for combo in product(*items_per_group)]
     print(f"Will run {len(combined_items)}")
@@ -61,10 +97,15 @@ async def run_command(conf: Config, manager: Manager, command: CommandOutput):
         reference_controlnet_img = None
         reference_ipadapter_img = None
         lora_list = []
-        result_img = os.path.join(conf.result_path, str(uuid.uuid4()) + ".png")
 
         group_item_id_list = []
+        result_filename_img = ""
         for item in items:
+            group = await GroupRecord.get_or_none(id=item.group_id)
+            if group is not None:
+                result_filename_img += group.code_name
+
+            result_filename_img += "_" + item.code_name + "_"
             group_item_id_list.append(
                 {
                     "group_id": item.group_id,
@@ -84,6 +125,7 @@ async def run_command(conf: Config, manager: Manager, command: CommandOutput):
             if item.lora is not None:
                 lora_list.append(item.lora)
 
+        result_img = os.path.join(conf.result_path, result_filename_img + ".png")
         job = await JobRecord.create(
             project_id=command.project_id,
             command_id=command.id,

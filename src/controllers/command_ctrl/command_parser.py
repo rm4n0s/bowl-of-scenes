@@ -1,7 +1,7 @@
 import json
 import re
 from dataclasses import dataclass
-from typing import Optional, Set
+from typing import Any, Optional, Set
 
 
 @dataclass
@@ -11,13 +11,21 @@ class GroupSelection:
     group_code_name: str
     include_only: Optional[list[str]] = None  # Specific items to include
     exclude: Optional[Set[str]] = None  # Items to exclude
+    is_merged: bool = False  # True if multiple groups merged with 'and'
+    merged_groups: Optional[list[dict[str, Any]]] = (
+        None  # List of group configs if merged
+    )
 
     def to_dict(self):
-        return {
+        result = {
             "group_code_name": self.group_code_name,
             "include_only": self.include_only,
             "exclude": list(self.exclude) if self.exclude else None,
         }
+        if self.is_merged:
+            result["is_merged"] = True
+            result["merged_groups"] = self.merged_groups
+        return result
 
 
 @dataclass
@@ -86,10 +94,70 @@ class PromptLanguageParser:
 
         selections = []
         for expr in group_expressions:
-            selection = self._parse_group_expression(expr)
+            # Check if this expression has 'and' (merge groups)
+            if " and " in expr:
+                selection = self._parse_merged_groups(expr)
+            else:
+                selection = self._parse_group_expression(expr)
             selections.append(selection)
 
         return selections
+
+    def _parse_merged_groups(self, expr: str) -> GroupSelection:
+        """
+        Parse merged groups expression like:
+        - group_1 and group_2
+        - group_1(item1) and group_2 and group_3(~item3)
+        """
+        # Split by ' and '
+        group_parts = [g.strip() for g in expr.split(" and ")]
+
+        merged_groups = []
+        all_group_names = []
+
+        for part in group_parts:
+            # Parse each group separately
+            group_name = None
+            include_items = None
+            exclude_items = set()
+
+            # Find group name (first word)
+            parts = part.split("(", 1)
+            group_name = parts[0].strip()
+            all_group_names.append(group_name)
+
+            if len(parts) > 1:
+                # Has parentheses - parse include/exclude
+                paren_groups = re.findall(r"\(([^)]+)\)", part)
+
+                for paren_group in paren_groups:
+                    items = [item.strip() for item in paren_group.split(",")]
+
+                    # Check if this is exclusion (starts with ~)
+                    if items and items[0].startswith("~"):
+                        # Exclusion group
+                        exclude_items.update(item.lstrip("~") for item in items)
+                    else:
+                        # Inclusion group (specific items)
+                        include_items = items
+
+            merged_groups.append(
+                {
+                    "group_code_name": group_name,
+                    "include_only": include_items,
+                    "exclude": list(exclude_items) if exclude_items else None,
+                }
+            )
+
+        # Return a merged selection
+        # Use first group name as identifier, mark as merged
+        return GroupSelection(
+            group_code_name="+".join(all_group_names),  # Combined name
+            include_only=None,
+            exclude=None,
+            is_merged=True,
+            merged_groups=merged_groups,
+        )
 
     def _parse_group_expression(self, expr: str) -> GroupSelection:
         """

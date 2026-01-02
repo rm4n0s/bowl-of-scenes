@@ -5,7 +5,13 @@ from nicegui.elements.upload_files import FileUpload
 from nicegui.events import MultiUploadEventArguments, UploadEventArguments
 
 from src.controllers.category_ctrl import list_categories
-from src.controllers.group_ctrl import GroupInput, add_group, edit_group, list_groups
+from src.controllers.group_ctrl import (
+    GroupInput,
+    add_group,
+    add_group_of_positives_from_text_file,
+    edit_group,
+    list_groups,
+)
 from src.core.config import Config
 from src.pages.common.nav_menu import common_nav_menu
 
@@ -26,6 +32,66 @@ class GroupsPage:
         if self.table:
             self.table.rows = self.items  # Assign new rows
             self.table.update()
+
+    async def show_create_group_of_positives_from_text_file(self):
+        with ui.dialog() as dialog, ui.card():
+            ui.label("Create New Group From Text File").classes("text-h6")
+            categories = await list_categories()
+            cat_dicts = {}
+            for cat in categories:
+                cat_dicts[cat.id] = cat.name
+
+            name_input = ui.input("Name").props("outlined")
+            description_input = ui.input("Description").props("outlined")
+            code_name_input = ui.input("Code Name").props("outlined")
+            category_id_input = ui.select(
+                cat_dicts, label="Categories", value=categories[0].id
+            )
+            text_content = ""
+
+            async def handle_upload(event: UploadEventArguments):
+                nonlocal text_content
+                text_content = await event.file.text()
+
+            ui.label(
+                "Upload text file with positive prompts seperated by line"
+            ).classes("text-h6")
+            ui.upload(
+                on_upload=lambda e: handle_upload(e),
+                auto_upload=True,
+                max_files=1,
+            ).props('accept=".txt"')
+            with ui.row():
+                ui.button("Cancel", on_click=dialog.close)
+                ui.button(
+                    "Create",
+                    on_click=lambda: self.handle_create_group_of_positives_from_text_file(
+                        dialog,
+                        name_input.value,
+                        description_input.value,
+                        code_name_input.value,
+                        category_id_input.value,  # pyright: ignore[reportArgumentType]
+                        text_content,
+                    ),
+                ).props("color=primary")
+
+        dialog.open()
+
+    async def handle_create_group_of_positives_from_text_file(
+        self,
+        dialog,
+        name: str,
+        description: str,
+        code_name: str,
+        category_id: int,
+        text_content: str,
+    ):
+        await add_group_of_positives_from_text_file(
+            name, description, code_name, category_id, text_content
+        )
+        await self.load_items()
+        ui.notify("Group created successfully", type="positive")
+        dialog.close()
 
     async def show_create_dialog(self):
         with ui.dialog() as dialog, ui.card():
@@ -224,6 +290,11 @@ class GroupsPage:
             ui.button("Add group", icon="add", on_click=self.show_create_dialog).props(
                 "color=primary"
             )
+            ui.button(
+                "Add group of positives from text file",
+                icon="add",
+                on_click=self.show_create_group_of_positives_from_text_file,
+            ).props("color=primary")
             ui.button("Refresh", icon="refresh", on_click=self.load_items)
 
         @ui.refreshable
