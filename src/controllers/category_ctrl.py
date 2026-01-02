@@ -20,6 +20,16 @@ async def add_category(input: CategoryInput):
     )
 
 
+async def edit_category(id: int, input: CategoryInput):
+    cat = await CategoryRecord.get_or_none(id=id)
+    if cat is None:
+        raise ValueError("category doesn't exist")
+
+    if cat.name != input.name:
+        cat.name = input.name
+        await cat.save()
+
+
 async def list_categories() -> list[CategoryOutput]:
     cat_recs = await CategoryRecord.all()
     cat_outs = []
@@ -34,7 +44,17 @@ async def list_categories() -> list[CategoryOutput]:
 
 
 async def init_predefined_categories():
-    categories = ["character", "pose", "style", "clothes", "body", "emotions"]
+    categories = [
+        "character",
+        "poses",
+        "style",
+        "clothe",
+        "body",
+        "emotion",
+        "quality",
+        "background",
+        "camera",
+    ]
     for name in categories:
         exists = await CategoryRecord.exists(name=name)
         if not exists:

@@ -38,6 +38,12 @@ class ItemOutput:
 
 
 async def add_item(conf: Config, input: ItemInput):
+    code_name_exists = await ItemRecord.filter(
+        group_id=input.group_id, code_name=input.code_name
+    ).exists()
+    if code_name_exists:
+        raise ValueError("code name already exists in group")
+
     thumbnail_path = None
     if input.thumbnail_image is not None:
         image_filename = str(uuid.uuid4()) + "_" + input.thumbnail_image.name

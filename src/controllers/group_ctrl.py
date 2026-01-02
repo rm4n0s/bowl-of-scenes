@@ -52,6 +52,45 @@ async def add_group(conf: Config, input: GroupInput):
     )
 
 
+async def edit_group(conf: Config, id: int, input: GroupInput):
+    group = await GroupRecord.get_or_none(id=id)
+    if group is None:
+        raise ValueError("group doesn't exist")
+
+    if group.name != input.name:
+        group.name = input.name
+
+    if group.code_name != input.code_name:
+        group.code_name = input.code_name
+
+    if group.description != input.description:
+        group.description = input.description
+
+    if group.category_id != input.category_id:
+        group.category_id = input.category_id
+
+    if group.use_lora != input.use_lora:
+        group.use_lora = input.use_lora
+
+    if group.use_ip_adapter != input.use_ip_adapter:
+        group.use_ip_adapter = input.use_ip_adapter
+
+    if group.use_controlnet != input.use_controlnet:
+        group.use_controlnet = input.use_controlnet
+
+    if input.thumbnail_image is not None:
+        if group.thumbnail_image is not None:
+            image_filename = group.thumbnail_image
+        else:
+            image_filename = str(uuid.uuid4()) + "_" + input.thumbnail_image.name
+
+        thumbnail_path = os.path.join(conf.thumbnails_path, image_filename)
+        await input.thumbnail_image.save(thumbnail_path)
+        group.thumbnail_image = thumbnail_path
+
+    await group.save()
+
+
 async def list_groups() -> list[GroupOutput]:
     recs = await GroupRecord.all()
     outs = []

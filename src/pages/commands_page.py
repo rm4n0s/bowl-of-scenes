@@ -9,9 +9,11 @@ from src.controllers.command_ctrl.command_ctrl import (
     CommandOutput,
     add_command,
     delete_command,
+    edit_command,
     list_commands,
 )
 from src.controllers.command_ctrl.command_runner import run_command
+from src.controllers.group_ctrl import edit_group
 from src.controllers.manager_ctrl import Manager
 from src.controllers.project_ctrl import ProjectOutput, get_project
 from src.core.config import Config
@@ -73,7 +75,10 @@ class CommandsPage:
         with ui.dialog() as dialog, ui.card():
             ui.label("Edit Command").classes("text-h6")
 
-            code_input = ui.input("Code", value=item["command_code"]).props("outlined")
+            code_input = ui.textarea("Code", value=item["command_code"]).props(
+                "outlined"
+            )
+            error_label = ui.label("").classes("text-red-600")
 
             with ui.row():
                 ui.button("Cancel", on_click=dialog.close)
@@ -83,6 +88,7 @@ class CommandsPage:
                         dialog,
                         item["id"],
                         code_input.value,
+                        error_label,
                     ),
                 ).props("color=primary")
 
@@ -93,7 +99,19 @@ class CommandsPage:
         dialog,
         item_id,
         code: str,
+        error_label,
     ):
+        input = CommandInput(
+            project_id=self.project.id,
+            code=code,
+        )
+
+        errors = await edit_command(item_id, input)
+        if errors is not None:
+            ui.notify("Command didn't update", type="negative")
+            error_label.set_text(str(errors))
+            return
+
         await self.load_items()
         ui.notify("Command updated successfully", type="positive")
         dialog.close()

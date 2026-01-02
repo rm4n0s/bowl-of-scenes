@@ -82,7 +82,7 @@ class PromptLanguageParser:
     def _parse_groups(self, groups_part: str) -> list[GroupSelection]:
         """Parse the groups portion of the command"""
         # Split by 'x' to get individual group expressions
-        group_expressions = [g.strip() for g in groups_part.split("x")]
+        group_expressions = [g.strip() for g in groups_part.split(" x ")]
 
         selections = []
         for expr in group_expressions:

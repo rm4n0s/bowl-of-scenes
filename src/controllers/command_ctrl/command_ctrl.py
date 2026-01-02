@@ -65,6 +65,24 @@ async def add_command(
     )
 
 
+async def edit_command(id: int, input: CommandInput) -> list[str] | None:
+    cmd = await CommandRecord.get_or_none(id=id)
+    if cmd is None:
+        raise ValueError("cmd doesn't exist")
+
+    if cmd.command_code != input.code:
+        parser = PromptLanguageParser()
+        command = parser.parse(input.code)
+        valid_res = await validate_code_names(command)
+        if not valid_res.is_valid:
+            return valid_res.errors
+
+        print("command_json", command)
+        cmd.command_code = input.code
+        cmd.command_json = command.to_dict()
+        await cmd.save()
+
+
 async def delete_command(command_id: int):
     """
     Delete a command and adjust the order of remaining commands.

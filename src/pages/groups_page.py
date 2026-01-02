@@ -5,7 +5,7 @@ from nicegui.elements.upload_files import FileUpload
 from nicegui.events import MultiUploadEventArguments, UploadEventArguments
 
 from src.controllers.category_ctrl import list_categories
-from src.controllers.group_ctrl import GroupInput, add_group, list_groups
+from src.controllers.group_ctrl import GroupInput, add_group, edit_group, list_groups
 from src.core.config import Config
 from src.pages.common.nav_menu import common_nav_menu
 
@@ -92,7 +92,6 @@ class GroupsPage:
         use_ip_adapter: bool,
         thumbnail_image: FileUpload | None,
     ):
-        print("thumbnail_image uploaded", thumbnail_image is not None)
         input = GroupInput(
             name=name,
             description=description,
@@ -118,12 +117,22 @@ class GroupsPage:
                 cat_dicts[cat.id] = cat.name
 
             name_input = ui.input("Name", value=item["name"]).props("outlined")
-            description_input = ui.input("Description").props("outlined")
-            code_name_input = ui.input("Code Name").props("outlined")
-            category_id_input = ui.select(cat_dicts, value=categories[0].id)
-            use_lora_input = ui.checkbox("Use LoRA").props("outlined")
-            use_controlnet_input = ui.checkbox("Use ControlNet").props("outlined")
-            use_ip_adapter_input = ui.checkbox("Use IP Adapter").props("outlined")
+            description_input = ui.input(
+                "Description", value=item["description"]
+            ).props("outlined")
+            code_name_input = ui.input("Code Name", value=item["code_name"]).props(
+                "outlined"
+            )
+            category_id_input = ui.select(cat_dicts, value=item["category_id"])
+            use_lora_input = ui.checkbox("Use LoRA", value=item["use_lora"]).props(
+                "outlined"
+            )
+            use_controlnet_input = ui.checkbox(
+                "Use ControlNet", value=item["use_controlnet"]
+            ).props("outlined")
+            use_ip_adapter_input = ui.checkbox(
+                "Use IP Adapter", value=item["use_ip_adapter"]
+            ).props("outlined")
             thumbnail_image_input = None
 
             async def handle_upload(event: UploadEventArguments):
@@ -168,6 +177,18 @@ class GroupsPage:
         use_ip_adapter: bool,
         thumbnail_image: FileUpload | None,
     ):
+        input = GroupInput(
+            name=name,
+            description=description,
+            code_name=code_name,
+            category_id=category_id,
+            use_lora=use_lora,
+            use_controlnet=use_controlnet,
+            use_ip_adapter=use_ip_adapter,
+            thumbnail_image=thumbnail_image,
+        )
+
+        await edit_group(self.conf, item_id, input)
         await self.load_items()
         ui.notify("Group updated successfully", type="positive")
         dialog.close()

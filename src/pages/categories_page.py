@@ -2,7 +2,12 @@ from dataclasses import asdict
 
 from nicegui import ui
 
-from src.controllers.category_ctrl import CategoryInput, add_category, list_categories
+from src.controllers.category_ctrl import (
+    CategoryInput,
+    add_category,
+    edit_category,
+    list_categories,
+)
 from src.pages.common.nav_menu import common_nav_menu
 
 
@@ -79,6 +84,10 @@ class CategoriesPage:
         item_id,
         name: str,
     ):
+        input = CategoryInput(
+            name=name,
+        )
+        await edit_category(item_id, input)
         await self.load_items()
         ui.notify("Category updated successfully", type="positive")
         dialog.close()
