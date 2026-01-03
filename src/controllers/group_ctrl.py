@@ -155,3 +155,12 @@ async def get_group(id: int) -> GroupOutput | None:
         use_ip_adapter=rec.use_ip_adapter,
         thumbnail_image=rec.thumbnail_image,
     )
+
+
+async def delete_group(id: int):
+    rec = await GroupRecord.get_or_none(id=id)
+    if rec is None:
+        raise ValueError("Group doesn't exist")
+
+    await ItemRecord.filter(group_id=id).delete()
+    await rec.delete()

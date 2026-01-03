@@ -45,7 +45,7 @@ class ItemsPage:
             if self.group.use_lora:
                 lora_input = ui.textarea(
                     "LoRA in JSON",
-                    value="""
+                    placeholder="""
 {
    "name": "style_lora.safetensors",
    "strength_model": 0.7,
@@ -170,7 +170,10 @@ class ItemsPage:
 
             lora_input = None
             if self.group.use_lora:
-                lora_input = ui.textarea("LoRA in JSON").props("outlined")
+                lora = ""
+                if item["lora"] is not None:
+                    lora = item["lora"]
+                lora_input = ui.textarea("LoRA in JSON", value=lora).props("outlined")
 
             ipadapter_reference_image_input = None
             if self.group.use_ip_adapter:

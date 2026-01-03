@@ -11,8 +11,8 @@ from src.controllers.command_ctrl.command_ctrl import (
     delete_command,
     edit_command,
     list_commands,
+    run_command,
 )
-from src.controllers.command_ctrl.command_runner import run_command
 from src.controllers.group_ctrl import edit_group
 from src.controllers.manager_ctrl import Manager
 from src.controllers.project_ctrl import ProjectOutput, get_project
@@ -62,7 +62,7 @@ class CommandsPage:
             code=code,
         )
 
-        errors = await add_command(input)
+        errors = await add_command(self.conf, input)
         if errors is not None:
             ui.notify("Command didn't created", type="negative")
             error_label.set_text(str(errors))
@@ -106,7 +106,7 @@ class CommandsPage:
             code=code,
         )
 
-        errors = await edit_command(item_id, input)
+        errors = await edit_command(self.conf, item_id, input)
         if errors is not None:
             ui.notify("Command didn't update", type="negative")
             error_label.set_text(str(errors))
@@ -131,16 +131,6 @@ class CommandsPage:
 
     def redirect_to_results(self, cmd):
         ui.navigate.to(f"/commands/{cmd['id']}/results")
-
-    async def run_command(self, cmd):
-        cmd_out = CommandOutput(
-            id=cmd["id"],
-            project_id=cmd["project_id"],
-            order=cmd["order"],
-            command_code=cmd["command_code"],
-            command_json=cmd["command_json"],
-        )
-        await run_command(self.conf, self.manager, cmd_out)
 
     async def handle_delete(self, dialog, item_id):
         await delete_command(item_id)
@@ -203,7 +193,9 @@ class CommandsPage:
             self.table.on("edit", lambda e: self.show_edit_dialog(e.args))
             self.table.on("delete", lambda e: self.show_delete_dialog(e.args))
             self.table.on("show_results", lambda e: self.redirect_to_results(e.args))
-            self.table.on("run_command", lambda e: self.run_command(e.args))
+            self.table.on(
+                "run_command", lambda e: run_command(self.manager, e.args["id"])
+            )
 
         await table()
 

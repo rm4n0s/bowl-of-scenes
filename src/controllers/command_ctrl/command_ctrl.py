@@ -1,14 +1,27 @@
+import os
 from dataclasses import dataclass
+from itertools import product
 from typing import Any
 
 from tortoise.expressions import F
 
-from src.controllers.command_ctrl.command_parser import PromptLanguageParser
+from src.controllers.command_ctrl.command_parser import (
+    ParsedCommand,
+    PromptLanguageParser,
+)
 from src.controllers.command_ctrl.command_validator import (
-    ValidationResult,
     validate_code_names,
 )
-from src.db.records import CommandRecord
+from src.controllers.manager_ctrl import Manager
+from src.core.config import Config
+from src.db.records import (
+    CommandRecord,
+    GroupRecord,
+    ItemRecord,
+    JobRecord,
+    ServerRecord,
+    WorkflowRecord,
+)
 
 
 @dataclass
@@ -26,8 +39,144 @@ class CommandOutput:
     command_json: dict[str, Any]
 
 
+async def create_jobs(conf: Config, cmd: ParsedCommand, command: CommandRecord):
+    server = await ServerRecord.filter(code_name=cmd.server_code_name).first()
+    if server is None:
+        raise ValueError(f"Server '{cmd.server_code_name}' not found")
+
+    workflow = await WorkflowRecord.filter(code_name=cmd.workflow_code_name).first()
+    if workflow is None:
+        raise ValueError(f"Workflow '{cmd.workflow_code_name}' not found")
+
+    items_per_group: list[list[ItemRecord]] = []
+    for group_sel in cmd.group_selections:
+        # Handle merged groups
+        if group_sel.is_merged:
+            merged_items: list[ItemRecord] = []
+            assert group_sel.merged_groups is not None
+            for merged_group in group_sel.merged_groups:
+                group_code = merged_group["group_code_name"]
+
+                # Check group exists
+                group = await GroupRecord.filter(code_name=group_code).first()
+                if not group:
+                    raise ValueError(f"Group '{group_code}' not found")
+
+                items = []
+                if (
+                    merged_group["exclude"] is None
+                    and merged_group["include_only"] is None
+                ):
+                    items = await ItemRecord.filter(group_id=group.id).all()
+
+                elif merged_group["exclude"] is not None:
+                    items = (
+                        await ItemRecord.filter(group_id=group.id)
+                        .exclude(code_name__in=merged_group["exclude"])
+                        .all()
+                    )
+
+                elif merged_group["include_only"] is not None:
+                    items = await ItemRecord.filter(
+                        group_id=group.id, code_name__in=merged_group["include_only"]
+                    ).all()
+
+                merged_items.extend(items)
+
+            items_per_group.append(merged_items)
+        else:
+            # Handle single group
+            group_code = group_sel.group_code_name
+
+            # Check group exists
+            group = await GroupRecord.filter(code_name=group_code).first()
+            if not group:
+                raise ValueError(f"Group '{group_code}' not found")
+
+            items = []
+            if group_sel.exclude is None and group_sel.include_only is None:
+                items = await ItemRecord.filter(group_id=group.id).all()
+
+            elif group_sel.exclude is not None:
+                items = (
+                    await ItemRecord.filter(group_id=group.id)
+                    .exclude(code_name__in=group_sel.exclude)
+                    .all()
+                )
+
+            elif group_sel.include_only is not None:
+                items = await ItemRecord.filter(
+                    group_id=group.id, code_name__in=group_sel.include_only
+                ).all()
+
+            items_per_group.append(items)
+
+    combined_items = [list(combo) for combo in product(*items_per_group)]
+    print(f"Will run {len(combined_items)}")
+    for items in combined_items:
+        prompt_positive = ""
+        prompt_negative = ""
+        reference_controlnet_img = None
+        reference_ipadapter_img = None
+        lora_list = []
+
+        group_item_id_list = []
+        result_filename_img = ""
+        for item in items:
+            group = await GroupRecord.get_or_none(id=item.group_id)
+            if group is not None:
+                result_filename_img += group.code_name
+
+            result_filename_img += "_" + item.code_name + "_"
+            group_item_id_list.append(
+                {
+                    "group_id": item.group_id,
+                    "item_id": item.id,
+                }
+            )
+            if len(item.positive_prompt) > 0:
+                prompt_positive += item.positive_prompt + ", "
+            if len(item.negative_prompt) > 0:
+                prompt_negative += item.negative_prompt + ", "
+            if item.controlnet_reference_image is not None:
+                reference_controlnet_img = item.controlnet_reference_image
+
+            if item.ipadapter_reference_image is not None:
+                reference_ipadapter_img = item.ipadapter_reference_image
+
+            if item.lora is not None:
+                lora_list.append(item.lora)
+
+        result_img = os.path.join(conf.result_path, result_filename_img + ".png")
+        await JobRecord.create(
+            project_id=command.project_id,
+            command_id=command.id,
+            group_item_id_list=group_item_id_list,
+            code_str=command.command_code,
+            server_code_name=server.code_name,
+            server_host=server.host,
+            workflow_code_name=workflow.code_name,
+            prompt_positive=prompt_positive,
+            prompt_negative=prompt_negative,
+            reference_controlnet_img=reference_controlnet_img,
+            reference_ipadapter_img=reference_ipadapter_img,
+            lora_list=lora_list,
+            result_img=result_img,
+        )
+
+
+async def run_command(manager: Manager, command_id: int):
+    cmd = await CommandRecord.get_or_none(id=command_id)
+    if cmd is None:
+        raise ValueError("command doesn't exist")
+
+    jobs = await JobRecord.filter(command_id=command_id).all()
+    for job in jobs:
+        await manager.add_job(job)
+
+
 async def add_command(
-    input: CommandInput, insert_at: int | None = None
+    conf: Config, input: CommandInput, insert_at: int | None = None
 ) -> list[str] | None:
     """
     Add a new command. If insert_at is specified, insert at that position,
@@ -57,18 +206,20 @@ async def add_command(
         return valid_res.errors
 
     print("command_json", command)
-    await CommandRecord.create(
+    cmd_rec = await CommandRecord.create(
         project_id=input.project_id,
         order=next_order,
         command_code=input.code,
         command_json=command.to_dict(),
     )
 
+    await create_jobs(conf, command, cmd_rec)
 
-async def edit_command(id: int, input: CommandInput) -> list[str] | None:
+
+async def edit_command(conf: Config, id: int, input: CommandInput) -> list[str] | None:
     cmd = await CommandRecord.get_or_none(id=id)
     if cmd is None:
-        raise ValueError("cmd doesn't exist")
+        raise ValueError("command doesn't exist")
 
     if cmd.command_code != input.code:
         parser = PromptLanguageParser()
@@ -81,6 +232,18 @@ async def edit_command(id: int, input: CommandInput) -> list[str] | None:
         cmd.command_code = input.code
         cmd.command_json = command.to_dict()
         await cmd.save()
+        await delete_jobs_from_command(cmd.id)
+        await create_jobs(conf, command, cmd)
+
+
+async def delete_jobs_from_command(command_id: int):
+    jobs = await JobRecord.filter(command_id=command_id).all()
+    for job in jobs:
+        if job.result_img is not None:
+            if os.path.exists(job.result_img):
+                os.remove(job.result_img)
+
+        await job.delete()
 
 
 async def delete_command(command_id: int):
@@ -90,7 +253,7 @@ async def delete_command(command_id: int):
     command = await CommandRecord.get(id=command_id)
     project_id = command.project_id
     order = command.order
-
+    await delete_jobs_from_command(command_id)
     await command.delete()
 
     # Shift down all commands after the deleted one

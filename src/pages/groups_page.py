@@ -9,6 +9,7 @@ from src.controllers.group_ctrl import (
     GroupInput,
     add_group,
     add_group_of_positives_from_text_file,
+    delete_group,
     edit_group,
     list_groups,
 )
@@ -275,8 +276,8 @@ class GroupsPage:
     def redirect_to_items(self, item):
         ui.navigate.to(f"/groups/{item['id']}/items")
 
-    async def handle_delete(self, dialog, item_id):
-        # await self.delete_workflow(item_id)
+    async def handle_delete(self, dialog, group_id):
+        await delete_group(group_id)
         await self.load_items()
         ui.notify("Group deleted successfully", type="positive")
         dialog.close()
