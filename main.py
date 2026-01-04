@@ -16,6 +16,7 @@ from src.pages import (
     groups_page,
     home_page,
     items_page,
+    jobs_page,
     projects_page,
     servers_page,
     workflows_page,
@@ -62,6 +63,14 @@ def main():
     app.on_startup(initialize)
     app.on_shutdown(close_db)
 
+    app.add_static_files("/result_path", GLOBAL_CONF.result_path)
+    app.add_static_files(
+        "/controlnet_references_path", GLOBAL_CONF.controlnet_references_path
+    )
+    app.add_static_files(
+        "/ipadapter_references_path", GLOBAL_CONF.ipadapter_references_path
+    )
+    app.add_static_files("/thumbnails_path", GLOBAL_CONF.thumbnails_path)
     home_page.init()
     servers_page.init()
     workflows_page.init()
@@ -69,6 +78,7 @@ def main():
     projects_page.init()
 
     commands_page.init(GLOBAL_CONF, GLOBAL_MANAGER)
+    jobs_page.init(GLOBAL_CONF, GLOBAL_MANAGER)
     groups_page.init(GLOBAL_CONF)
     items_page.init(GLOBAL_CONF)
     ui.run(title="Bowl of scenes", reload=False, show=False)

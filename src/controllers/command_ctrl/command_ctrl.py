@@ -39,7 +39,9 @@ class CommandOutput:
     command_json: dict[str, Any]
 
 
-async def create_jobs(conf: Config, cmd: ParsedCommand, command: CommandRecord):
+async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
+    parser = PromptLanguageParser()
+    cmd = parser.parse(command.command_code)
     server = await ServerRecord.filter(code_name=cmd.server_code_name).first()
     if server is None:
         raise ValueError(f"Server '{cmd.server_code_name}' not found")
@@ -113,6 +115,7 @@ async def create_jobs(conf: Config, cmd: ParsedCommand, command: CommandRecord):
 
     combined_items = [list(combo) for combo in product(*items_per_group)]
     print(f"Will run {len(combined_items)}")
+    res = []
     for items in combined_items:
         prompt_positive = ""
         prompt_negative = ""
@@ -121,13 +124,13 @@ async def create_jobs(conf: Config, cmd: ParsedCommand, command: CommandRecord):
         lora_list = []
 
         group_item_id_list = []
-        result_filename_img = ""
+        result_filename_img = f"{server.code_name}_{workflow.code_name}_{command.id}"
         for item in items:
             group = await GroupRecord.get_or_none(id=item.group_id)
             if group is not None:
-                result_filename_img += group.code_name
+                result_filename_img += "_" + group.code_name
 
-            result_filename_img += "_" + item.code_name + "_"
+            result_filename_img += "_" + item.code_name
             group_item_id_list.append(
                 {
                     "group_id": item.group_id,
@@ -148,7 +151,7 @@ async def create_jobs(conf: Config, cmd: ParsedCommand, command: CommandRecord):
                 lora_list.append(item.lora)
 
         result_img = os.path.join(conf.result_path, result_filename_img + ".png")
-        await JobRecord.create(
+        job = await JobRecord.create(
             project_id=command.project_id,
             command_id=command.id,
             group_item_id_list=group_item_id_list,
@@ -163,6 +166,8 @@ async def create_jobs(conf: Config, cmd: ParsedCommand, command: CommandRecord):
             lora_list=lora_list,
             result_img=result_img,
         )
+        res.append(job)
+    return res
 
 
 async def run_command(manager: Manager, command_id: int):
@@ -173,6 +178,32 @@ async def run_command(manager: Manager, command_id: int):
     jobs = await JobRecord.filter(command_id=command_id).all()
     for job in jobs:
         await manager.add_job(job)
+
+
+async def recreate_command(conf: Config, command_id: int):
+    cmd = await CommandRecord.get_or_none(id=command_id)
+    if cmd is None:
+        raise ValueError("command doesn't exist")
+
+    jobs = await JobRecord.filter(command_id=command_id).all()
+    for job in jobs:
+        await job.delete()
+
+    await create_jobs(conf, cmd)
+
+
+async def get_command(command_id: int) -> CommandOutput:
+    cmd = await CommandRecord.get_or_none(id=command_id)
+    if cmd is None:
+        raise ValueError("command doesn't exist")
+
+    return CommandOutput(
+        id=cmd.id,
+        project_id=cmd.project_id,
+        order=cmd.order,
+        command_code=cmd.command_code,
+        command_json=cmd.command_json,
+    )
 
 
 async def add_command(
@@ -213,7 +244,7 @@ async def add_command(
         command_json=command.to_dict(),
     )
 
-    await create_jobs(conf, command, cmd_rec)
+    await create_jobs(conf, cmd_rec)
 
 
 async def edit_command(conf: Config, id: int, input: CommandInput) -> list[str] | None:
@@ -233,7 +264,7 @@ async def edit_command(conf: Config, id: int, input: CommandInput) -> list[str] 
         cmd.command_json = command.to_dict()
         await cmd.save()
         await delete_jobs_from_command(cmd.id)
-        await create_jobs(conf, command, cmd)
+        await create_jobs(conf, cmd)
 
 
 async def delete_jobs_from_command(command_id: int):
