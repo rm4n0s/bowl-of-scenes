@@ -18,6 +18,7 @@ from src.pages import (
     items_page,
     jobs_page,
     projects_page,
+    repl_page,
     servers_page,
     workflows_page,
 )
@@ -76,11 +77,11 @@ def main():
     workflows_page.init()
     categories_page.init()
     projects_page.init()
-
     commands_page.init(GLOBAL_CONF, GLOBAL_MANAGER)
     jobs_page.init(GLOBAL_CONF, GLOBAL_MANAGER)
     groups_page.init(GLOBAL_CONF)
     items_page.init(GLOBAL_CONF)
+    repl_page.init(GLOBAL_CONF, GLOBAL_MANAGER)
     ui.run(title="Bowl of scenes", reload=False, show=False)
 
 

@@ -185,9 +185,7 @@ async def recreate_command(conf: Config, command_id: int):
     if cmd is None:
         raise ValueError("command doesn't exist")
 
-    jobs = await JobRecord.filter(command_id=command_id).all()
-    for job in jobs:
-        await job.delete()
+    await delete_jobs_from_command(command_id)
 
     await create_jobs(conf, cmd)
 

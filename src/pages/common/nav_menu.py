@@ -26,5 +26,6 @@ async def common_nav_menu():
             NavMenuInput(name="Servers", link="/servers"),
             NavMenuInput(name="Workflows", link="/workflows"),
             NavMenuInput(name="Categories", link="/categories"),
+            NavMenuInput(name="REPL", link="/repl"),
         ]
     )

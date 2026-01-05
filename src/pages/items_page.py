@@ -1,4 +1,3 @@
-import json
 from dataclasses import asdict
 
 from fastapi import HTTPException
@@ -331,21 +330,21 @@ class ItemsPage:
                     "align": "left",
                 },
                 {
-                    "name": "controlnet_reference_image",
+                    "name": "show_controlnet_reference_image",
                     "label": "ControlNet image",
-                    "field": "controlnet_reference_image",
+                    "field": "show_controlnet_reference_image",
                     "align": "left",
                 },
                 {
-                    "name": "ipadapter_reference_image",
+                    "name": "show_ipadapter_reference_image",
                     "label": "IPAdapter image",
-                    "field": "ipadapter_reference_image",
+                    "field": "show_ipadapter_reference_image",
                     "align": "left",
                 },
                 {
-                    "name": "thumbnail_image",
+                    "name": "show_thumbnail_image",
                     "label": "Thumbnail image",
-                    "field": "thumbnail_image",
+                    "field": "show_thumbnail_image",
                     "align": "left",
                 },
                 {
@@ -358,6 +357,45 @@ class ItemsPage:
             self.table = ui.table(
                 columns=columns, rows=self.items, row_key="id"
             ).classes("w-full")
+
+            self.table.add_slot(
+                "body-cell-show_thumbnail_image",
+                """
+                <q-td :props="props">
+                                <img
+                                    v-if="props.value"
+                                    :src="props.value"
+                                    style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
+                                >
+                            </q-td>
+                        """,
+            )
+
+            self.table.add_slot(
+                "body-cell-show_ipadapter_reference_image",
+                """
+                <q-td :props="props">
+                                <img
+                                    v-if="props.value"
+                                    :src="props.value"
+                                    style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
+                                >
+                            </q-td>
+                        """,
+            )
+
+            self.table.add_slot(
+                "body-cell-show_controlnet_reference_image",
+                """
+                <q-td :props="props">
+                                <img
+                                    v-if="props.value"
+                                    :src="props.value"
+                                    style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
+                                >
+                            </q-td>
+                        """,
+            )
 
             # Add action buttons to each row
             self.table.add_slot(

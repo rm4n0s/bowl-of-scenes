@@ -78,6 +78,7 @@ class JobsPage:
                 """
                 <q-td :props="props">
                                 <img
+                                    v-if="props.row.status === 'finished'"
                                     :src="props.value"
                                     style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
                                     @click="$parent.$emit('show_image', props.row)"

@@ -33,8 +33,11 @@ class ItemOutput:
     negative_prompt: str
     lora: str | None
     controlnet_reference_image: str | None
+    show_controlnet_reference_image: str | None
     ipadapter_reference_image: str | None
+    show_ipadapter_reference_image: str | None
     thumbnail_image: str | None
+    show_thumbnail_image: str | None
 
 
 async def add_item(conf: Config, input: ItemInput):
@@ -157,6 +160,17 @@ async def list_items(group_id: int) -> list[ItemOutput]:
         lora = None
         if rec.lora is not None:
             lora = json.dumps(rec.lora)
+        show_controlnet_reference_image = None
+        if rec.controlnet_reference_image is not None:
+            show_controlnet_reference_image = f"/controlnet_references_path/{os.path.basename(rec.controlnet_reference_image)}"
+        show_ipadapter_reference_image = None
+        if rec.ipadapter_reference_image is not None:
+            show_ipadapter_reference_image = f"/ipadapter_references_path/{os.path.basename(rec.ipadapter_reference_image)}"
+        show_thumbnail_image = None
+        if rec.thumbnail_image is not None:
+            show_thumbnail_image = (
+                f"/thumbnails_path/{os.path.basename(rec.thumbnail_image)}"
+            )
 
         io = ItemOutput(
             id=rec.id,
@@ -167,8 +181,11 @@ async def list_items(group_id: int) -> list[ItemOutput]:
             negative_prompt=rec.negative_prompt,
             lora=lora,
             controlnet_reference_image=rec.controlnet_reference_image,
+            show_controlnet_reference_image=show_controlnet_reference_image,
             ipadapter_reference_image=rec.ipadapter_reference_image,
+            show_ipadapter_reference_image=show_ipadapter_reference_image,
             thumbnail_image=rec.thumbnail_image,
+            show_thumbnail_image=show_thumbnail_image,
         )
         outs.append(io)
     return outs

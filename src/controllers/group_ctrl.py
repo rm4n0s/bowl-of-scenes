@@ -31,6 +31,7 @@ class GroupOutput:
     use_controlnet: bool
     use_ip_adapter: bool
     thumbnail_image: str | None
+    show_thumbnail_image: str | None
 
 
 async def add_group(conf: Config, input: GroupInput):
@@ -123,17 +124,7 @@ async def list_groups() -> list[GroupOutput]:
     recs = await GroupRecord.all()
     outs = []
     for rec in recs:
-        go = GroupOutput(
-            id=rec.id,
-            name=rec.name,
-            description=rec.description,
-            code_name=rec.code_name,
-            category_id=rec.category_id,
-            use_lora=rec.use_lora,
-            use_controlnet=rec.use_controlnet,
-            use_ip_adapter=rec.use_ip_adapter,
-            thumbnail_image=rec.thumbnail_image,
-        )
+        go = serialize_group(rec)
         outs.append(go)
 
     return outs
@@ -143,6 +134,25 @@ async def get_group(id: int) -> GroupOutput | None:
     rec = await GroupRecord.get_or_none(id=id)
     if rec is None:
         return None
+
+    return serialize_group(rec)
+
+
+async def delete_group(id: int):
+    rec = await GroupRecord.get_or_none(id=id)
+    if rec is None:
+        raise ValueError("Group doesn't exist")
+
+    await ItemRecord.filter(group_id=id).delete()
+    await rec.delete()
+
+
+def serialize_group(rec: GroupRecord) -> GroupOutput:
+    show_thumbnail_image = None
+    if rec.thumbnail_image is not None:
+        show_thumbnail_image = (
+            f"/thumbnails_path/{os.path.basename(rec.thumbnail_image)}"
+        )
 
     return GroupOutput(
         id=rec.id,
@@ -154,13 +164,5 @@ async def get_group(id: int) -> GroupOutput | None:
         use_controlnet=rec.use_controlnet,
         use_ip_adapter=rec.use_ip_adapter,
         thumbnail_image=rec.thumbnail_image,
+        show_thumbnail_image=show_thumbnail_image,
     )
-
-
-async def delete_group(id: int):
-    rec = await GroupRecord.get_or_none(id=id)
-    if rec is None:
-        raise ValueError("Group doesn't exist")
-
-    await ItemRecord.filter(group_id=id).delete()
-    await rec.delete()
