@@ -53,6 +53,22 @@ async def add_item(conf: Config, input: ItemInput):
     )
 
 
+async def delete_item(id: int):
+    item = await ItemRecord.get_or_none(id=id)
+    if item is None:
+        raise ValueError("Item doesn't exist")
+
+    if item.ipadapter_reference_image is not None:
+        if os.path.exists(item.ipadapter_reference_image):
+            os.remove(item.ipadapter_reference_image)
+
+    if item.controlnet_reference_image is not None:
+        if os.path.exists(item.controlnet_reference_image):
+            os.remove(item.controlnet_reference_image)
+
+    await item.delete()
+
+
 async def edit_item(conf: Config, id: int, ui_input: ItemInput):
     item = await ItemRecord.get_or_none(id=id)
     if item is None:

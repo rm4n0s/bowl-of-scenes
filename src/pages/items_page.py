@@ -7,7 +7,13 @@ from nicegui.elements.upload_files import FileUpload
 from nicegui.events import MultiUploadEventArguments
 
 from src.controllers.group_ctrl import GroupOutput, get_group
-from src.controllers.item_ctrl import ItemInput, add_item, edit_item, list_items
+from src.controllers.item_ctrl import (
+    ItemInput,
+    add_item,
+    delete_item,
+    edit_item,
+    list_items,
+)
 from src.core.config import Config
 from src.pages.common.nav_menu import common_nav_menu
 
@@ -289,7 +295,7 @@ class ItemsPage:
         dialog.open()
 
     async def handle_delete(self, dialog, item_id):
-        # await self.delete_workflow(item_id)
+        await delete_item(item_id)
         await self.load_items()
         ui.notify("Item deleted successfully", type="positive")
         dialog.close()

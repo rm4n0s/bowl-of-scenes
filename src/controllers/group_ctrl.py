@@ -115,5 +115,16 @@ async def delete_group(id: int):
     if rec is None:
         raise ValueError("Group doesn't exist")
 
-    await ItemRecord.filter(group_id=id).delete()
+    items = await ItemRecord.filter(group_id=id).all()
+    for item in items:
+        if item.ipadapter_reference_image is not None:
+            if os.path.exists(item.ipadapter_reference_image):
+                os.remove(item.ipadapter_reference_image)
+
+        if item.controlnet_reference_image is not None:
+            if os.path.exists(item.controlnet_reference_image):
+                os.remove(item.controlnet_reference_image)
+
+        await item.delete()
+
     await rec.delete()
