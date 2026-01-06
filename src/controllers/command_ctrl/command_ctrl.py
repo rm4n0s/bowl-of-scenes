@@ -6,12 +6,12 @@ from typing import Any
 from tortoise.expressions import F
 
 from src.controllers.command_ctrl.command_parser import (
-    ParsedCommand,
     PromptLanguageParser,
 )
 from src.controllers.command_ctrl.command_validator import (
     validate_code_names,
 )
+from src.controllers.ctrl_types import serialize_job
 from src.controllers.manager_ctrl import Manager
 from src.core.config import Config
 from src.db.records import (
@@ -177,7 +177,7 @@ async def run_command(manager: Manager, command_id: int):
 
     jobs = await JobRecord.filter(command_id=command_id).all()
     for job in jobs:
-        await manager.add_job(job)
+        await manager.add_job(serialize_job(job))
 
 
 async def recreate_command(conf: Config, command_id: int):

@@ -1,31 +1,21 @@
 import asyncio
 import io
-import json
 import os
-from dataclasses import dataclass
 
 from PIL import Image
 from yet_another_comfy_client import (
-    ClientError,
     EventType,
     StatusData,
     YetAnotherComfyClient,
     edit_prompt,
 )
 
+from src.controllers.ctrl_types import JobOutput, ServerData
 from src.controllers.server_ctrl import StatusEnum
 from src.core.config import Config
 from src.core.utils import LoRAInjector
 from src.db.records import JobRecord, ServerRecord, WorkflowRecord
 from src.db.records.job_rec import JobStatus
-
-
-@dataclass
-class ServerData:
-    id: int
-    host: str
-    code_name: str
-    client: YetAnotherComfyClient
 
 
 async def listen_for_events_from_comfyui(sd: ServerData):
@@ -51,7 +41,7 @@ async def listen_for_events_from_comfyui(sd: ServerData):
 
 class Manager:
     _servers: dict[str, ServerData]
-    _job_queue: asyncio.Queue[JobRecord]
+    _job_queue: asyncio.Queue[JobOutput]
 
     def __init__(self, conf: Config):
         self._conf = conf
@@ -102,7 +92,7 @@ class Manager:
 
             await asyncio.sleep(1)
 
-    async def add_job(self, job: JobRecord):
+    async def add_job(self, job: JobOutput):
         await self._job_queue.put(job)
 
     async def execute_jobs(self):
@@ -161,9 +151,10 @@ class Manager:
                     prompt = inj.get_workflow()
 
                 res = await client.queue_prompt(prompt)
-                job.comfyui_prompt_id = res["prompt_id"]
-                job.status = JobStatus.PROCESSING
-                await job.save()
+                job_rec = await JobRecord.get(id=job.id)
+                job_rec.comfyui_prompt_id = res["prompt_id"]
+                job_rec.status = JobStatus.PROCESSING
+                await job_rec.save()
                 print("Processing job", job)
                 async for event in client.get_events():
                     if event.type == EventType.EXECUTION_SUCCESS:
@@ -173,13 +164,13 @@ class Manager:
                         assert isinstance(event.data, StatusData)
                         if event.data.status.exec_info.queue_remaining == 0:
                             break
-                output = await client.get_images_by_prompt_id(job.comfyui_prompt_id)
+                output = await client.get_images_by_prompt_id(job_rec.comfyui_prompt_id)
                 if output is not None:
                     for node_id, node_images in output.output_images.items():
                         for oid, image_data in enumerate(node_images):
                             image = Image.open(io.BytesIO(image_data))
                             image.save(job.result_img)
 
-                job.status = JobStatus.FINISHED
-                await job.save()
-                print("Finished job", job)
+                job_rec.status = JobStatus.FINISHED
+                await job_rec.save()
+                print("Finished job", job_rec.id)

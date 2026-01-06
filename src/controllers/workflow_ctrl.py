@@ -1,32 +1,5 @@
-from dataclasses import dataclass
-from typing import Any
-
+from src.controllers.ctrl_types import WorkflowInput, WorkflowOutput
 from src.db.records import WorkflowRecord
-
-
-@dataclass
-class WorkflowInput:
-    name: str
-    code_name: str
-    workflow_json: dict[str, Any]
-    positive_prompt_title: str | None
-    negative_prompt_title: str | None
-    load_image_ipadapter_title: str | None
-    load_image_controlnet_title: str | None
-    save_image_title: str
-
-
-@dataclass
-class WorkflowOutput:
-    id: int
-    name: str
-    code_name: str
-    workflow_json: dict[str, Any]
-    positive_prompt_title: str | None
-    negative_prompt_title: str | None
-    load_image_ipadapter_title: str | None
-    load_image_controlnet_title: str | None
-    save_image_title: str
 
 
 async def add_workflow(input: WorkflowInput):

@@ -1,13 +1,11 @@
 from nicegui import ui
 
+from src.pages.common.nav_menu import common_nav_menu
+
 
 def init():
     @ui.page("/")
-    def home_page():
+    async def home_page():
         ui.dark_mode().auto()
         ui.label("Home Page").classes("text-h3")
-        ui.link("Servers", "/servers")
-        ui.link("Workflows", "/workflows")
-        ui.link("Categories", "/categories")
-        ui.link("Groups", "/groups")
-        ui.link("Projects", "/projects")
+        await common_nav_menu()

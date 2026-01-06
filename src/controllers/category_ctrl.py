@@ -1,17 +1,5 @@
-from dataclasses import dataclass
-
+from src.controllers.ctrl_types import CategoryInput, CategoryOutput
 from src.db.records import CategoryRecord
-
-
-@dataclass
-class CategoryInput:
-    name: str
-
-
-@dataclass
-class CategoryOutput:
-    id: int
-    name: str
 
 
 async def add_category(input: CategoryInput):

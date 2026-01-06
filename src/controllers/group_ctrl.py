@@ -1,37 +1,9 @@
 import os
 import uuid
-from dataclasses import dataclass
 
-from nicegui.elements.upload_files import FileUpload
-
+from src.controllers.ctrl_types import GroupInput, GroupOutput, serialize_group
 from src.core.config import Config
 from src.db.records import GroupRecord, ItemRecord
-
-
-@dataclass
-class GroupInput:
-    name: str
-    description: str
-    code_name: str
-    category_id: int
-    use_lora: bool
-    use_controlnet: bool
-    use_ip_adapter: bool
-    thumbnail_image: FileUpload | None
-
-
-@dataclass
-class GroupOutput:
-    id: int
-    name: str
-    description: str
-    code_name: str
-    category_id: int
-    use_lora: bool
-    use_controlnet: bool
-    use_ip_adapter: bool
-    thumbnail_image: str | None
-    show_thumbnail_image: str | None
 
 
 async def add_group(conf: Config, input: GroupInput):
@@ -145,24 +117,3 @@ async def delete_group(id: int):
 
     await ItemRecord.filter(group_id=id).delete()
     await rec.delete()
-
-
-def serialize_group(rec: GroupRecord) -> GroupOutput:
-    show_thumbnail_image = None
-    if rec.thumbnail_image is not None:
-        show_thumbnail_image = (
-            f"/thumbnails_path/{os.path.basename(rec.thumbnail_image)}"
-        )
-
-    return GroupOutput(
-        id=rec.id,
-        name=rec.name,
-        description=rec.description,
-        code_name=rec.code_name,
-        category_id=rec.category_id,
-        use_lora=rec.use_lora,
-        use_controlnet=rec.use_controlnet,
-        use_ip_adapter=rec.use_ip_adapter,
-        thumbnail_image=rec.thumbnail_image,
-        show_thumbnail_image=show_thumbnail_image,
-    )

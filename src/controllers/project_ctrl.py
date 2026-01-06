@@ -1,17 +1,5 @@
-from dataclasses import dataclass
-
+from src.controllers.ctrl_types import ProjectInput, ProjectOutput
 from src.db.records import ProjectRecord
-
-
-@dataclass
-class ProjectInput:
-    name: str
-
-
-@dataclass
-class ProjectOutput:
-    id: int
-    name: str
 
 
 async def add_project(input: ProjectInput):

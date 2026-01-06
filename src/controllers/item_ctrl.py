@@ -1,43 +1,10 @@
 import json
 import os
 import uuid
-from dataclasses import dataclass
-from typing import Any
 
-from nicegui.elements.upload_files import FileUpload
-
+from src.controllers.ctrl_types import ItemInput, ItemOutput
 from src.core.config import Config
 from src.db.records import ItemRecord
-
-
-@dataclass
-class ItemInput:
-    group_id: int
-    name: str
-    code_name: str
-    positive_prompt: str
-    negative_prompt: str
-    lora: str | None
-    controlnet_reference_image: FileUpload | None
-    ipadapter_reference_image: FileUpload | None
-    thumbnail_image: FileUpload | None
-
-
-@dataclass
-class ItemOutput:
-    id: int
-    group_id: int
-    name: str
-    code_name: str
-    positive_prompt: str
-    negative_prompt: str
-    lora: str | None
-    controlnet_reference_image: str | None
-    show_controlnet_reference_image: str | None
-    ipadapter_reference_image: str | None
-    show_ipadapter_reference_image: str | None
-    thumbnail_image: str | None
-    show_thumbnail_image: str | None
 
 
 async def add_item(conf: Config, input: ItemInput):

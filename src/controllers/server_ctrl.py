@@ -1,34 +1,9 @@
-import enum
-from dataclasses import dataclass
-
 from yet_another_comfy_client import (
     YetAnotherComfyClient,
 )
 
+from src.controllers.ctrl_types import ServerInput, ServerOutput, StatusEnum
 from src.db.records import ServerRecord
-
-
-class StatusEnum(enum.StrEnum):
-    ONLINE = "online"
-    OFFLINE = "offline"
-
-
-@dataclass
-class ServerInput:
-    name: str
-    host: str
-    code_name: str
-    is_local: bool
-
-
-@dataclass
-class ServerOutput:
-    id: int
-    name: str
-    host: str
-    code_name: str
-    is_local: bool
-    status: StatusEnum
 
 
 async def add_server(input: ServerInput):
