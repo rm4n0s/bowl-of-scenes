@@ -168,12 +168,12 @@ class ReplPage:
         with ui.row().style("width: 100vw; height: 100vh; margin: 0;"):
             # Left half - Form
             with ui.column().style(
-                "width: 30%; height: 100%; padding: 2rem; background-color: #f3f4f6; overflow-y: auto;"
+                "width: 30%; height: 100%; padding: 2rem;  overflow-y: auto;"
             ):
                 await self.form()
 
             with ui.column().style(
-                "width: 50%; height: 100%; padding: 2rem; background-color: #f9fafb; display: flex; align-items: center; justify-content: center;"
+                "width: 50%; height: 100%; padding: 2rem; display: flex; align-items: center; justify-content: center;"
             ):
                 ui.label("Preview Image").classes("text-2xl font-bold mb-4")
                 img = ui.image(f"/result_path/repl.png?t={time.time()}").classes(
@@ -194,7 +194,7 @@ class ReplPage:
 def init(conf: Config, manager: Manager | None):
     @ui.page("/repl")
     async def page():
-        # ui.dark_mode().auto()
+        ui.dark_mode().auto()
         assert manager is not None
         page = ReplPage(conf, manager)
         await common_nav_menu()

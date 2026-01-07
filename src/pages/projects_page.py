@@ -2,7 +2,13 @@ from dataclasses import asdict
 
 from nicegui import ui
 
-from src.controllers.project_ctrl import ProjectInput, add_project, list_projects
+from src.controllers.project_ctrl import (
+    ProjectInput,
+    add_project,
+    delete_project,
+    edit_project,
+    list_projects,
+)
 from src.pages.common.nav_menu import common_nav_menu
 
 
@@ -79,6 +85,8 @@ class ProjectsPage:
         item_id,
         name: str,
     ):
+        input = ProjectInput(name=name)
+        await edit_project(item_id, input)
         await self.load_items()
         ui.notify("Project updated successfully", type="positive")
         dialog.close()
@@ -97,6 +105,7 @@ class ProjectsPage:
         dialog.open()
 
     async def handle_delete(self, dialog, item_id):
+        await delete_project(item_id)
         await self.load_items()
         ui.notify("Project deleted successfully", type="positive")
         dialog.close()

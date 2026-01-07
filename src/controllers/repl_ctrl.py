@@ -76,9 +76,10 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
     if workflow is None:
         raise ValueError(f"Workflow '{input.workflow_code_name}' not found")
 
-    ok, err = validate_group_item_code_names(input.group_item_code_names)
-    if not ok:
-        raise ValueError(f"List of items is not valid: {err}")
+    if len(input.group_item_code_names) > 0:
+        ok, err = validate_group_item_code_names(input.group_item_code_names)
+        if not ok:
+            raise ValueError(f"List of items is not valid: {err}")
 
     list_group_item_code_names = serialize_group_item_code_names_to_dict(
         input.group_item_code_names
