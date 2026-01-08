@@ -33,6 +33,7 @@ async def list_categories() -> list[CategoryOutput]:
 
 async def init_predefined_categories():
     categories = [
+        "none",
         "character",
         "poses",
         "style",

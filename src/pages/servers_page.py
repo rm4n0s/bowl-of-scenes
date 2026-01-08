@@ -5,6 +5,8 @@ from nicegui import ui
 from src.controllers.server_ctrl import (
     ServerInput,
     add_server,
+    delete_server,
+    edit_server,
     list_servers,
 )
 from src.pages.common.nav_menu import common_nav_menu
@@ -30,7 +32,7 @@ class ServersPage:
 
     async def delete_server(self, server_id):
         """Delete server"""
-        # await ServerRecord.filter(id=server_id).delete()
+        await delete_server(server_id)
         await self.load_servers()
         ui.notify("Server deleted successfully", type="positive")
 
@@ -88,7 +90,9 @@ class ServersPage:
             code_name_input = ui.input("Code name", value=server["code_name"]).props(
                 "outlined"
             )
-            is_local = ui.checkbox("Is Local").props("outlined")
+            is_local = ui.checkbox("Is Local", value=server["is_local"]).props(
+                "outlined"
+            )
 
             with ui.row():
                 ui.button("Cancel", on_click=dialog.close)
@@ -112,6 +116,10 @@ class ServersPage:
             ui.notify("Name and IP are required", type="negative")
             return
 
+        input = ServerInput(
+            name=name, host=host, code_name=code_name, is_local=is_local
+        )
+        await edit_server(server_id, input)
         await self.load_servers()
         ui.notify("Server updated successfully", type="positive")
         dialog.close()

@@ -15,6 +15,26 @@ async def add_server(input: ServerInput):
     )
 
 
+async def edit_server(id: int, input: ServerInput):
+    srv = await ServerRecord.get_or_none(id=id)
+    if srv is None:
+        raise ValueError("Server not found")
+
+    srv.name = input.name
+    srv.code_name = input.code_name
+    srv.host = input.host
+    srv.is_local = input.is_local
+    await srv.save()
+
+
+async def delete_server(id: int):
+    srv = await ServerRecord.get_or_none(id=id)
+    if srv is None:
+        raise ValueError("Server not found")
+
+    await srv.delete()
+
+
 async def list_servers() -> list[ServerOutput]:
     server_recs = await ServerRecord.all()
     server_outs = []

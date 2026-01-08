@@ -127,8 +127,8 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
     prompt_negative += input.prompt_negative
 
     if len(input.lora_list) > 0:
-        input_lora_list = json.loads(input.lora_list)
-        for v in input_lora_list:
+        dict_lora_list = json.loads(input.lora_list)
+        for v in dict_lora_list:
             if "name" not in v.keys():
                 raise ValueError("LoRA doesn't have 'name' field")
 
@@ -138,7 +138,7 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
             if "strength_clip" not in v.keys():
                 raise ValueError("LoRA doesn't have 'strength_clip' field")
 
-        lora_list.extend(input.lora_list)
+        lora_list.extend(dict_lora_list)
 
     result_img = os.path.join(conf.result_path, "repl.png")
 
