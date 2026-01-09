@@ -35,13 +35,17 @@ class ParsedCommand:
     server_code_name: str
     workflow_code_name: str
     group_selections: list[GroupSelection]
+    fixers: Optional[list[str]] = None
 
     def to_dict(self):
-        return {
+        result = {
             "server_code_name": self.server_code_name,
             "workflow_code_name": self.workflow_code_name,
             "group_selections": [gs.to_dict() for gs in self.group_selections],
         }
+        if self.fixers:
+            result["fixers"] = self.fixers
+        return result
 
     def to_json(self, indent=2):
         """Compile to JSON format"""
@@ -54,14 +58,13 @@ class PromptLanguageParser:
     def __init__(self):
         # Regex patterns
         self.server_workflow_pattern = r"(\w+)\s*-\$\s*(\w+)\s*:\s*(.+)"
-        self.group_pattern = r"(\w+)(?:\s*\(([^)]+)\))?(?:\s*\(~([^)]+)\))?"
 
     def parse(self, command: str) -> ParsedCommand:
         """
         Parse a command string into a structured format
 
         Args:
-            command: String like "server1 -$ workflow1: char_group x emotion_group (~sad,~sob)"
+            command: String like "server1 -$ workflow1: char_group x emotion_group > fixer1"
 
         Returns:
             ParsedCommand object
@@ -76,20 +79,30 @@ class PromptLanguageParser:
 
         server_code = match.group(1)
         workflow_code = match.group(2)
-        groups_part = match.group(3)
+        rest = match.group(3)
 
-        # Parse groups (split by 'x')
+        # Split by '>' to separate groups from fixers
+        if " > " in rest:
+            parts = rest.split(" > ")
+            groups_part = parts[0].strip()
+            fixers = [f.strip() for f in parts[1:]]
+        else:
+            groups_part = rest
+            fixers = None
+
+        # Parse groups
         group_selections = self._parse_groups(groups_part)
 
         return ParsedCommand(
             server_code_name=server_code,
             workflow_code_name=workflow_code,
             group_selections=group_selections,
+            fixers=fixers,
         )
 
     def _parse_groups(self, groups_part: str) -> list[GroupSelection]:
         """Parse the groups portion of the command"""
-        # Split by 'x' to get individual group expressions
+        # Split by ' x ' (with spaces) to get individual group expressions
         group_expressions = [g.strip() for g in groups_part.split(" x ")]
 
         selections = []
@@ -150,9 +163,8 @@ class PromptLanguageParser:
             )
 
         # Return a merged selection
-        # Use first group name as identifier, mark as merged
         return GroupSelection(
-            group_code_name="+".join(all_group_names),  # Combined name
+            group_code_name="+".join(all_group_names),
             include_only=None,
             exclude=None,
             is_merged=True,
@@ -166,9 +178,6 @@ class PromptLanguageParser:
         - character_group (alice, bob)
         - emotion_group (~sad, ~sob)
         """
-        # Pattern to match: group_name (item1, item2) (~item3, ~item4)
-        # We need to handle both include and exclude patterns
-
         group_name = None
         include_items = None
         exclude_items = set()
@@ -179,9 +188,6 @@ class PromptLanguageParser:
 
         if len(parts) > 1:
             # Has parentheses - parse include/exclude
-            paren_content = parts[1]
-
-            # Split by ) to handle multiple parentheses groups
             paren_groups = re.findall(r"\(([^)]+)\)", expr)
 
             for paren_group in paren_groups:

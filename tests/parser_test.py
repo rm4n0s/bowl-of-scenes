@@ -1,14 +1,14 @@
 from src.controllers.command_ctrl.command_parser import PromptLanguageParser
 
 
-def test_parser():
+def test_simple_parser():
     parser = PromptLanguageParser()
     cmd = parser.parse(
-        "server -$ workflow_anime: character x  poses(~jumping) x emotions(sad)"
+        "server -$ workflow_anime: characters x  poses(~jumping) x emotions(sad)"
     )
     assert cmd.server_code_name == "server"
     assert cmd.workflow_code_name == "workflow_anime"
-    assert cmd.group_selections[0].group_code_name == "character"
+    assert cmd.group_selections[0].group_code_name == "characters"
     assert cmd.group_selections[0].exclude is None
     assert cmd.group_selections[0].include_only is None
     assert cmd.group_selections[1].group_code_name == "poses"
@@ -19,3 +19,39 @@ def test_parser():
     assert cmd.group_selections[2].exclude is None
     assert cmd.group_selections[2].include_only is not None
     assert "sad" in cmd.group_selections[2].include_only
+
+
+def test_and_keyword_parser():
+    parser = PromptLanguageParser()
+    cmd = parser.parse(
+        "server -$ workflow_anime: characters and anime x  poses(~jumping) and fighting(kick) x emotions(sad)"
+    )
+    assert cmd.group_selections[0].is_merged
+    assert cmd.group_selections[1].is_merged
+    assert cmd.group_selections[1].merged_groups is not None
+    assert "jumping" in cmd.group_selections[1].merged_groups[0]["exclude"]
+    assert "kick" in cmd.group_selections[1].merged_groups[1]["include_only"]
+    assert not cmd.group_selections[2].is_merged
+    assert cmd.group_selections[2].include_only is not None
+    assert "sad" in cmd.group_selections[2].include_only
+    assert cmd.fixers is None
+
+
+def test_fixer_keyword_parser():
+    parser = PromptLanguageParser()
+    cmd = parser.parse(
+        "server -$ workflow_anime: characters and anime > fixer1 > fixer2"
+    )
+
+    assert cmd.group_selections[0].is_merged
+    assert cmd.fixers
+    assert len(cmd.fixers) == 2
+    assert cmd.fixers == ["fixer1", "fixer2"]
+
+    cmd = parser.parse(
+        "server -$ workflow_anime: characters and anime > fixer2 > fixer1"
+    )
+
+    assert cmd.fixers
+    assert len(cmd.fixers) == 2
+    assert cmd.fixers == ["fixer2", "fixer1"]

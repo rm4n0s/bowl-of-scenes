@@ -1,5 +1,6 @@
 from .category_rec import CategoryRecord
 from .command_rec import CommandRecord
+from .fixer_rec import FixerRecord
 from .group_rec import GroupRecord
 from .item_rec import ItemRecord
 from .job_rec import JobRecord
@@ -16,4 +17,5 @@ __all__ = [
     "JobRecord",
     "ServerRecord",
     "WorkflowRecord",
+    "FixerRecord",
 ]
