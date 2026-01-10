@@ -10,6 +10,8 @@ class FixerRecord(TimestampMixin, Model):
     code_name = fields.CharField(unique=True, max_length=100)
     positive_prompt = fields.TextField(null=True)
     negative_prompt = fields.TextField(null=True)
+    positive_prompt_title = fields.TextField(null=True)
+    negative_prompt_title = fields.TextField(null=True)
     load_image_title = fields.TextField()
     save_image_title = fields.TextField()
     workflow_json = fields.JSONField()

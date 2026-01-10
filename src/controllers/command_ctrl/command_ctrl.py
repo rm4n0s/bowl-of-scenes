@@ -16,11 +16,11 @@ from src.controllers.manager_ctrl import Manager
 from src.core.config import Config
 from src.db.records import (
     CommandRecord,
+    GeneratorRecord,
     GroupRecord,
     ItemRecord,
     JobRecord,
     ServerRecord,
-    WorkflowRecord,
 )
 
 
@@ -46,9 +46,9 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
     if server is None:
         raise ValueError(f"Server '{cmd.server_code_name}' not found")
 
-    workflow = await WorkflowRecord.filter(code_name=cmd.workflow_code_name).first()
-    if workflow is None:
-        raise ValueError(f"Workflow '{cmd.workflow_code_name}' not found")
+    generator = await GeneratorRecord.filter(code_name=cmd.generator_code_name).first()
+    if generator is None:
+        raise ValueError(f"Generator '{cmd.generator_code_name}' not found")
 
     items_per_group: list[list[ItemRecord]] = []
     for group_sel in cmd.group_selections:
@@ -124,7 +124,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
         lora_list = []
 
         group_item_id_list = []
-        result_filename_img = f"{server.code_name}_{workflow.code_name}_{command.id}"
+        result_filename_img = f"{server.code_name}_{generator.code_name}_{command.id}"
         for item in items:
             group = await GroupRecord.get_or_none(id=item.group_id)
             if group is not None:
@@ -158,7 +158,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
             code_str=command.command_code,
             server_code_name=server.code_name,
             server_host=server.host,
-            workflow_code_name=workflow.code_name,
+            generator_code_name=generator.code_name,
             prompt_positive=prompt_positive,
             prompt_negative=prompt_negative,
             reference_controlnet_img=reference_controlnet_img,

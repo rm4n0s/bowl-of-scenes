@@ -14,7 +14,7 @@ from src.controllers.ctrl_types import JobOutput, ServerData
 from src.controllers.server_ctrl import StatusEnum
 from src.core.config import Config
 from src.core.utils import LoRAInjector
-from src.db.records import JobRecord, ServerRecord, WorkflowRecord
+from src.db.records import GeneratorRecord, JobRecord, ServerRecord
 from src.db.records.job_rec import JobStatus
 
 
@@ -102,7 +102,9 @@ class Manager:
             print("Received job", job)
             if job.server_code_name in self._servers.keys():
                 client = self._servers[job.server_code_name].client
-                wf = await WorkflowRecord.get_or_none(code_name=job.workflow_code_name)
+                wf = await GeneratorRecord.get_or_none(
+                    code_name=job.generator_code_name
+                )
                 if wf is None:
                     continue
 

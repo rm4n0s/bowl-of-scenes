@@ -28,8 +28,7 @@ class GroupsPage:
 
     async def load_items(self):
         gps = await list_groups()
-        gps_dicts = [asdict(gp) for gp in gps]
-        self.items = gps_dicts
+        self.items = [asdict(gp) for gp in gps]
         if self.table:
             self.table.rows = self.items  # Assign new rows
             self.table.update()

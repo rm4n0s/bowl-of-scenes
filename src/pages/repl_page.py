@@ -17,6 +17,8 @@ from src.pages.common.nav_menu import common_nav_menu
 
 
 class ReplPage:
+    main_img: ui.image
+
     def __init__(self, conf: Config, manager: Manager):
         self.items = []
         self.selected_item = None
@@ -27,7 +29,7 @@ class ReplPage:
     async def handle_run(
         self,
         server_code_name: str,
-        workflow_code_name: str,
+        generator_code_name: str,
         group_item_code_names: str,
         prompt_positive: str,
         prompt_negative: str,
@@ -36,7 +38,7 @@ class ReplPage:
         ipadapter_reference_image: FileUpload | None,
     ):
         input = ReplInput(
-            workflow_code_name=workflow_code_name,
+            generator_code_name=generator_code_name,
             server_code_name=server_code_name,
             prompt_positive=prompt_positive,
             prompt_negative=prompt_negative,
@@ -50,7 +52,7 @@ class ReplPage:
     async def form(self):
         job_dict = {
             "server": "",
-            "workflow": "",
+            "generator": "",
             "items": "",
             "positive": "",
             "negative": "",
@@ -58,7 +60,7 @@ class ReplPage:
         }
 
         server_input = ui.input("Server", value=job_dict["server"]).props("outlined")
-        workflow_input = ui.input("Workflow", value=job_dict["workflow"]).props(
+        generator_input = ui.input("Generator", value=job_dict["generator"]).props(
             "outlined"
         )
         items_input = (
@@ -129,7 +131,7 @@ class ReplPage:
 
         async def handle_clear():
             nonlocal server_input
-            nonlocal workflow_input
+            nonlocal generator_input
             nonlocal items_input
             nonlocal positive_prompt_input
             nonlocal negative_prompt_input
@@ -137,7 +139,7 @@ class ReplPage:
             nonlocal controlnet_reference_image_input
             nonlocal ipadapter_reference_image_input
             server_input.value = ""
-            workflow_input.value = ""
+            generator_input.value = ""
             items_input.value = ""
             positive_prompt_input.value = ""
             negative_prompt_input.value = ""
@@ -145,12 +147,13 @@ class ReplPage:
             controlnet_reference_image_input = None
             ipadapter_reference_image_input = None
             await clear_repl_job()
+            self.main_img.set_source(f"/result_path/repl.png?t={time.time()}")
 
         ui.button(
             "Run",
             on_click=lambda: self.handle_run(
                 server_input.value,
-                workflow_input.value,
+                generator_input.value,
                 items_input.value,
                 positive_prompt_input.value,
                 negative_prompt_input.value,
@@ -176,12 +179,12 @@ class ReplPage:
                 "width: 50%; height: 100%; padding: 2rem; display: flex; align-items: center; justify-content: center;"
             ):
                 ui.label("Preview Image").classes("text-2xl font-bold mb-4")
-                img = ui.image(f"/result_path/repl.png?t={time.time()}").classes(
-                    "rounded-lg shadow-lg max-w-full max-h-full object-contain"
-                )
+                self.main_img = ui.image(
+                    f"/result_path/repl.png?t={time.time()}"
+                ).classes("rounded-lg shadow-lg max-w-full max-h-full object-contain")
 
                 def refresh_image():
-                    img.set_source(f"/result_path/repl.png?t={time.time()}")
+                    self.main_img.set_source(f"/result_path/repl.png?t={time.time()}")
 
                 ui.button("Refresh Image", on_click=refresh_image).style("""
                             position: absolute;

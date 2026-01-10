@@ -21,8 +21,7 @@ class CategoriesPage:
 
     async def load_items(self):
         cats = await list_categories()
-        cats_dicts = [asdict(cat) for cat in cats]
-        self.items = cats_dicts
+        self.items = [asdict(cat) for cat in cats]
         if self.table:
             self.table.rows = self.items  # Assign new rows
             self.table.update()

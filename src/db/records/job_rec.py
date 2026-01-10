@@ -21,7 +21,7 @@ class JobRecord(TimestampMixin, Model):
     server_code_name = fields.CharField(max_length=100)
     server_host = fields.CharField(max_length=100)
     status = fields.CharEnumField(enum_type=JobStatus, default=JobStatus.WAITING)
-    workflow_code_name = fields.CharField(max_length=100)
+    generator_code_name = fields.CharField(max_length=100)
     comfyui_prompt_id = fields.CharField(max_length=200, null=True, default=None)
     prompt_positive = fields.TextField()
     prompt_negative = fields.TextField()

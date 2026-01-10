@@ -13,6 +13,8 @@ from src.database import close_db, init_db
 from src.pages import (
     categories_page,
     commands_page,
+    fixers_page,
+    generators_page,
     groups_page,
     home_page,
     items_page,
@@ -20,7 +22,6 @@ from src.pages import (
     projects_page,
     repl_page,
     servers_page,
-    workflows_page,
 )
 
 # Initialize pages
@@ -35,10 +36,6 @@ async def initialize():
     assert GLOBAL_CONF
     assert GLOBAL_MANAGER
     await GLOBAL_MANAGER.start_background_tasks()
-    os.makedirs(GLOBAL_CONF.result_path, exist_ok=True)
-    os.makedirs(GLOBAL_CONF.controlnet_references_path, exist_ok=True)
-    os.makedirs(GLOBAL_CONF.ipadapter_references_path, exist_ok=True)
-    os.makedirs(GLOBAL_CONF.thumbnails_path, exist_ok=True)
 
     await init_db(GLOBAL_CONF.db_path)
     await init_predefined_categories()
@@ -64,6 +61,10 @@ def main():
     app.on_startup(initialize)
     app.on_shutdown(close_db)
 
+    os.makedirs(GLOBAL_CONF.result_path, exist_ok=True)
+    os.makedirs(GLOBAL_CONF.controlnet_references_path, exist_ok=True)
+    os.makedirs(GLOBAL_CONF.ipadapter_references_path, exist_ok=True)
+    os.makedirs(GLOBAL_CONF.thumbnails_path, exist_ok=True)
     app.add_static_files("/result_path", GLOBAL_CONF.result_path)
     app.add_static_files(
         "/controlnet_references_path", GLOBAL_CONF.controlnet_references_path
@@ -74,9 +75,10 @@ def main():
     app.add_static_files("/thumbnails_path", GLOBAL_CONF.thumbnails_path)
     home_page.init()
     servers_page.init()
-    workflows_page.init()
+    generators_page.init()
     categories_page.init()
     projects_page.init()
+    fixers_page.init()
     commands_page.init(GLOBAL_CONF, GLOBAL_MANAGER)
     jobs_page.init(GLOBAL_CONF, GLOBAL_MANAGER)
     groups_page.init(GLOBAL_CONF)

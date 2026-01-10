@@ -32,8 +32,7 @@ class CommandsPage:
 
     async def load_items(self):
         cmds = await list_commands(self.project.id)
-        cmds_dicts = [asdict(cmd) for cmd in cmds]
-        self.items = cmds_dicts
+        self.items = [asdict(cmd) for cmd in cmds]
         if self.table:
             self.table.rows = self.items  # Assign new rows
             self.table.update()

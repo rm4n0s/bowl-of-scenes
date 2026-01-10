@@ -5,18 +5,18 @@ from typing import Any
 from nicegui import ui
 from nicegui.events import UploadEventArguments
 
-from src.controllers.workflow_ctrl import (
-    WorkflowInput,
-    add_workflow,
-    delete_workflow,
-    edit_workflow,
-    list_workflows,
+from src.controllers.generator_ctrl import (
+    GeneratorInput,
+    add_generator,
+    delete_generator,
+    edit_generator,
+    list_generators,
 )
 from src.core.utils import get_title_from_class_type
 from src.pages.common.nav_menu import common_nav_menu
 
 
-class WorkflowsPage:
+class GeneratorsPage:
     table: ui.table | None
 
     def __init__(self):
@@ -25,16 +25,15 @@ class WorkflowsPage:
         self.table = None
 
     async def load_items(self):
-        wfs = await list_workflows()
-        wfs_dicts = [asdict(wf) for wf in wfs]
-        self.items = wfs_dicts
+        gens = await list_generators()
+        self.items = [asdict(gen) for gen in gens]
         if self.table:
             self.table.rows = self.items  # Assign new rows
             self.table.update()
 
     def show_create_dialog(self):
         with ui.dialog() as dialog, ui.card():
-            ui.label("Create New Workflow").classes("text-h6")
+            ui.label("Create New Generator").classes("text-h6")
 
             name_input = ui.input("Name").props("outlined")
             code_name_input = ui.input("Code name").props("outlined")
@@ -124,7 +123,7 @@ class WorkflowsPage:
         load_image_controlnet_title: str,
         save_image_title: str,
     ):
-        input = WorkflowInput(
+        input = GeneratorInput(
             name=name,
             code_name=code_name,
             workflow_json=workflow_json,
@@ -135,14 +134,14 @@ class WorkflowsPage:
             save_image_title=save_image_title,
         )
 
-        await add_workflow(input)
+        await add_generator(input)
         await self.load_items()
-        ui.notify("Workflow created successfully", type="positive")
+        ui.notify("Generator created successfully", type="positive")
         dialog.close()
 
     def show_edit_dialog(self, item):
         with ui.dialog() as dialog, ui.card():
-            ui.label("Edit Workflow").classes("text-h6")
+            ui.label("Edit Generator").classes("text-h6")
 
             name_input = ui.input("Name", value=item["name"]).props("outlined")
             code_name_input = ui.input("Code name", value=item["code_name"]).props(
@@ -150,7 +149,7 @@ class WorkflowsPage:
             )
             workflow_json_str = (
                 ui.textarea(
-                    "Workflow's JSON file path",
+                    "Generator's JSON file path",
                     value=json.dumps(item["workflow_json"], sort_keys=True, indent=4),
                 )
                 .classes("w-96")
@@ -208,7 +207,7 @@ class WorkflowsPage:
         save_image_title: str,
     ):
         workflow_json = json.loads(workflow_json_str)
-        input = WorkflowInput(
+        input = GeneratorInput(
             name=name,
             code_name=code_name,
             workflow_json=workflow_json,
@@ -219,9 +218,9 @@ class WorkflowsPage:
             save_image_title=save_image_title,
         )
 
-        await edit_workflow(workflow_id, input)
+        await edit_generator(workflow_id, input)
         await self.load_items()
-        ui.notify("Workflow updated successfully", type="positive")
+        ui.notify("Generator updated successfully", type="positive")
         dialog.close()
 
     def show_delete_dialog(self, item):
@@ -238,19 +237,19 @@ class WorkflowsPage:
         dialog.open()
 
     async def handle_delete(self, dialog, item_id):
-        await delete_workflow(item_id)
+        await delete_generator(item_id)
         await self.load_items()
-        ui.notify("Workflow deleted successfully", type="positive")
+        ui.notify("Generator deleted successfully", type="positive")
         dialog.close()
 
     async def render(self):
         """Render the CRUD page"""
-        ui.label("Workflow Management").classes("text-h4 q-mb-md")
+        ui.label("Generator Management").classes("text-h4 q-mb-md")
 
         # Action buttons
         with ui.row().classes("q-mb-md"):
             ui.button(
-                "Add Workflow", icon="add", on_click=self.show_create_dialog
+                "Add Generator", icon="add", on_click=self.show_create_dialog
             ).props("color=primary")
             ui.button("Refresh", icon="refresh", on_click=self.load_items)
 
@@ -295,10 +294,10 @@ class WorkflowsPage:
 
 
 def init():
-    @ui.page("/workflows")
+    @ui.page("/generators")
     async def page():
         ui.dark_mode().auto()
-        page = WorkflowsPage()
+        page = GeneratorsPage()
         await common_nav_menu()
         await page.render()
         await page.load_items()

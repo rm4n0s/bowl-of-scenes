@@ -30,9 +30,7 @@ class ItemsPage:
 
     async def load_items(self):
         ips = await list_items(self.group.id)
-        ips_dicts = [asdict(ip) for ip in ips]
-        print("ips", ips_dicts)
-        self.items = ips_dicts
+        self.items = [asdict(ip) for ip in ips]
         if self.table:
             self.table.rows = self.items  # Assign new rows
             self.table.update()

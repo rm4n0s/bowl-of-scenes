@@ -18,7 +18,7 @@ The execution of the above command will produce this json
 ```json
 {
   "server_code_name": "local_comfyui",
-  "workflow_code_name": "workflow_for_anime",
+  "generator_code_name": "workflow_for_anime",
   "group_selections": [
     {
       "group_code_name": "character",

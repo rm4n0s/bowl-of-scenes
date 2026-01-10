@@ -7,7 +7,7 @@ def test_simple_parser():
         "server -$ workflow_anime: characters x  poses(~jumping) x emotions(sad)"
     )
     assert cmd.server_code_name == "server"
-    assert cmd.workflow_code_name == "workflow_anime"
+    assert cmd.generator_code_name == "workflow_anime"
     assert cmd.group_selections[0].group_code_name == "characters"
     assert cmd.group_selections[0].exclude is None
     assert cmd.group_selections[0].include_only is None

@@ -22,8 +22,7 @@ class ProjectsPage:
 
     async def load_items(self):
         prs = await list_projects()
-        prs_dicts = [asdict(pr) for pr in prs]
-        self.items = prs_dicts
+        self.items = [asdict(pr) for pr in prs]
         if self.table:
             self.table.rows = self.items  # Assign new rows
             self.table.update()

@@ -21,11 +21,12 @@ async def nav_menu(input: list[NavMenuInput]):
 async def common_nav_menu():
     await nav_menu(
         [
+            NavMenuInput(name="Servers", link="/servers"),
+            NavMenuInput(name="Generators", link="/generators"),
+            NavMenuInput(name="Fixers", link="/fixers"),
+            NavMenuInput(name="Categories", link="/categories"),
             NavMenuInput(name="Groups", link="/groups"),
             NavMenuInput(name="Projects", link="/projects"),
-            NavMenuInput(name="Servers", link="/servers"),
-            NavMenuInput(name="Workflows", link="/workflows"),
-            NavMenuInput(name="Categories", link="/categories"),
             NavMenuInput(name="REPL", link="/repl"),
         ]
     )

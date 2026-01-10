@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 
 from src.controllers.command_ctrl.command_parser import ParsedCommand
-from src.db.records import GroupRecord, ItemRecord, ServerRecord, WorkflowRecord
+from src.db.records import GeneratorRecord, GroupRecord, ItemRecord, ServerRecord
+from src.db.records.fixer_rec import FixerRecord
 
 
 @dataclass
@@ -19,11 +20,17 @@ async def validate_code_names(cmd: ParsedCommand) -> ValidationResult:
         errors.append(f"Server '{cmd.server_code_name}' not found")
 
     # Validate workflow
-    workflow_exists = await WorkflowRecord.filter(
-        code_name=cmd.workflow_code_name
+    generator_exists = await GeneratorRecord.filter(
+        code_name=cmd.generator_code_name
     ).exists()
-    if not workflow_exists:
-        errors.append(f"Workflow '{cmd.workflow_code_name}' not found")
+    if not generator_exists:
+        errors.append(f"Workflow '{cmd.generator_code_name}' not found")
+
+    if cmd.fixers:
+        for fixer_cn in cmd.fixers:
+            fixer_exists = await FixerRecord.filter(code_name=fixer_cn).exists()
+            if not fixer_exists:
+                errors.append(f"Fixer '{fixer_cn}' not found")
 
     # Validate groups and items
     for group_sel in cmd.group_selections:

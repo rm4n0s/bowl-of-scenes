@@ -33,14 +33,14 @@ class ParsedCommand:
     """Represents a parsed command"""
 
     server_code_name: str
-    workflow_code_name: str
+    generator_code_name: str
     group_selections: list[GroupSelection]
     fixers: Optional[list[str]] = None
 
     def to_dict(self):
         result = {
             "server_code_name": self.server_code_name,
-            "workflow_code_name": self.workflow_code_name,
+            "generator_code_name": self.generator_code_name,
             "group_selections": [gs.to_dict() for gs in self.group_selections],
         }
         if self.fixers:
@@ -95,7 +95,7 @@ class PromptLanguageParser:
 
         return ParsedCommand(
             server_code_name=server_code,
-            workflow_code_name=workflow_code,
+            generator_code_name=workflow_code,
             group_selections=group_selections,
             fixers=fixers,
         )

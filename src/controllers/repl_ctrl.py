@@ -5,7 +5,7 @@ import re
 from src.controllers.ctrl_types import JobOutput, ReplInput, serialize_job
 from src.controllers.manager_ctrl import Manager
 from src.core.config import Config
-from src.db.records import GroupRecord, JobRecord, ServerRecord, WorkflowRecord
+from src.db.records import GeneratorRecord, GroupRecord, JobRecord, ServerRecord
 from src.db.records.item_rec import ItemRecord
 
 
@@ -72,9 +72,9 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
     if server is None:
         raise ValueError(f"Server '{input.server_code_name}' not found")
 
-    workflow = await WorkflowRecord.filter(code_name=input.workflow_code_name).first()
+    workflow = await GeneratorRecord.filter(code_name=input.generator_code_name).first()
     if workflow is None:
-        raise ValueError(f"Workflow '{input.workflow_code_name}' not found")
+        raise ValueError(f"Workflow '{input.generator_code_name}' not found")
 
     if len(input.group_item_code_names) > 0:
         ok, err = validate_group_item_code_names(input.group_item_code_names)
@@ -151,7 +151,7 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
         code_str=input.group_item_code_names,
         server_code_name=server.code_name,
         server_host=server.host,
-        workflow_code_name=workflow.code_name,
+        generator_code_name=workflow.code_name,
         prompt_positive=prompt_positive,
         prompt_negative=prompt_negative,
         reference_controlnet_img=reference_controlnet_img,

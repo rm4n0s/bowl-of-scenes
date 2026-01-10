@@ -23,9 +23,7 @@ class ServersPage:
     async def load_servers(self):
         """Load servers from database"""
         srvs = await list_servers()
-        servers_dicts = [asdict(server) for server in srvs]
-        print("load_servers", servers_dicts)
-        self.servers = servers_dicts
+        self.servers = [asdict(server) for server in srvs]
         if self.table:
             self.table.rows = self.servers  # Assign new rows
             self.table.update()

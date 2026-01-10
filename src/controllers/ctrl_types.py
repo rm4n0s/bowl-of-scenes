@@ -6,7 +6,7 @@ from typing import Any
 from nicegui.elements.upload_files import FileUpload
 from yet_another_comfy_client import YetAnotherComfyClient
 
-from src.db.records import GroupRecord
+from src.db.records import FixerRecord, GroupRecord
 from src.db.records.job_rec import JobRecord, JobStatus
 
 
@@ -79,7 +79,7 @@ class ItemOutput:
 
 @dataclass
 class ReplInput:
-    workflow_code_name: str
+    generator_code_name: str
     server_code_name: str
     prompt_positive: str
     prompt_negative: str
@@ -99,7 +99,7 @@ class JobOutput:
     server_code_name: str
     server_host: str
     status: JobStatus
-    workflow_code_name: str
+    generator_code_name: str
     comfyui_prompt_id: str | None
     prompt_positive: str
     prompt_negative: str
@@ -153,7 +153,7 @@ class ServerOutput:
 
 
 @dataclass
-class WorkflowInput:
+class GeneratorInput:
     name: str
     code_name: str
     workflow_json: dict[str, Any]
@@ -165,7 +165,7 @@ class WorkflowInput:
 
 
 @dataclass
-class WorkflowOutput:
+class GeneratorOutput:
     id: int
     name: str
     code_name: str
@@ -175,6 +175,33 @@ class WorkflowOutput:
     load_image_ipadapter_title: str | None
     load_image_controlnet_title: str | None
     save_image_title: str
+
+
+@dataclass
+class FixerInput:
+    name: str
+    code_name: str
+    positive_prompt: str
+    negative_prompt: str
+    positive_prompt_title: str
+    negative_prompt_title: str
+    load_image_title: str
+    save_image_title: str
+    workflow_json: dict[str, Any]
+
+
+@dataclass
+class FixerOutput:
+    id: int
+    name: str
+    code_name: str
+    positive_prompt: str
+    negative_prompt: str
+    positive_prompt_title: str
+    negative_prompt_title: str
+    load_image_title: str
+    save_image_title: str
+    workflow_json: dict[str, Any]
 
 
 def serialize_group(rec: GroupRecord) -> GroupOutput:
@@ -208,7 +235,7 @@ def serialize_job(rec: JobRecord) -> JobOutput:
         server_code_name=rec.server_code_name,
         server_host=rec.server_host,
         status=rec.status,
-        workflow_code_name=rec.workflow_code_name,
+        generator_code_name=rec.generator_code_name,
         comfyui_prompt_id=rec.comfyui_prompt_id,
         prompt_positive=rec.prompt_positive,
         prompt_negative=rec.prompt_negative,
@@ -217,4 +244,19 @@ def serialize_job(rec: JobRecord) -> JobOutput:
         lora_list=rec.lora_list,
         result_img=rec.result_img,
         show_result_img=f"/result_path/{os.path.basename(rec.result_img)}",
+    )
+
+
+def serialize_fixer(rec: FixerRecord) -> FixerOutput:
+    return FixerOutput(
+        id=rec.id,
+        name=rec.name,
+        code_name=rec.code_name,
+        positive_prompt=rec.positive_prompt,
+        negative_prompt=rec.negative_prompt,
+        positive_prompt_title=rec.positive_prompt_title,
+        negative_prompt_title=rec.negative_prompt_title,
+        load_image_title=rec.load_image_title,
+        save_image_title=rec.save_image_title,
+        workflow_json=rec.workflow_json,
     )
