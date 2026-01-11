@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 from itertools import product
+from multiprocessing import process
 from typing import Any
 
 from tortoise.expressions import F
@@ -22,6 +23,7 @@ from src.db.records import (
     JobRecord,
     ServerRecord,
 )
+from src.db.records.fixer_rec import FixerRecord
 
 
 @dataclass
@@ -49,6 +51,15 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
     generator = await GeneratorRecord.filter(code_name=cmd.generator_code_name).first()
     if generator is None:
         raise ValueError(f"Generator '{cmd.generator_code_name}' not found")
+
+    fixers: list[FixerRecord] = []
+    if cmd.fixers:
+        for v in cmd.fixers:
+            fix_rec = await FixerRecord.filter(code_name=v).first()
+            if fix_rec is None:
+                raise ValueError(f"Fixer '{v}' not found")
+
+            fixers.append(fix_rec)
 
     items_per_group: list[list[ItemRecord]] = []
     for group_sel in cmd.group_selections:
@@ -115,7 +126,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
 
     combined_items = [list(combo) for combo in product(*items_per_group)]
     print(f"Will run {len(combined_items)}")
-    res = []
+    res: list[JobRecord] = []
     for items in combined_items:
         prompt_positive = ""
         prompt_negative = ""
@@ -167,6 +178,39 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
             result_img=result_img,
         )
         res.append(job)
+
+    if len(fixers) > 0:
+        process_jobs = res.copy()
+        for fixer in fixers:
+            new_process_jobs = []
+            for pj in process_jobs:
+                result_filename_img = os.path.basename(pj.result_img)
+                result_img = os.path.join(
+                    conf.result_path, fixer.code_name + "_" + result_filename_img
+                )
+
+                job = await JobRecord.create(
+                    project_id=command.project_id,
+                    command_id=command.id,
+                    group_item_id_list=pj.group_item_id_list,
+                    code_str=command.command_code,
+                    server_code_name=server.code_name,
+                    server_host=server.host,
+                    fixer_code_name=fixer.code_name,
+                    fix_job_id=pj.id,
+                    generator_code_name=None,
+                    prompt_positive="",
+                    prompt_negative="",
+                    reference_controlnet_img=None,
+                    reference_ipadapter_img=None,
+                    lora_list=None,
+                    result_img=result_img,
+                )
+                res.append(job)
+                new_process_jobs.append(job)
+
+            process_jobs = new_process_jobs.copy()
+
     return res
 
 
@@ -175,9 +219,7 @@ async def run_command(manager: Manager, command_id: int):
     if cmd is None:
         raise ValueError("command doesn't exist")
 
-    jobs = await JobRecord.filter(command_id=command_id).all()
-    for job in jobs:
-        await manager.add_job(serialize_job(job))
+    await manager.add_command(cmd.id)
 
 
 async def recreate_command(conf: Config, command_id: int):

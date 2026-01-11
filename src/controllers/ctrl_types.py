@@ -99,7 +99,8 @@ class JobOutput:
     server_code_name: str
     server_host: str
     status: JobStatus
-    generator_code_name: str
+    generator_code_name: str | None
+    fixer_code_name: str | None
     comfyui_prompt_id: str | None
     prompt_positive: str
     prompt_negative: str
@@ -236,6 +237,7 @@ def serialize_job(rec: JobRecord) -> JobOutput:
         server_host=rec.server_host,
         status=rec.status,
         generator_code_name=rec.generator_code_name,
+        fixer_code_name=rec.fixer_code_name,
         comfyui_prompt_id=rec.comfyui_prompt_id,
         prompt_positive=rec.prompt_positive,
         prompt_negative=rec.prompt_negative,

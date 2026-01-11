@@ -10,7 +10,7 @@ async def run_job(manager: Manager, job_id: int):
         raise ValueError("job doesn't exist")
 
     if job.status == JobStatus.WAITING:
-        await manager.add_job(serialize_job(job))
+        await manager.add_job(job.id)
 
 
 async def reload_job(manager: Manager, job_id: int):
@@ -52,7 +52,7 @@ async def reload_job(manager: Manager, job_id: int):
     job.lora_list = lora_list
     await job.save()
 
-    await manager.add_job(serialize_job(job))
+    await manager.add_job(job.id)
 
 
 async def list_jobs(command_id: int) -> list[JobOutput]:

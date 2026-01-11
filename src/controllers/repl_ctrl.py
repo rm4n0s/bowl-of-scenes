@@ -161,8 +161,7 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
     )
 
     await job.save()
-    out = serialize_job(job)
-    await manager.add_job(out)
+    await manager.add_job(job.id)
 
 
 async def clear_repl_job():

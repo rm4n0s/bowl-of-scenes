@@ -14,7 +14,13 @@ from src.controllers.ctrl_types import JobOutput, ServerData
 from src.controllers.server_ctrl import StatusEnum
 from src.core.config import Config
 from src.core.utils import LoRAInjector
-from src.db.records import GeneratorRecord, JobRecord, ServerRecord
+from src.db.records import (
+    CommandRecord,
+    FixerRecord,
+    GeneratorRecord,
+    JobRecord,
+    ServerRecord,
+)
 from src.db.records.job_rec import JobStatus
 
 
@@ -41,16 +47,19 @@ async def listen_for_events_from_comfyui(sd: ServerData):
 
 class Manager:
     _servers: dict[str, ServerData]
-    _job_queue: asyncio.Queue[JobOutput]
+    _jobid_queue: asyncio.Queue[int]
+    _cmdid_queue: asyncio.Queue[int]
 
     def __init__(self, conf: Config):
         self._conf = conf
         self._servers = {}
-        self._job_queue = asyncio.Queue()
+        self._jobid_queue = asyncio.Queue()
+        self._cmdid_queue = asyncio.Queue()
 
     async def start_background_tasks(self):
         asyncio.create_task(self.update_servers_thread())
         asyncio.create_task(self.execute_jobs())
+        asyncio.create_task(self.execute_commands())
 
     async def update_servers_thread(self):
         while True:
@@ -92,87 +101,157 @@ class Manager:
 
             await asyncio.sleep(1)
 
-    async def add_job(self, job: JobOutput):
-        await self._job_queue.put(job)
+    async def add_job(self, job_id: int):
+        await self._jobid_queue.put(job_id)
+
+    async def add_command(self, cmd_id: int):
+        await self._cmdid_queue.put(cmd_id)
+
+    async def execute_commands(self):
+        print("ready for commands")
+        while True:
+            cmd_id = await self._cmdid_queue.get()
+            print("received command", cmd_id)
+            jobs = await JobRecord.filter(command_id=cmd_id).values("id")
+            for v in jobs:
+                job = await JobRecord.get_or_none(id=v["id"])
+                if job is None:
+                    continue
+
+                if job.server_code_name in self._servers.keys():
+                    client = self._servers[job.server_code_name].client
+                    if job.generator_code_name is not None:
+                        await generate_image(client, job)
+                    elif job.fixer_code_name is not None:
+                        await fix_image(client, job)
 
     async def execute_jobs(self):
         print("ready for jobs from queue")
         while True:
-            job = await self._job_queue.get()
-            print("Received job", job)
+            job_id = await self._jobid_queue.get()
+            print("Received job", job_id)
+            job = await JobRecord.get_or_none(id=job_id)
+            if job is None:
+                continue
+
             if job.server_code_name in self._servers.keys():
                 client = self._servers[job.server_code_name].client
-                wf = await GeneratorRecord.get_or_none(
-                    code_name=job.generator_code_name
-                )
-                if wf is None:
-                    continue
+                if job.generator_code_name is not None:
+                    await generate_image(client, job)
+                elif job.fixer_code_name is not None:
+                    await fix_image(client, job)
 
-                prompt = edit_prompt(
-                    wf.workflow_json,
-                    wf.positive_prompt_title,
-                    "text",
-                    job.prompt_positive,
-                )
-                prompt = edit_prompt(
-                    wf.workflow_json,
-                    wf.negative_prompt_title,
-                    "text",
-                    job.prompt_negative,
-                )
 
-                if (
-                    job.reference_controlnet_img is not None
-                    and wf.load_image_controlnet_title is not None
-                    and len(wf.load_image_controlnet_title) > 0
-                ):
-                    img_path = os.path.abspath(job.reference_controlnet_img)
-                    prompt = edit_prompt(
-                        prompt,
-                        wf.load_image_controlnet_title,
-                        "image",
-                        img_path,
-                    )
+async def fix_image(client: YetAnotherComfyClient, job: JobRecord):
+    fixer = await FixerRecord.get_or_none(code_name=job.fixer_code_name)
+    if fixer is None:
+        return
 
-                if (
-                    job.reference_ipadapter_img is not None
-                    and wf.load_image_ipadapter_title is not None
-                    and len(wf.load_image_ipadapter_title) > 0
-                ):
-                    img_path = os.path.abspath(job.reference_ipadapter_img)
-                    prompt = edit_prompt(
-                        prompt,
-                        wf.load_image_ipadapter_title,
-                        "image",
-                        img_path,
-                    )
+    original_job = await JobRecord.get_or_none(id=job.fix_job_id)
+    if original_job is None:
+        return
 
-                if job.lora_list is not None and len(job.lora_list) > 0:
-                    inj = LoRAInjector(prompt)
-                    inj.add_multiple_loras(job.lora_list)
-                    prompt = inj.get_workflow()
+    img_path = os.path.abspath(original_job.result_img)
+    prompt = edit_prompt(
+        fixer.workflow_json,
+        fixer.load_image_title,
+        "image",
+        img_path,
+    )
+    res = await client.queue_prompt(prompt)
+    job.comfyui_prompt_id = res["prompt_id"]
+    job.status = JobStatus.PROCESSING
+    await job.save()
+    print("Processing job", job)
+    async for event in client.get_events():
+        if event.type == EventType.EXECUTION_SUCCESS:
+            break
 
-                res = await client.queue_prompt(prompt)
-                job_rec = await JobRecord.get(id=job.id)
-                job_rec.comfyui_prompt_id = res["prompt_id"]
-                job_rec.status = JobStatus.PROCESSING
-                await job_rec.save()
-                print("Processing job", job)
-                async for event in client.get_events():
-                    if event.type == EventType.EXECUTION_SUCCESS:
-                        break
+        elif event.type == EventType.STATUS:
+            assert isinstance(event.data, StatusData)
+            if event.data.status.exec_info.queue_remaining == 0:
+                break
+    output = await client.get_images_by_prompt_id(job.comfyui_prompt_id)
+    if output is not None:
+        for node_id, node_images in output.output_images.items():
+            for oid, image_data in enumerate(node_images):
+                image = Image.open(io.BytesIO(image_data))
+                image.save(job.result_img)
 
-                    elif event.type == EventType.STATUS:
-                        assert isinstance(event.data, StatusData)
-                        if event.data.status.exec_info.queue_remaining == 0:
-                            break
-                output = await client.get_images_by_prompt_id(job_rec.comfyui_prompt_id)
-                if output is not None:
-                    for node_id, node_images in output.output_images.items():
-                        for oid, image_data in enumerate(node_images):
-                            image = Image.open(io.BytesIO(image_data))
-                            image.save(job.result_img)
+    job.status = JobStatus.FINISHED
+    await job.save()
+    print("Finished job", job.id)
 
-                job_rec.status = JobStatus.FINISHED
-                await job_rec.save()
-                print("Finished job", job_rec.id)
+
+async def generate_image(client: YetAnotherComfyClient, job: JobRecord):
+    gen = await GeneratorRecord.get_or_none(code_name=job.generator_code_name)
+    if gen is None:
+        return
+
+    prompt = edit_prompt(
+        gen.workflow_json,
+        gen.positive_prompt_title,
+        "text",
+        job.prompt_positive,
+    )
+    prompt = edit_prompt(
+        gen.workflow_json,
+        gen.negative_prompt_title,
+        "text",
+        job.prompt_negative,
+    )
+
+    if (
+        job.reference_controlnet_img is not None
+        and gen.load_image_controlnet_title is not None
+        and len(gen.load_image_controlnet_title) > 0
+    ):
+        img_path = os.path.abspath(job.reference_controlnet_img)
+        prompt = edit_prompt(
+            prompt,
+            gen.load_image_controlnet_title,
+            "image",
+            img_path,
+        )
+
+    if (
+        job.reference_ipadapter_img is not None
+        and gen.load_image_ipadapter_title is not None
+        and len(gen.load_image_ipadapter_title) > 0
+    ):
+        img_path = os.path.abspath(job.reference_ipadapter_img)
+        prompt = edit_prompt(
+            prompt,
+            gen.load_image_ipadapter_title,
+            "image",
+            img_path,
+        )
+
+    if job.lora_list is not None and len(job.lora_list) > 0:
+        inj = LoRAInjector(prompt)
+        inj.add_multiple_loras(job.lora_list)
+        prompt = inj.get_workflow()
+
+    res = await client.queue_prompt(prompt)
+    job.comfyui_prompt_id = res["prompt_id"]
+    job.status = JobStatus.PROCESSING
+    await job.save()
+    print("Processing job", job)
+    async for event in client.get_events():
+        if event.type == EventType.EXECUTION_SUCCESS:
+            break
+
+        elif event.type == EventType.STATUS:
+            assert isinstance(event.data, StatusData)
+            if event.data.status.exec_info.queue_remaining == 0:
+                break
+    output = await client.get_images_by_prompt_id(job.comfyui_prompt_id)
+    if output is not None:
+        for node_id, node_images in output.output_images.items():
+            for oid, image_data in enumerate(node_images):
+                image = Image.open(io.BytesIO(image_data))
+                image.save(job.result_img)
+
+    job.status = JobStatus.FINISHED
+    await job.save()
+    print("Finished job", job.id)
