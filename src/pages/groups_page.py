@@ -110,7 +110,10 @@ class GroupsPage:
 
             use_lora_input = ui.checkbox("Use LoRA").props("outlined")
             use_controlnet_input = ui.checkbox("Use ControlNet").props("outlined")
-            use_ip_adapter_input = ui.checkbox("Use IP Adapter").props("outlined")
+            use_ip_adapter_input = ui.checkbox("Use IPAdapter").props("outlined")
+            use_color_coded_region_input = ui.checkbox("Use Color Coded Region").props(
+                "outlined"
+            )
             thumbnail_image_input = None
 
             async def handle_upload(event: MultiUploadEventArguments):
@@ -140,6 +143,7 @@ class GroupsPage:
                         use_lora_input.value,
                         use_controlnet_input.value,
                         use_ip_adapter_input.value,
+                        use_color_coded_region_input.value,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -156,6 +160,7 @@ class GroupsPage:
         use_lora: bool,
         use_controlnet: bool,
         use_ip_adapter: bool,
+        use_color_coded_region: bool,
         thumbnail_image: FileUpload | None,
     ):
         input = GroupInput(
@@ -166,6 +171,7 @@ class GroupsPage:
             use_lora=use_lora,
             use_controlnet=use_controlnet,
             use_ip_adapter=use_ip_adapter,
+            use_color_coded_region=use_color_coded_region,
             thumbnail_image=thumbnail_image,
         )
 
@@ -199,6 +205,9 @@ class GroupsPage:
             use_ip_adapter_input = ui.checkbox(
                 "Use IP Adapter", value=item["use_ip_adapter"]
             ).props("outlined")
+            use_color_coded_region_input = ui.checkbox(
+                "Use Color Coded Region", value=item["use_color_coded_region"]
+            ).props("outlined")
             thumbnail_image_input = None
 
             async def handle_upload(event: UploadEventArguments):
@@ -224,6 +233,7 @@ class GroupsPage:
                         use_lora_input.value,
                         use_controlnet_input.value,
                         use_ip_adapter_input.value,
+                        use_color_coded_region_input.value,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -241,6 +251,7 @@ class GroupsPage:
         use_lora: bool,
         use_controlnet: bool,
         use_ip_adapter: bool,
+        use_color_coded_region: bool,
         thumbnail_image: FileUpload | None,
     ):
         input = GroupInput(
@@ -251,6 +262,7 @@ class GroupsPage:
             use_lora=use_lora,
             use_controlnet=use_controlnet,
             use_ip_adapter=use_ip_adapter,
+            use_color_coded_region=use_color_coded_region,
             thumbnail_image=thumbnail_image,
         )
 

@@ -12,6 +12,7 @@ class Config(DataClassYAMLMixin):
     result_path: str
     controlnet_references_path: str
     ipadapter_references_path: str
+    colored_region_path: str
     thumbnails_path: str
 
 

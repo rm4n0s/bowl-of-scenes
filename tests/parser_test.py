@@ -55,3 +55,35 @@ def test_fixer_keyword_parser():
     assert cmd.fixers
     assert len(cmd.fixers) == 2
     assert cmd.fixers == ["fixer2", "fixer1"]
+
+
+def test_color_coded_keyword_parser():
+    parser = PromptLanguageParser()
+    cmd = parser.parse(
+        "server -$ workflow: group_1{red: group_2 and group5 x group_4(item1), blue: group_3 x group_4(item1)} x group_6 > fixer2 > fixer1"
+    )
+
+    assert cmd.fixers
+    assert len(cmd.fixers) == 2
+    assert cmd.fixers == ["fixer2", "fixer1"]
+
+    assert cmd.group_selections[0].is_color_coded
+    assert not cmd.group_selections[1].is_color_coded
+    assert cmd.group_selections[1].color_coded_group_selections is None
+    assert cmd.group_selections[1].group_code_name == "group_6"
+    assert cmd.group_selections[0].color_coded_group_selections is not None
+    assert "red" in cmd.group_selections[0].color_coded_group_selections.keys()
+    assert "blue" in cmd.group_selections[0].color_coded_group_selections.keys()
+    assert cmd.group_selections[0].color_coded_group_selections["red"][0].is_merged
+    assert cmd.group_selections[0].color_coded_group_selections["red"][0].merged_groups
+    assert (
+        cmd.group_selections[0]
+        .color_coded_group_selections["red"][0]
+        .merged_groups[0]["group_code_name"]
+        == "group_2"
+    )
+    assert cmd.group_selections[0].color_coded_group_selections["red"][1].include_only
+    assert (
+        "item1"
+        in cmd.group_selections[0].color_coded_group_selections["red"][1].include_only
+    )

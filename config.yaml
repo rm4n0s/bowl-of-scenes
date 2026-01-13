@@ -3,4 +3,5 @@ db_path: ./.private/db.sqlite3
 result_path: ./.private/result_images
 controlnet_references_path: ./.private/controlnet_images
 ipadapter_references_path: ./.private/ipadapter_images
+colored_region_path: ./.private/colored_region_images
 thumbnails_path: ./.private/thumbnail_images

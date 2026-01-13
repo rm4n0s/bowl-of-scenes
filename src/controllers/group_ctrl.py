@@ -21,6 +21,7 @@ async def add_group(conf: Config, input: GroupInput):
         use_lora=input.use_lora,
         use_controlnet=input.use_controlnet,
         use_ip_adapter=input.use_ip_adapter,
+        use_color_coded_region=input.use_color_coded_region,
         thumbnail_image=thumbnail_path,
     )
 
@@ -36,6 +37,7 @@ async def add_group_of_positives_from_text_file(
         use_lora=False,
         use_controlnet=False,
         use_ip_adapter=False,
+        use_color_coded_region=False,
         thumbnail_image=None,
     )
 
@@ -49,6 +51,7 @@ async def add_group_of_positives_from_text_file(
             lora=None,
             controlnet_reference_image=None,
             ipadapter_reference_image=None,
+            color_coded_images=None,
             thumbnail_image=None,
         )
 
@@ -58,26 +61,14 @@ async def edit_group(conf: Config, id: int, input: GroupInput):
     if group is None:
         raise ValueError("group doesn't exist")
 
-    if group.name != input.name:
-        group.name = input.name
-
-    if group.code_name != input.code_name:
-        group.code_name = input.code_name
-
-    if group.description != input.description:
-        group.description = input.description
-
-    if group.category_id != input.category_id:
-        group.category_id = input.category_id
-
-    if group.use_lora != input.use_lora:
-        group.use_lora = input.use_lora
-
-    if group.use_ip_adapter != input.use_ip_adapter:
-        group.use_ip_adapter = input.use_ip_adapter
-
-    if group.use_controlnet != input.use_controlnet:
-        group.use_controlnet = input.use_controlnet
+    group.name = input.name
+    group.code_name = input.code_name
+    group.description = input.description
+    group.category_id = input.category_id
+    group.use_lora = input.use_lora
+    group.use_ip_adapter = input.use_ip_adapter
+    group.use_controlnet = input.use_controlnet
+    group.use_color_coded_region = input.use_color_coded_region
 
     if input.thumbnail_image is not None:
         if group.thumbnail_image is not None:

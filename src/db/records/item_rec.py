@@ -1,7 +1,15 @@
+from dataclasses import dataclass
+
 from tortoise import fields
 from tortoise.models import Model
 
 from src.db.records.common import TimestampMixin
+
+
+@dataclass
+class ColorCodeImage:
+    image_path: str
+    keyword: str
 
 
 class ItemRecord(TimestampMixin, Model):
@@ -14,4 +22,5 @@ class ItemRecord(TimestampMixin, Model):
     lora = fields.JSONField(null=True)
     controlnet_reference_image = fields.TextField(null=True)
     ipadapter_reference_image = fields.TextField(null=True)
+    color_coded_images = fields.JSONField(null=True)
     thumbnail_image = fields.TextField(null=True)

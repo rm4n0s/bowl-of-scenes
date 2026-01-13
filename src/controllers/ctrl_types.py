@@ -30,6 +30,7 @@ class GroupInput:
     use_lora: bool
     use_controlnet: bool
     use_ip_adapter: bool
+    use_color_coded_region: bool
     thumbnail_image: FileUpload | None
 
 
@@ -43,6 +44,7 @@ class GroupOutput:
     use_lora: bool
     use_controlnet: bool
     use_ip_adapter: bool
+    use_color_coded_region: bool
     thumbnail_image: str | None
     show_thumbnail_image: str | None
 
@@ -221,6 +223,7 @@ def serialize_group(rec: GroupRecord) -> GroupOutput:
         use_lora=rec.use_lora,
         use_controlnet=rec.use_controlnet,
         use_ip_adapter=rec.use_ip_adapter,
+        use_color_coded_region=rec.use_color_coded_region,
         thumbnail_image=rec.thumbnail_image,
         show_thumbnail_image=show_thumbnail_image,
     )

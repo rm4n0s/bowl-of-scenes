@@ -1,7 +1,12 @@
+"""
+Parser for the prompt mini-language
+Supports syntax: server_code -$ workflow_code: group1 x group2 > fixer1 > fixer2
+"""
+
 import json
 import re
 from dataclasses import dataclass
-from typing import Any, Optional, Set
+from typing import Optional, Set
 
 
 @dataclass
@@ -9,12 +14,12 @@ class GroupSelection:
     """Represents a group with optional inclusions/exclusions"""
 
     group_code_name: str
-    include_only: Optional[list[str]] = None  # Specific items to include
-    exclude: Optional[Set[str]] = None  # Items to exclude
-    is_merged: bool = False  # True if multiple groups merged with 'and'
-    merged_groups: Optional[list[dict[str, Any]]] = (
-        None  # List of group configs if merged
-    )
+    include_only: Optional[list[str]] = None
+    exclude: Optional[Set[str]] = None
+    is_merged: bool = False
+    merged_groups: Optional[list[dict]] = None
+    is_color_coded: bool = False
+    color_coded_group_selections: Optional[dict[str, list["GroupSelection"]]] = None
 
     def to_dict(self):
         result = {
@@ -25,6 +30,13 @@ class GroupSelection:
         if self.is_merged:
             result["is_merged"] = True
             result["merged_groups"] = self.merged_groups
+        if self.is_color_coded:
+            assert self.color_coded_group_selections
+            result["is_color_coded"] = True
+            result["color_coded_group_selections"] = {
+                color: [gs.to_dict() for gs in selections]
+                for color, selections in self.color_coded_group_selections.items()
+            }
         return result
 
 
@@ -102,13 +114,47 @@ class PromptLanguageParser:
 
     def _parse_groups(self, groups_part: str) -> list[GroupSelection]:
         """Parse the groups portion of the command"""
-        # Split by ' x ' (with spaces) to get individual group expressions
-        group_expressions = [g.strip() for g in groups_part.split(" x ")]
+        # Handle color-coded groups first (they contain ' x ' inside {})
+        # Split by ' x ' but respect {} boundaries
+        group_expressions = []
+        current = []
+        depth = 0
+
+        i = 0
+        while i < len(groups_part):
+            char = groups_part[i]
+
+            if char == "{":
+                depth += 1
+                current.append(char)
+            elif char == "}":
+                depth -= 1
+                current.append(char)
+            elif (
+                char == " "
+                and i + 2 < len(groups_part)
+                and groups_part[i : i + 3] == " x "
+                and depth == 0
+            ):
+                # Found ' x ' outside braces
+                group_expressions.append("".join(current).strip())
+                current = []
+                i += 2  # Skip ' x '
+            else:
+                current.append(char)
+
+            i += 1
+
+        if current:
+            group_expressions.append("".join(current).strip())
 
         selections = []
         for expr in group_expressions:
+            # Check if this expression has color-coded groups (contains {)
+            if "{" in expr:
+                selection = self._parse_color_coded_groups(expr)
             # Check if this expression has 'and' (merge groups)
-            if " and " in expr:
+            elif " and " in expr:
                 selection = self._parse_merged_groups(expr)
             else:
                 selection = self._parse_group_expression(expr)
@@ -169,6 +215,62 @@ class PromptLanguageParser:
             exclude=None,
             is_merged=True,
             merged_groups=merged_groups,
+        )
+
+    def _parse_color_coded_groups(self, expr: str) -> GroupSelection:
+        """
+        Parse color-coded groups expression like:
+        - group_1{red: group_2 x group_3, blue: group_4}
+        """
+        # Extract group name and the content inside {}
+        match = re.match(r"(\w+)\s*\{(.+)\}", expr)
+        if not match:
+            raise ValueError(f"Invalid color-coded syntax: {expr}")
+
+        main_group_name = match.group(1)
+        color_content = match.group(2)
+
+        # Parse color mappings: "red: group_2 x group_3, blue: group_4"
+        color_coded_selections = {}
+
+        # Split by comma to get each color mapping
+        color_parts = []
+        current_part = []
+        depth = 0
+
+        for char in color_content:
+            if char == "," and depth == 0:
+                color_parts.append("".join(current_part).strip())
+                current_part = []
+            else:
+                if char == "(":
+                    depth += 1
+                elif char == ")":
+                    depth -= 1
+                current_part.append(char)
+
+        if current_part:
+            color_parts.append("".join(current_part).strip())
+
+        # Parse each color mapping
+        for color_part in color_parts:
+            if ":" not in color_part:
+                raise ValueError(f"Invalid color mapping (missing ':'): {color_part}")
+
+            color, groups_str = color_part.split(":", 1)
+            color = color.strip()
+            groups_str = groups_str.strip()
+
+            # Parse the groups for this color (recursively)
+            color_selections = self._parse_groups(groups_str)
+            color_coded_selections[color] = color_selections
+
+        return GroupSelection(
+            group_code_name=main_group_name,
+            include_only=None,
+            exclude=None,
+            is_color_coded=True,
+            color_coded_group_selections=color_coded_selections,
         )
 
     def _parse_group_expression(self, expr: str) -> GroupSelection:

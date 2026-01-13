@@ -136,12 +136,12 @@ def inject_masks_into_workflow(
         # Common patterns to update
         if "positive" in target_node["inputs"]:
             target_node["inputs"]["positive"] = [final_conditioning_node, 0]
-            print(f"  Updated 'positive' input")
+            print("  Updated 'positive' input")
         elif "conditioning" in target_node["inputs"]:
             target_node["inputs"]["conditioning"] = [final_conditioning_node, 0]
-            print(f"  Updated 'conditioning' input")
+            print("  Updated 'conditioning' input")
         else:
-            print(f"  ⚠️  Warning: Could not find conditioning input in target node")
+            print("  ⚠️  Warning: Could not find conditioning input in target node")
 
     print(f"\n{'=' * 60}")
     print(f"✅ Successfully injected {len(mask_files)} masks")
