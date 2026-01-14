@@ -7,9 +7,9 @@ from src.db.records.common import TimestampMixin
 
 
 @dataclass
-class ColorCodeImage:
-    image_path: str
-    keyword: str
+class ColorCodeImages:
+    reference_path: str
+    mask_files: dict[str, str]
 
 
 class ItemRecord(TimestampMixin, Model):

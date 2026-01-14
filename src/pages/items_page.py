@@ -72,6 +72,21 @@ class ItemsPage:
                     max_files=1,
                 ).props('accept="image/jpeg,image/png"')
 
+            color_coded_reference_image_input = None
+            if self.group.use_color_coded_region:
+
+                async def handle_color_coded_upload(event: MultiUploadEventArguments):
+                    nonlocal color_coded_reference_image_input
+                    if event.files:
+                        color_coded_reference_image_input = event.files[0]
+
+                ui.label("Upload Color code image").classes("text-h6")
+                ui.upload(
+                    on_multi_upload=lambda e: handle_color_coded_upload(e),
+                    auto_upload=True,
+                    max_files=1,
+                ).props('accept="image/jpeg,image/png"')
+
             controlnet_reference_image_input = None
             if self.group.use_controlnet:
 
@@ -116,6 +131,7 @@ class ItemsPage:
                         lora_input,
                         controlnet_reference_image_input,
                         ipadapter_reference_image_input,
+                        color_coded_reference_image_input,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -132,6 +148,7 @@ class ItemsPage:
         lora_input: Textarea | None,
         controlnet_reference_image: FileUpload | None,
         ipadapter_reference_image: FileUpload | None,
+        color_coded_reference_image: FileUpload | None,
         thumbnail_image: FileUpload | None,
     ):
         lora = None
@@ -148,6 +165,7 @@ class ItemsPage:
             lora=lora,
             controlnet_reference_image=controlnet_reference_image,
             ipadapter_reference_image=ipadapter_reference_image,
+            color_coded_reference_image=color_coded_reference_image,
             thumbnail_image=thumbnail_image,
         )
 
@@ -208,6 +226,21 @@ class ItemsPage:
                     max_files=1,
                 ).props('accept="image/jpeg,image/png"')
 
+            color_coded_reference_image_input = None
+            if self.group.use_color_coded_region:
+
+                async def handle_color_coded_upload(event: MultiUploadEventArguments):
+                    nonlocal color_coded_reference_image_input
+                    if event.files:
+                        color_coded_reference_image_input = event.files[0]
+
+                ui.label("Upload Color code image").classes("text-h6")
+                ui.upload(
+                    on_multi_upload=lambda e: handle_color_coded_upload(e),
+                    auto_upload=True,
+                    max_files=1,
+                ).props('accept="image/jpeg,image/png"')
+
             thumbnail_image_input = None
 
             async def handle_thumbnail_upload(event: MultiUploadEventArguments):
@@ -238,6 +271,7 @@ class ItemsPage:
                         lora_input,
                         controlnet_reference_image_input,
                         ipadapter_reference_image_input,
+                        color_coded_reference_image_input,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -255,6 +289,7 @@ class ItemsPage:
         lora_input: Textarea | None,
         controlnet_reference_image: FileUpload | None,
         ipadapter_reference_image: FileUpload | None,
+        color_coded_reference_image: FileUpload | None,
         thumbnail_image: FileUpload | None,
     ):
         lora = None
@@ -271,6 +306,7 @@ class ItemsPage:
             lora=lora,
             controlnet_reference_image=controlnet_reference_image,
             ipadapter_reference_image=ipadapter_reference_image,
+            color_coded_reference_image=color_coded_reference_image,
             thumbnail_image=thumbnail_image,
         )
 
@@ -331,6 +367,12 @@ class ItemsPage:
                     "name": "negative_prompt",
                     "label": "Negative Prompt",
                     "field": "negative_prompt",
+                    "align": "left",
+                },
+                {
+                    "name": "color_coded_images_keys",
+                    "label": "Color code keys",
+                    "field": "color_coded_images_keys",
                     "align": "left",
                 },
                 {

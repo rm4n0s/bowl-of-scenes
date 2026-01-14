@@ -1,10 +1,13 @@
 import json
 import os
 import uuid
+from dataclasses import asdict
 
 from src.controllers.ctrl_types import ItemInput, ItemOutput
 from src.core.config import Config
+from src.core.utils.auto_masking import auto_create_masks
 from src.db.records import ItemRecord
+from src.db.records.item_rec import ColorCodeImages
 
 
 async def add_item(conf: Config, input: ItemInput):
@@ -36,6 +39,22 @@ async def add_item(conf: Config, input: ItemInput):
         )
         await input.controlnet_reference_image.save(controlnt_ref_path)
 
+    color_coded_images = None
+    if input.color_coded_reference_image is not None:
+        photos_id = str(uuid.uuid4())
+        image_filename = str(photos_id) + "_" + input.color_coded_reference_image.name
+        cc_ref_path = os.path.join(conf.colored_region_path, image_filename)
+        await input.color_coded_reference_image.save(cc_ref_path)
+        mask_folder_path = os.path.join(conf.colored_region_path, photos_id)
+        output = auto_create_masks(cc_ref_path, mask_folder_path)
+        mask_files = {}
+        for key, outpath in output.items():
+            mask_files[key] = outpath
+
+        color_coded_images = asdict(
+            ColorCodeImages(reference_path=cc_ref_path, mask_files=mask_files)
+        )
+
     lora = None
     if input.lora is not None and len(input.lora) > 0:
         lora = json.loads(input.lora)
@@ -49,6 +68,7 @@ async def add_item(conf: Config, input: ItemInput):
         lora=lora,
         controlnet_reference_image=controlnt_ref_path,
         ipadapter_reference_image=ipadapter_ref_path,
+        color_coded_images=color_coded_images,
         thumbnail_image=thumbnail_path,
     )
 
@@ -74,17 +94,10 @@ async def edit_item(conf: Config, id: int, ui_input: ItemInput):
     if item is None:
         raise ValueError("item doesn't exist")
 
-    if item.name != ui_input.name:
-        item.name = ui_input.name
-
-    if item.code_name != ui_input.code_name:
-        item.code_name = ui_input.code_name
-
-    if item.positive_prompt != ui_input.positive_prompt:
-        item.positive_prompt = ui_input.positive_prompt
-
-    if item.negative_prompt != ui_input.negative_prompt:
-        item.negative_prompt = ui_input.negative_prompt
+    item.name = ui_input.name
+    item.code_name = ui_input.code_name
+    item.positive_prompt = ui_input.positive_prompt
+    item.negative_prompt = ui_input.negative_prompt
 
     if ui_input.lora is not None and len(ui_input.lora) > 0:
         item.lora = json.loads(ui_input.lora)
@@ -133,6 +146,24 @@ async def edit_item(conf: Config, id: int, ui_input: ItemInput):
         await ui_input.controlnet_reference_image.save(controlnt_ref_path)
         item.controlnet_reference_image = controlnt_ref_path
 
+    if ui_input.color_coded_reference_image is not None:
+        photos_id = str(uuid.uuid4())
+        image_filename = (
+            str(photos_id) + "_" + ui_input.color_coded_reference_image.name
+        )
+        cc_ref_path = os.path.join(conf.colored_region_path, image_filename)
+        await ui_input.color_coded_reference_image.save(cc_ref_path)
+        mask_folder_path = os.path.join(conf.colored_region_path, photos_id)
+        output = auto_create_masks(cc_ref_path, mask_folder_path)
+        mask_files = {}
+        for key, outpath in output.items():
+            mask_files[key] = outpath
+
+        color_coded_images = asdict(
+            ColorCodeImages(reference_path=cc_ref_path, mask_files=mask_files)
+        )
+        item.color_coded_images = color_coded_images
+
     await item.save()
 
 
@@ -155,6 +186,12 @@ async def list_items(group_id: int) -> list[ItemOutput]:
                 f"/thumbnails_path/{os.path.basename(rec.thumbnail_image)}"
             )
 
+        color_coded_images = None
+        color_coded_images_keys = None
+        if rec.color_coded_images is not None:
+            color_coded_images = ColorCodeImages(**rec.color_coded_images)
+            color_coded_images_keys = f"{list(color_coded_images.mask_files.keys())}"
+
         io = ItemOutput(
             id=rec.id,
             group_id=rec.group_id,
@@ -167,6 +204,8 @@ async def list_items(group_id: int) -> list[ItemOutput]:
             show_controlnet_reference_image=show_controlnet_reference_image,
             ipadapter_reference_image=rec.ipadapter_reference_image,
             show_ipadapter_reference_image=show_ipadapter_reference_image,
+            color_coded_images=color_coded_images,
+            color_coded_images_keys=color_coded_images_keys,
             thumbnail_image=rec.thumbnail_image,
             show_thumbnail_image=show_thumbnail_image,
         )

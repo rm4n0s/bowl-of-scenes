@@ -10,12 +10,11 @@ from yet_another_comfy_client import (
     edit_prompt,
 )
 
-from src.controllers.ctrl_types import JobOutput, ServerData
+from src.controllers.ctrl_types import ServerData
 from src.controllers.server_ctrl import StatusEnum
 from src.core.config import Config
 from src.core.utils import LoRAInjector
 from src.db.records import (
-    CommandRecord,
     FixerRecord,
     GeneratorRecord,
     JobRecord,

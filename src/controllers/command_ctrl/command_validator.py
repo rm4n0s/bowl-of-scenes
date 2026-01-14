@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from src.controllers.command_ctrl.command_parser import ParsedCommand
+from src.controllers.command_ctrl.command_parser import GroupSelection, ParsedCommand
 from src.db.records import GeneratorRecord, GroupRecord, ItemRecord, ServerRecord
 from src.db.records.fixer_rec import FixerRecord
 
@@ -33,7 +33,17 @@ async def validate_code_names(cmd: ParsedCommand) -> ValidationResult:
                 errors.append(f"Fixer '{fixer_cn}' not found")
 
     # Validate groups and items
-    for group_sel in cmd.group_selections:
+    gr_errors = await validate_group_selections(cmd.group_selections)
+
+    errors.extend(gr_errors)
+    return ValidationResult(is_valid=len(errors) == 0, errors=errors)
+
+
+async def validate_group_selections(
+    group_selections: list[GroupSelection],
+) -> list[str]:
+    errors = []
+    for group_sel in group_selections:
         # Handle merged groups
         if group_sel.is_merged:
             assert group_sel.merged_groups is not None
@@ -99,4 +109,4 @@ async def validate_code_names(cmd: ParsedCommand) -> ValidationResult:
                             f"Item '{item_code}' not found in group '{group_code}'"
                         )
 
-    return ValidationResult(is_valid=len(errors) == 0, errors=errors)
+    return errors

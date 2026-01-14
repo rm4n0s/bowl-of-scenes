@@ -7,6 +7,7 @@ from nicegui.elements.upload_files import FileUpload
 from yet_another_comfy_client import YetAnotherComfyClient
 
 from src.db.records import FixerRecord, GroupRecord
+from src.db.records.item_rec import ColorCodeImages
 from src.db.records.job_rec import JobRecord, JobStatus
 
 
@@ -59,6 +60,7 @@ class ItemInput:
     lora: str | None
     controlnet_reference_image: FileUpload | None
     ipadapter_reference_image: FileUpload | None
+    color_coded_reference_image: FileUpload | None
     thumbnail_image: FileUpload | None
 
 
@@ -75,6 +77,8 @@ class ItemOutput:
     show_controlnet_reference_image: str | None
     ipadapter_reference_image: str | None
     show_ipadapter_reference_image: str | None
+    color_coded_images: ColorCodeImages | None
+    color_coded_images_keys: str | None
     thumbnail_image: str | None
     show_thumbnail_image: str | None
 

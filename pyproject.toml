@@ -10,10 +10,15 @@ requires-python = ">=3.13"
 dependencies = [
     "aiosqlite==0.21.0",
     "mashumaro>=3.17",
+    "mediapipe>=0.10.31",
     "nicegui>=3.4.0",
     "numpy>=2.4.1",
+    "opencv-contrib-python>=4.11.0.86",
+    "opencv-python>=4.11.0.86",
+    "pillow>=12.0.0",
     "pytsterrors>=0.4.1",
     "tortoise-orm==0.25.1",
+    "ultralytics>=8.4.0",
     "yet-another-comfy-client",
 ]
 license = {text = "SSPLv1"}

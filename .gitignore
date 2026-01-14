@@ -1,5 +1,6 @@
 .private
-
+yolov8n-seg.pt
+runs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
