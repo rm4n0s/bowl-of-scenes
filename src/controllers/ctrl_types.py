@@ -8,7 +8,7 @@ from yet_another_comfy_client import YetAnotherComfyClient
 
 from src.db.records import FixerRecord, GroupRecord
 from src.db.records.item_rec import ColorCodeImages
-from src.db.records.job_rec import JobRecord, JobStatus
+from src.db.records.job_rec import ColorCodedPrompt, JobRecord, JobStatus
 
 
 @dataclass
@@ -112,6 +112,7 @@ class JobOutput:
     prompt_negative: str
     reference_controlnet_img: str | None
     reference_ipadapter_img: str | None
+    color_coded_prompts: dict[str, ColorCodedPrompt] | None
     lora_list: list[dict[str, Any]]
     result_img: str
     show_result_img: str
@@ -234,6 +235,12 @@ def serialize_group(rec: GroupRecord) -> GroupOutput:
 
 
 def serialize_job(rec: JobRecord) -> JobOutput:
+    color_coded_prompts = None
+    if rec.color_coded_prompts is not None:
+        color_coded_prompts = {}
+        for k, p in rec.color_coded_prompts.items():
+            color_coded_prompts[k] = ColorCodedPrompt(**p)
+
     return JobOutput(
         id=rec.id,
         project_id=rec.project_id,
@@ -248,6 +255,7 @@ def serialize_job(rec: JobRecord) -> JobOutput:
         comfyui_prompt_id=rec.comfyui_prompt_id,
         prompt_positive=rec.prompt_positive,
         prompt_negative=rec.prompt_negative,
+        color_coded_prompts=color_coded_prompts,
         reference_controlnet_img=rec.reference_controlnet_img,
         reference_ipadapter_img=rec.reference_ipadapter_img,
         lora_list=rec.lora_list,

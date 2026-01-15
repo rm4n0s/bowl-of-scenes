@@ -205,12 +205,11 @@ async def generate_image(client: YetAnotherComfyClient, job: JobRecord):
         and gen.load_image_controlnet_title is not None
         and len(gen.load_image_controlnet_title) > 0
     ):
-        img_path = os.path.abspath(job.reference_controlnet_img)
         prompt = edit_prompt(
             prompt,
             gen.load_image_controlnet_title,
             "image",
-            img_path,
+            job.reference_controlnet_img,
         )
 
     if (
@@ -218,12 +217,11 @@ async def generate_image(client: YetAnotherComfyClient, job: JobRecord):
         and gen.load_image_ipadapter_title is not None
         and len(gen.load_image_ipadapter_title) > 0
     ):
-        img_path = os.path.abspath(job.reference_ipadapter_img)
         prompt = edit_prompt(
             prompt,
             gen.load_image_ipadapter_title,
             "image",
-            img_path,
+            job.reference_ipadapter_img,
         )
 
     if job.lora_list is not None and len(job.lora_list) > 0:

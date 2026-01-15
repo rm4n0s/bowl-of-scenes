@@ -1,18 +1,17 @@
 import os
 from dataclasses import dataclass
 from itertools import product
-from multiprocessing import process
 from typing import Any
 
 from tortoise.expressions import F
 
 from src.controllers.command_ctrl.command_parser import (
+    GroupSelection,
     PromptLanguageParser,
 )
 from src.controllers.command_ctrl.command_validator import (
     validate_code_names,
 )
-from src.controllers.ctrl_types import serialize_job
 from src.controllers.manager_ctrl import Manager
 from src.core.config import Config
 from src.db.records import (
@@ -24,6 +23,8 @@ from src.db.records import (
     ServerRecord,
 )
 from src.db.records.fixer_rec import FixerRecord
+from src.db.records.item_rec import ColorCodeImages
+from src.db.records.job_rec import ColorCodedPrompt
 
 
 @dataclass
@@ -41,28 +42,14 @@ class CommandOutput:
     command_json: dict[str, Any]
 
 
-async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
-    parser = PromptLanguageParser()
-    cmd = parser.parse(command.command_code)
-    server = await ServerRecord.filter(code_name=cmd.server_code_name).first()
-    if server is None:
-        raise ValueError(f"Server '{cmd.server_code_name}' not found")
-
-    generator = await GeneratorRecord.filter(code_name=cmd.generator_code_name).first()
-    if generator is None:
-        raise ValueError(f"Generator '{cmd.generator_code_name}' not found")
-
-    fixers: list[FixerRecord] = []
-    if cmd.fixers:
-        for v in cmd.fixers:
-            fix_rec = await FixerRecord.filter(code_name=v).first()
-            if fix_rec is None:
-                raise ValueError(f"Fixer '{v}' not found")
-
-            fixers.append(fix_rec)
-
+async def get_items_per_group_without_color_code(
+    group_selections: list[GroupSelection],
+) -> list[list[ItemRecord]]:
     items_per_group: list[list[ItemRecord]] = []
-    for group_sel in cmd.group_selections:
+    for group_sel in group_selections:
+        if group_sel.is_color_coded:
+            continue
+
         # Handle merged groups
         if group_sel.is_merged:
             merged_items: list[ItemRecord] = []
@@ -124,7 +111,84 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
 
             items_per_group.append(items)
 
+    return items_per_group
+
+
+async def get_color_coded_prompt_comb(
+    group_selections: list[GroupSelection],
+) -> dict[str, list[ColorCodedPrompt]] | None:
+    res = None
+    for gs in group_selections:
+        if not gs.is_color_coded:
+            continue
+
+        assert gs.color_coded_group_selections is not None
+        group = await GroupRecord.get_or_none(code_name=gs.group_code_name)
+        if group is None:
+            continue
+
+        masked_items = await ItemRecord.filter(group_id=group.id).all()
+        color_coded_prompts_per_key: dict[str, list[ColorCodedPrompt]] = {}
+
+        for mi in masked_items:
+            ccis_dict = mi.color_coded_images
+            assert ccis_dict is not None
+            ccis = ColorCodeImages(**ccis_dict)
+            for keyword, mask_file in ccis.mask_files.items():
+                group_sels = gs.color_coded_group_selections[keyword]
+
+                items_per_group = await get_items_per_group_without_color_code(
+                    group_sels
+                )
+                combined_items = [list(combo) for combo in product(*items_per_group)]
+                color_coded_prompts_per_key[keyword] = []
+                for items in combined_items:
+                    prompt_positive = ""
+                    for item in items:
+                        if len(item.positive_prompt) > 0:
+                            prompt_positive += item.positive_prompt + ", "
+
+                    ccp = ColorCodedPrompt(
+                        keyword=keyword,
+                        mask_file=os.path.abspath(mask_file),
+                        prompt=prompt_positive,
+                    )
+                    color_coded_prompts_per_key[keyword].append(ccp)
+
+        res = color_coded_prompts_per_key
+    return res
+
+
+async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
+    parser = PromptLanguageParser()
+    cmd = parser.parse(command.command_code)
+    server = await ServerRecord.filter(code_name=cmd.server_code_name).first()
+    if server is None:
+        raise ValueError(f"Server '{cmd.server_code_name}' not found")
+
+    generator = await GeneratorRecord.filter(code_name=cmd.generator_code_name).first()
+    if generator is None:
+        raise ValueError(f"Generator '{cmd.generator_code_name}' not found")
+
+    fixers: list[FixerRecord] = []
+    if cmd.fixers:
+        for v in cmd.fixers:
+            fix_rec = await FixerRecord.filter(code_name=v).first()
+            if fix_rec is None:
+                raise ValueError(f"Fixer '{v}' not found")
+
+            fixers.append(fix_rec)
+
+    items_per_group = await get_items_per_group_without_color_code(cmd.group_selections)
     combined_items = [list(combo) for combo in product(*items_per_group)]
+
+    ccp_comb = await get_color_coded_prompt_comb(cmd.group_selections)
+    ccp_list = []
+    if ccp_comb is not None:
+        keys = list(ccp_comb.keys())
+        values_lists = list(ccp_comb.values())
+        ccp_list = [dict(zip(keys, combo)) for combo in product(*values_lists)]
+
     print(f"Will run {len(combined_items)}")
     res: list[JobRecord] = []
     for items in combined_items:
@@ -153,31 +217,58 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
             if len(item.negative_prompt) > 0:
                 prompt_negative += item.negative_prompt + ", "
             if item.controlnet_reference_image is not None:
-                reference_controlnet_img = item.controlnet_reference_image
+                reference_controlnet_img = os.path.abspath(
+                    item.controlnet_reference_image
+                )
 
             if item.ipadapter_reference_image is not None:
-                reference_ipadapter_img = item.ipadapter_reference_image
+                reference_ipadapter_img = os.path.abspath(
+                    item.ipadapter_reference_image
+                )
 
             if item.lora is not None:
                 lora_list.append(item.lora)
 
-        result_img = os.path.join(conf.result_path, result_filename_img + ".png")
-        job = await JobRecord.create(
-            project_id=command.project_id,
-            command_id=command.id,
-            group_item_id_list=group_item_id_list,
-            code_str=command.command_code,
-            server_code_name=server.code_name,
-            server_host=server.host,
-            generator_code_name=generator.code_name,
-            prompt_positive=prompt_positive,
-            prompt_negative=prompt_negative,
-            reference_controlnet_img=reference_controlnet_img,
-            reference_ipadapter_img=reference_ipadapter_img,
-            lora_list=lora_list,
-            result_img=result_img,
-        )
-        res.append(job)
+        if len(ccp_list) > 0:
+            for i, ccp in enumerate(ccp_list):
+                result_img = os.path.join(
+                    conf.result_path, result_filename_img + f"ccp_{i}" + ".png"
+                )
+                job = await JobRecord.create(
+                    project_id=command.project_id,
+                    command_id=command.id,
+                    group_item_id_list=group_item_id_list,
+                    code_str=command.command_code,
+                    server_code_name=server.code_name,
+                    server_host=server.host,
+                    generator_code_name=generator.code_name,
+                    prompt_positive=prompt_positive,
+                    prompt_negative=prompt_negative,
+                    color_coded_prompts=ccp,
+                    reference_controlnet_img=reference_controlnet_img,
+                    reference_ipadapter_img=reference_ipadapter_img,
+                    lora_list=lora_list,
+                    result_img=result_img,
+                )
+                res.append(job)
+        else:
+            result_img = os.path.join(conf.result_path, result_filename_img + ".png")
+            job = await JobRecord.create(
+                project_id=command.project_id,
+                command_id=command.id,
+                group_item_id_list=group_item_id_list,
+                code_str=command.command_code,
+                server_code_name=server.code_name,
+                server_host=server.host,
+                generator_code_name=generator.code_name,
+                prompt_positive=prompt_positive,
+                prompt_negative=prompt_negative,
+                reference_controlnet_img=reference_controlnet_img,
+                reference_ipadapter_img=reference_ipadapter_img,
+                lora_list=lora_list,
+                result_img=result_img,
+            )
+            res.append(job)
 
     if len(fixers) > 0:
         process_jobs = res.copy()

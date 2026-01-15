@@ -2,6 +2,7 @@ import json
 import os
 import uuid
 from dataclasses import asdict
+from turtle import color
 
 from src.controllers.ctrl_types import ItemInput, ItemOutput
 from src.core.config import Config
@@ -85,6 +86,17 @@ async def delete_item(id: int):
     if item.controlnet_reference_image is not None:
         if os.path.exists(item.controlnet_reference_image):
             os.remove(item.controlnet_reference_image)
+
+    if item.color_coded_images is not None:
+        color_coded_images = ColorCodeImages(**item.color_coded_images)
+        if os.path.exists(color_coded_images.reference_path):
+            os.remove(color_coded_images.reference_path)
+
+        for mf in color_coded_images.mask_files.values():
+            if os.path.exists(mf):
+                os.remove(mf)
+
+        # TODO delete also the folder
 
     await item.delete()
 

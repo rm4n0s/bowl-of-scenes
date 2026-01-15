@@ -1,4 +1,5 @@
 import enum
+from dataclasses import dataclass
 
 from tortoise import fields
 from tortoise.models import Model
@@ -10,6 +11,13 @@ class JobStatus(enum.StrEnum):
     WAITING = "waiting"
     PROCESSING = "processing"
     FINISHED = "finished"
+
+
+@dataclass
+class ColorCodedPrompt:
+    keyword: str
+    mask_file: str
+    prompt: str
 
 
 class JobRecord(TimestampMixin, Model):
@@ -27,6 +35,9 @@ class JobRecord(TimestampMixin, Model):
     comfyui_prompt_id = fields.CharField(max_length=200, null=True, default=None)
     prompt_positive = fields.TextField()
     prompt_negative = fields.TextField()
+    color_coded_prompts = fields.JSONField(
+        null=True, default=None
+    )  # dict[str, ColorCodedPrompt]
     reference_controlnet_img = fields.TextField(null=True)
     reference_ipadapter_img = fields.TextField(null=True)
     lora_list = fields.JSONField(null=True)
