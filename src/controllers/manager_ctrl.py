@@ -14,13 +14,14 @@ from src.controllers.ctrl_types import ServerData
 from src.controllers.server_ctrl import StatusEnum
 from src.core.config import Config
 from src.core.utils import LoRAInjector
+from src.core.utils.maskinjector import inject_masks
 from src.db.records import (
     FixerRecord,
     GeneratorRecord,
     JobRecord,
     ServerRecord,
 )
-from src.db.records.job_rec import JobStatus
+from src.db.records.job_rec import ColorCodedPrompt, JobStatus
 
 
 async def listen_for_events_from_comfyui(sd: ServerData):
@@ -228,6 +229,18 @@ async def generate_image(client: YetAnotherComfyClient, job: JobRecord):
         inj = LoRAInjector(prompt)
         inj.add_multiple_loras(job.lora_list)
         prompt = inj.get_workflow()
+
+    if job.color_coded_prompts is not None:
+        ccps = []
+        for v in job.color_coded_prompts.values():
+            ccp = ColorCodedPrompt(**v)
+            ccps.append(ccp)
+
+        prompt = inject_masks(
+            prompt,
+            ccps,
+        )
+        print("masked workflow", prompt)
 
     res = await client.queue_prompt(prompt)
     job.comfyui_prompt_id = res["prompt_id"]

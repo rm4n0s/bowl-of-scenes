@@ -1,5 +1,7 @@
 .private
 yolov8n-seg.pt
+yolov8m-seg.pt
+
 runs/
 
 # Byte-compiled / optimized / DLL files

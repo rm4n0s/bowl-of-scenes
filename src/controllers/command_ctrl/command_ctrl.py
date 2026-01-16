@@ -42,14 +42,11 @@ class CommandOutput:
     command_json: dict[str, Any]
 
 
-async def get_items_per_group_without_color_code(
+async def get_items_per_group_without_color_coded_prompts(
     group_selections: list[GroupSelection],
 ) -> list[list[ItemRecord]]:
     items_per_group: list[list[ItemRecord]] = []
     for group_sel in group_selections:
-        if group_sel.is_color_coded:
-            continue
-
         # Handle merged groups
         if group_sel.is_merged:
             merged_items: list[ItemRecord] = []
@@ -114,49 +111,77 @@ async def get_items_per_group_without_color_code(
     return items_per_group
 
 
+@dataclass
+class ColorCodedPromptCombOutput:
+    masked_items: list[ItemRecord]
+    loras: list[dict[str, Any]]  # contains the items with color coded mask file
+    coded_prompts: list[dict[str, ColorCodedPrompt]]
+
+
 async def get_color_coded_prompt_comb(
     group_selections: list[GroupSelection],
-) -> dict[str, list[ColorCodedPrompt]] | None:
-    res = None
+) -> ColorCodedPromptCombOutput | None:
+    the_group = None
+    the_gs = None
     for gs in group_selections:
         if not gs.is_color_coded:
             continue
 
-        assert gs.color_coded_group_selections is not None
+        the_gs = gs
         group = await GroupRecord.get_or_none(code_name=gs.group_code_name)
         if group is None:
             continue
+        the_group = group
+        break
 
-        masked_items = await ItemRecord.filter(group_id=group.id).all()
-        color_coded_prompts_per_key: dict[str, list[ColorCodedPrompt]] = {}
+    if the_gs is None or the_group is None:
+        return None
 
-        for mi in masked_items:
-            ccis_dict = mi.color_coded_images
-            assert ccis_dict is not None
-            ccis = ColorCodeImages(**ccis_dict)
-            for keyword, mask_file in ccis.mask_files.items():
-                group_sels = gs.color_coded_group_selections[keyword]
+    assert the_gs.color_coded_group_selections is not None
 
-                items_per_group = await get_items_per_group_without_color_code(
-                    group_sels
+    masked_items = await ItemRecord.filter(group_id=the_group.id).all()
+    color_coded_prompts_per_key: dict[str, list[ColorCodedPrompt]] = {}
+    loras = {}
+    for mi in masked_items:
+        ccis_dict = mi.color_coded_images
+        assert ccis_dict is not None
+        ccis = ColorCodeImages(**ccis_dict)
+        for keyword, mask_file in ccis.mask_files.items():
+            group_sels = the_gs.color_coded_group_selections[keyword]
+
+            items_per_group = await get_items_per_group_without_color_coded_prompts(
+                group_sels
+            )
+            combined_items = [list(combo) for combo in product(*items_per_group)]
+            color_coded_prompts_per_key[keyword] = []
+            for items in combined_items:
+                prompt_positive = ""
+                for item in items:
+                    if item.lora is not None:
+                        loras[item.lora["name"]] = item.lora
+
+                    if len(item.positive_prompt) > 0:
+                        prompt_positive += item.positive_prompt + ", "
+
+                ccp = ColorCodedPrompt(
+                    keyword=keyword,
+                    mask_file=os.path.abspath(mask_file),
+                    prompt=prompt_positive,
                 )
-                combined_items = [list(combo) for combo in product(*items_per_group)]
-                color_coded_prompts_per_key[keyword] = []
-                for items in combined_items:
-                    prompt_positive = ""
-                    for item in items:
-                        if len(item.positive_prompt) > 0:
-                            prompt_positive += item.positive_prompt + ", "
+                color_coded_prompts_per_key[keyword].append(ccp)
 
-                    ccp = ColorCodedPrompt(
-                        keyword=keyword,
-                        mask_file=os.path.abspath(mask_file),
-                        prompt=prompt_positive,
-                    )
-                    color_coded_prompts_per_key[keyword].append(ccp)
+    if len(color_coded_prompts_per_key) == 0:
+        return None
 
-        res = color_coded_prompts_per_key
-    return res
+    keys = list(color_coded_prompts_per_key.keys())
+    values_lists = list(color_coded_prompts_per_key.values())
+    coded_prompts = [dict(zip(keys, combo)) for combo in product(*values_lists)]
+
+    return ColorCodedPromptCombOutput(
+        masked_items=masked_items,
+        coded_prompts=coded_prompts,
+        loras=list(loras.values()),
+    )
 
 
 async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
@@ -179,15 +204,12 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
 
             fixers.append(fix_rec)
 
-    items_per_group = await get_items_per_group_without_color_code(cmd.group_selections)
+    items_per_group = await get_items_per_group_without_color_coded_prompts(
+        cmd.group_selections
+    )
     combined_items = [list(combo) for combo in product(*items_per_group)]
 
     ccp_comb = await get_color_coded_prompt_comb(cmd.group_selections)
-    ccp_list = []
-    if ccp_comb is not None:
-        keys = list(ccp_comb.keys())
-        values_lists = list(ccp_comb.values())
-        ccp_list = [dict(zip(keys, combo)) for combo in product(*values_lists)]
 
     print(f"Will run {len(combined_items)}")
     res: list[JobRecord] = []
@@ -229,10 +251,14 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
             if item.lora is not None:
                 lora_list.append(item.lora)
 
-        if len(ccp_list) > 0:
-            for i, ccp in enumerate(ccp_list):
+        if ccp_comb is not None:
+            if len(ccp_comb.loras) > 0:
+                lora_list.extend(ccp_comb.loras)
+
+            for i, ccp in enumerate(ccp_comb.coded_prompts):
                 result_img = os.path.join(
-                    conf.result_path, result_filename_img + f"ccp_{i}" + ".png"
+                    conf.result_path,
+                    result_filename_img + f"_ccp_{i}" + ".png",
                 )
                 job = await JobRecord.create(
                     project_id=command.project_id,

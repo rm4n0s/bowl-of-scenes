@@ -1,234 +1,144 @@
 import copy
+import re
 from typing import Any
 
+from src.db.records.job_rec import ColorCodedPrompt
 
-def inject_masks_into_workflow(
-    base_workflow: dict[str, Any],
-    mask_files: dict[str, str],
-    prompts: dict[str, str],
-    clip_node_id: str = "1",
-    combine_target_node_id: str = "7",
-    start_node_id: int = 100,
+
+def inject_masks(
+    original_workflow: dict[str, Any], prompts: list[ColorCodedPrompt]
 ) -> dict[str, Any]:
-    """
-    Inject mask loading, conditioning, and prompts into a ComfyUI workflow.
+    if not prompts:
+        return copy.deepcopy(original_workflow)
 
-    Parameters:
-    -----------
-    base_workflow : Dict[str, Any]
-        The base workflow in API format (dict)
-    mask_files : Dict[str, str]
-        Dictionary mapping color names to mask file paths
-        Example: {"blue": "masks/mask_blue.png", "red": "masks/mask_red.png"}
-    prompts : Dict[str, str]
-        Dictionary mapping color names to their prompts
-        Example: {"blue": "batman, black suit...", "red": "joker, purple suit..."}
-    clip_node_id : str
-        Node ID of the CheckpointLoader's CLIP output (usually "1")
-    combine_target_node_id : str
-        Node ID where the combined conditioning should be connected
-    start_node_id : int
-        Starting ID for new nodes (should be higher than existing nodes)
+    workflow = copy.deepcopy(original_workflow)
 
-    Returns:
-    --------
-    Dict[str, Any] : New workflow with masks injected
-    """
+    # Find the maximum node ID to start assigning new IDs
+    max_id = max(int(k) for k in workflow.keys() if k.isdigit())
+    next_id = max_id + 1
 
-    # Deep copy the workflow to avoid modifying original
-    new_workflow = copy.deepcopy(base_workflow)
+    def get_next_id() -> str:
+        nonlocal next_id
+        current = next_id
+        next_id += 1
+        return str(current)
 
-    current_node_id = start_node_id
-    conditioning_nodes = []
+    # Find the KSampler node
+    ksampler_id = None
+    for node_id, node in workflow.items():
+        if node.get("class_type") == "KSampler":
+            ksampler_id = node_id
+            break
 
-    print(f"Injecting {len(mask_files)} masks into workflow...")
-    print(f"Starting from node ID: {current_node_id}\n")
+    if ksampler_id is None:
+        raise ValueError("No KSampler node found in the workflow")
 
-    for color_name, mask_path in mask_files.items():
-        if color_name not in prompts:
-            print(f"⚠️  Warning: No prompt provided for '{color_name}', skipping...")
-            continue
+    def find_base_conditioning(positive_link):
+        current_link = positive_link
+        consumer_id = ksampler_id
+        consumer_key = "positive"
+        while True:
+            current_id, current_out = current_link
+            current_node = workflow.get(current_id)
+            if current_node is None:
+                raise ValueError("Invalid node ID in conditioning chain")
+            class_type = current_node.get("class_type")
+            if class_type == "CLIPTextEncode":
+                return [current_id, current_out], consumer_id, consumer_key
+            elif class_type == "ControlNetApplyAdvanced":
+                current_link = current_node["inputs"].get("positive")
+                if not isinstance(current_link, list) or len(current_link) != 2:
+                    raise ValueError(
+                        "ControlNetApplyAdvanced positive input is not properly linked"
+                    )
+                consumer_id = current_id
+                consumer_key = "positive"
+            elif class_type == "ControlNetApply":
+                current_link = current_node["inputs"].get("conditioning")
+                if not isinstance(current_link, list) or len(current_link) != 2:
+                    raise ValueError(
+                        "ControlNetApply conditioning input is not properly linked"
+                    )
+                consumer_id = current_id
+                consumer_key = "conditioning"
+            else:
+                raise ValueError(
+                    f"Unsupported node type in conditioning chain: {class_type}"
+                )
 
-        prompt_text = prompts[color_name]
+    # Get the base conditioning and the consumer
+    positive_link = workflow[ksampler_id]["inputs"].get("positive")
+    if not isinstance(positive_link, list) or len(positive_link) != 2:
+        raise ValueError("KSampler's positive input is not properly linked")
 
-        print(f"Processing {color_name}:")
-        print(f"  Mask: {mask_path}")
-        print(f"  Prompt: {prompt_text[:50]}...")
+    base_cond_link, consumer_id, consumer_key = find_base_conditioning(positive_link)
+    base_cond_id, base_cond_output = base_cond_link
 
-        # Node 1: LoadImage for mask
-        load_image_id = str(current_node_id)
-        new_workflow[load_image_id] = {
-            "inputs": {"image": mask_path, "upload": "image"},
+    # Get the base node and CLIP
+    base_node = workflow.get(base_cond_id)
+    if base_node is None or base_node.get("class_type") != "CLIPTextEncode":
+        raise ValueError("Base conditioning node is not a CLIPTextEncode")
+
+    clip_link = base_node["inputs"].get("clip")
+    if not isinstance(clip_link, list) or len(clip_link) != 2:
+        raise ValueError("Base CLIPTextEncode does not have a valid clip input")
+
+    clip_id, clip_output = clip_link
+
+    # Start with the base conditioning as the current conditioning
+    current_cond = [base_cond_id, base_cond_output]
+
+    for prompt_obj in prompts:
+        # Add LoadImage node for the mask file
+        load_mask_id = get_next_id()
+        workflow[load_mask_id] = {
             "class_type": "LoadImage",
-            "_meta": {"title": f"Load Mask - {color_name}"},
+            "inputs": {"image": prompt_obj.mask_file},
         }
-        print(f"  Created LoadImage node: {load_image_id}")
-        current_node_id += 1
 
-        # Node 2: CLIPTextEncode for prompt
-        clip_encode_id = str(current_node_id)
-        new_workflow[clip_encode_id] = {
-            "inputs": {"text": prompt_text, "clip": [clip_node_id, 1]},
-            "class_type": "CLIPTextEncode",
-            "_meta": {"title": f"Prompt - {color_name}"},
-        }
-        print(f"  Created CLIPTextEncode node: {clip_encode_id}")
-        current_node_id += 1
-
-        # Node 3: ConditioningSetMask
-        cond_mask_id = str(current_node_id)
-        new_workflow[cond_mask_id] = {
+        # Add ImageToMask node to convert image to mask (assuming grayscale/BW mask)
+        mask_id = get_next_id()
+        workflow[mask_id] = {
+            "class_type": "ImageToMask",
             "inputs": {
-                "strength": 1.0,
-                "set_cond_area": "default",
-                "conditioning": [clip_encode_id, 0],
-                "mask": [load_image_id, 1],  # LoadImage outputs [IMAGE, MASK]
-            },
-            "class_type": "ConditioningSetMask",
-            "_meta": {"title": f"Set Mask Area - {color_name}"},
+                "image": [load_mask_id, 0],
+                "channel": "red",
+            },  # 'red' works for grayscale
         }
-        print(f"  Created ConditioningSetMask node: {cond_mask_id}")
-        current_node_id += 1
 
-        conditioning_nodes.append(cond_mask_id)
-        print("  ✅ Complete\n")
+        # Add CLIPTextEncode for the regional prompt
+        region_encode_id = get_next_id()
+        workflow[region_encode_id] = {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": prompt_obj.prompt, "clip": [clip_id, clip_output]},
+        }
 
-    # Create ConditioningCombine nodes to merge all conditionings
-    if len(conditioning_nodes) == 0:
-        print("❌ No conditioning nodes created!")
-        return new_workflow
-    elif len(conditioning_nodes) == 1:
-        # Only one mask, connect directly
-        final_conditioning_node = conditioning_nodes[0]
-        print(f"Single mask detected, using node {final_conditioning_node} directly")
-    else:
-        # Multiple masks, combine them
-        print(f"Combining {len(conditioning_nodes)} conditioning nodes...")
+        # Add ConditioningSetMask to apply the mask to the regional conditioning
+        set_mask_id = get_next_id()
+        workflow[set_mask_id] = {
+            "class_type": "ConditioningSetMask",
+            "inputs": {
+                "conditioning": [region_encode_id, 0],
+                "mask": [mask_id, 0],
+                "strength": 1.0,
+                "set_cond_area": "default",  # "mask bounds",
+            },
+        }
 
-        # Combine in pairs (binary tree style)
-        combined_id = conditioning_nodes[0]
+        # Add ConditioningCombine to combine with the current conditioning
+        combine_id = get_next_id()
+        workflow[combine_id] = {
+            "class_type": "ConditioningCombine",
+            "inputs": {
+                "conditioning_1": current_cond,
+                "conditioning_2": [set_mask_id, 0],
+            },
+        }
 
-        for i in range(1, len(conditioning_nodes)):
-            combine_id = str(current_node_id)
-            new_workflow[combine_id] = {
-                "inputs": {
-                    "conditioning_1": [combined_id, 0],
-                    "conditioning_2": [conditioning_nodes[i], 0],
-                },
-                "class_type": "ConditioningCombine",
-                "_meta": {"title": f"Combine Conditioning {i}"},
-            }
-            print(f"  Created ConditioningCombine node: {combine_id}")
-            combined_id = combine_id
-            current_node_id += 1
+        # Update current conditioning to the new combine
+        current_cond = [combine_id, 0]
 
-        final_conditioning_node = combined_id
+    # Update the consumer's input to the final combined conditioning
+    workflow[consumer_id]["inputs"][consumer_key] = current_cond
 
-    # Update the target node to use the combined conditioning
-    print(f"\nConnecting final conditioning to node {combine_target_node_id}...")
-
-    # This depends on your workflow structure
-    # You might need to adjust based on where conditioning should go
-    if combine_target_node_id in new_workflow:
-        # Find the conditioning input in the target node
-        target_node = new_workflow[combine_target_node_id]
-
-        # Common patterns to update
-        if "positive" in target_node["inputs"]:
-            target_node["inputs"]["positive"] = [final_conditioning_node, 0]
-            print("  Updated 'positive' input")
-        elif "conditioning" in target_node["inputs"]:
-            target_node["inputs"]["conditioning"] = [final_conditioning_node, 0]
-            print("  Updated 'conditioning' input")
-        else:
-            print("  ⚠️  Warning: Could not find conditioning input in target node")
-
-    print(f"\n{'=' * 60}")
-    print(f"✅ Successfully injected {len(mask_files)} masks")
-    print(f"   New nodes created: {current_node_id - start_node_id}")
-    print(f"   Final conditioning node: {final_conditioning_node}")
-    print(f"{'=' * 60}")
-
-    return new_workflow
-
-
-def inject_masks_with_auto_detect(
-    base_workflow: dict[str, Any],
-    mask_files: dict[str, str],
-    prompts: dict[str, str],
-    auto_detect_nodes: bool = True,
-) -> dict[str, Any]:
-    """
-    Simplified version that auto-detects important nodes in the workflow.
-
-    Parameters:
-    -----------
-    base_workflow : Dict[str, Any]
-        The base workflow in API format
-    mask_files : Dict[str, str]
-        Dictionary mapping color names to mask file paths
-    prompts : Dict[str, str]
-        Dictionary mapping color names to their prompts
-    auto_detect_nodes : bool
-        If True, automatically detect checkpoint and target nodes
-
-    Returns:
-    --------
-    Dict[str, Any] : New workflow with masks injected
-    """
-
-    clip_node = None
-    ksampler_node = None
-    controlnet_apply_node = None
-
-    if auto_detect_nodes:
-        print("Auto-detecting workflow nodes...")
-
-        # Find CheckpointLoader
-        for node_id, node_data in base_workflow.items():
-            if node_data.get("class_type") == "CheckpointLoaderSimple":
-                clip_node = node_id
-                print(f"  Found CheckpointLoader: {node_id}")
-                break
-
-        # Find KSampler
-        for node_id, node_data in base_workflow.items():
-            if node_data.get("class_type") == "KSampler":
-                ksampler_node = node_id
-                print(f"  Found KSampler: {node_id}")
-                break
-
-        # Find ControlNetApply (if exists)
-        for node_id, node_data in base_workflow.items():
-            if "ControlNet" in node_data.get("class_type", ""):
-                controlnet_apply_node = node_id
-                print(f"  Found ControlNet: {node_id}")
-                break
-
-    if not clip_node:
-        print("⚠️  Could not find CheckpointLoader, using default '1'")
-        clip_node = "1"
-
-    # Determine target node (where to connect final conditioning)
-    target_node = controlnet_apply_node if controlnet_apply_node else ksampler_node
-
-    if not target_node:
-        print("⚠️  Could not find target node, using default '13'")
-        target_node = "13"
-
-    print(f"  Target node for conditioning: {target_node}\n")
-
-    # Find highest node ID to start after
-    max_node_id = max(
-        [int(nid) for nid in base_workflow.keys() if nid.isdigit()], default=0
-    )
-    start_id = max_node_id + 10  # Leave some gap
-
-    return inject_masks_into_workflow(
-        base_workflow=base_workflow,
-        mask_files=mask_files,
-        prompts=prompts,
-        clip_node_id=clip_node,
-        combine_target_node_id=target_node,
-        start_node_id=start_id,
-    )
+    return workflow

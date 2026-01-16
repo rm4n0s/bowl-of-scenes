@@ -9,7 +9,7 @@ def auto_create_masks(input_image_path: str, output_dir: str) -> dict[str, str]:
     """
     Analyzes the input image and decides whether to use color detection or person segmentation.
     Saves appropriate mask files to the specified output directory.
-    Returns a list of paths to the generated mask files.
+    Returns a dictionary where keys are region names (including 'background') and values are paths to the generated mask files.
     """
     img = cv2.imread(input_image_path)
     if img is None:
@@ -61,10 +61,17 @@ def auto_create_masks(input_image_path: str, output_dir: str) -> dict[str, str]:
             cv2.imwrite(mask_path, mask)
             mask_paths[color_name] = mask_path
 
+        # Create and add background mask
+        bg_mask = np.all(img == bg_color, axis=-1).astype(np.uint8) * 255
+        bg_filename = "mask_background.png"
+        bg_path = os.path.join(output_dir, bg_filename)
+        cv2.imwrite(bg_path, bg_mask)
+        mask_paths["background"] = bg_path
+
     else:
         # Person segmentation method
         model = YOLO(
-            "yolov8n-seg.pt"
+            "yolov8m-seg.pt"
         )  # Use a segmentation model; can change to larger like 'yolov8m-seg.pt'
         results = model(img)
 
@@ -113,5 +120,15 @@ def auto_create_masks(input_image_path: str, output_dir: str) -> dict[str, str]:
             mask_path = os.path.join(output_dir, mask_filename)
             cv2.imwrite(mask_path, mask)
             mask_paths[key] = mask_path
+
+        # Create and add background mask (inverse of all person regions)
+        height, width = img.shape[:2]
+        bg_mask = np.ones((height, width), dtype=np.uint8) * 255
+        for mask in person_masks:
+            bg_mask[mask > 127] = 0
+        bg_filename = "mask_background.png"
+        bg_path = os.path.join(output_dir, bg_filename)
+        cv2.imwrite(bg_path, bg_mask)
+        mask_paths["background"] = bg_path
 
     return mask_paths
