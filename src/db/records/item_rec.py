@@ -9,6 +9,7 @@ from src.db.records.common import TimestampMixin
 @dataclass
 class ColorCodeImages:
     reference_path: str
+    folder_path: str
     mask_files: dict[str, str]
 
 

@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import uuid
 from dataclasses import asdict
 from turtle import color
@@ -53,7 +54,11 @@ async def add_item(conf: Config, input: ItemInput):
             mask_files[key] = outpath
 
         color_coded_images = asdict(
-            ColorCodeImages(reference_path=cc_ref_path, mask_files=mask_files)
+            ColorCodeImages(
+                reference_path=cc_ref_path,
+                folder_path=mask_folder_path,
+                mask_files=mask_files,
+            )
         )
 
     lora = None
@@ -92,11 +97,8 @@ async def delete_item(id: int):
         if os.path.exists(color_coded_images.reference_path):
             os.remove(color_coded_images.reference_path)
 
-        for mf in color_coded_images.mask_files.values():
-            if os.path.exists(mf):
-                os.remove(mf)
-
-        # TODO delete also the folder
+        if os.path.exists(color_coded_images.folder_path):
+            shutil.rmtree(color_coded_images.folder_path)
 
     await item.delete()
 
@@ -172,7 +174,11 @@ async def edit_item(conf: Config, id: int, ui_input: ItemInput):
             mask_files[key] = outpath
 
         color_coded_images = asdict(
-            ColorCodeImages(reference_path=cc_ref_path, mask_files=mask_files)
+            ColorCodeImages(
+                reference_path=cc_ref_path,
+                folder_path=mask_folder_path,
+                mask_files=mask_files,
+            )
         )
         item.color_coded_images = color_coded_images
 

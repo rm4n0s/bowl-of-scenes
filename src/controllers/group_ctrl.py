@@ -1,9 +1,11 @@
 import os
+import shutil
 import uuid
 
 from src.controllers.ctrl_types import GroupInput, GroupOutput, serialize_group
 from src.core.config import Config
 from src.db.records import GroupRecord, ItemRecord
+from src.db.records.item_rec import ColorCodeImages
 
 
 async def add_group(conf: Config, input: GroupInput):
@@ -115,6 +117,14 @@ async def delete_group(id: int):
         if item.controlnet_reference_image is not None:
             if os.path.exists(item.controlnet_reference_image):
                 os.remove(item.controlnet_reference_image)
+
+        if item.color_coded_images is not None:
+            color_coded_images = ColorCodeImages(**item.color_coded_images)
+            if os.path.exists(color_coded_images.reference_path):
+                os.remove(color_coded_images.reference_path)
+
+            if os.path.exists(color_coded_images.folder_path):
+                shutil.rmtree(color_coded_images.folder_path)
 
         await item.delete()
 
