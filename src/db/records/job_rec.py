@@ -14,7 +14,7 @@ class JobStatus(enum.StrEnum):
 
 
 @dataclass
-class ColorCodedPrompt:
+class MaskRegionPrompt:
     keyword: str
     mask_file: str
     prompt: str
@@ -35,7 +35,7 @@ class JobRecord(TimestampMixin, Model):
     comfyui_prompt_id = fields.CharField(max_length=200, null=True, default=None)
     prompt_positive = fields.TextField()
     prompt_negative = fields.TextField()
-    color_coded_prompts = fields.JSONField(
+    mask_region_prompts = fields.JSONField(
         null=True, default=None
     )  # dict[str, ColorCodedPrompt]
     reference_controlnet_img = fields.TextField(null=True)

@@ -18,8 +18,8 @@ class GroupSelection:
     exclude: Optional[Set[str]] = None
     is_merged: bool = False
     merged_groups: Optional[list[dict]] = None
-    is_color_coded: bool = False
-    color_coded_group_selections: Optional[dict[str, list["GroupSelection"]]] = None
+    is_regioned: bool = False
+    region_group_selections: Optional[dict[str, list["GroupSelection"]]] = None
 
     def to_dict(self):
         result = {
@@ -30,12 +30,12 @@ class GroupSelection:
         if self.is_merged:
             result["is_merged"] = True
             result["merged_groups"] = self.merged_groups
-        if self.is_color_coded:
-            assert self.color_coded_group_selections
-            result["is_color_coded"] = True
-            result["color_coded_group_selections"] = {
+        if self.is_regioned:
+            assert self.region_group_selections
+            result["is_regioned"] = True
+            result["region_group_selections"] = {
                 color: [gs.to_dict() for gs in selections]
-                for color, selections in self.color_coded_group_selections.items()
+                for color, selections in self.region_group_selections.items()
             }
         return result
 
@@ -269,8 +269,8 @@ class PromptLanguageParser:
             group_code_name=main_group_name,
             include_only=None,
             exclude=None,
-            is_color_coded=True,
-            color_coded_group_selections=color_coded_selections,
+            is_regioned=True,
+            region_group_selections=color_coded_selections,
         )
 
     def _parse_group_expression(self, expr: str) -> GroupSelection:

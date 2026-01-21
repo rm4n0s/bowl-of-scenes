@@ -7,10 +7,19 @@ from src.db.records.common import TimestampMixin
 
 
 @dataclass
-class ColorCodeImages:
+class MaskRegionImages:
     reference_path: str
     folder_path: str
     mask_files: dict[str, str]
+
+
+@dataclass
+class CoordinatedRegion:
+    keyword: str
+    width: int
+    height: int
+    x: int
+    y: int
 
 
 class ItemRecord(TimestampMixin, Model):
@@ -23,5 +32,6 @@ class ItemRecord(TimestampMixin, Model):
     lora = fields.JSONField(null=True)
     controlnet_reference_image = fields.TextField(null=True)
     ipadapter_reference_image = fields.TextField(null=True)
-    color_coded_images = fields.JSONField(null=True)
+    mask_region_images = fields.JSONField(null=True)
+    coordinated_regions = fields.JSONField(null=True)
     thumbnail_image = fields.TextField(null=True)

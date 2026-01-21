@@ -9,7 +9,7 @@ from src.controllers.ctrl_types import ItemInput, ItemOutput
 from src.core.config import Config
 from src.core.utils.auto_masking import auto_create_masks
 from src.db.records import ItemRecord
-from src.db.records.item_rec import ColorCodeImages
+from src.db.records.item_rec import MaskRegionImages
 
 
 async def add_item(conf: Config, input: ItemInput):
@@ -42,11 +42,11 @@ async def add_item(conf: Config, input: ItemInput):
         await input.controlnet_reference_image.save(controlnt_ref_path)
 
     color_coded_images = None
-    if input.color_coded_reference_image is not None:
+    if input.mask_region_reference_image is not None:
         photos_id = str(uuid.uuid4())
-        image_filename = str(photos_id) + "_" + input.color_coded_reference_image.name
+        image_filename = str(photos_id) + "_" + input.mask_region_reference_image.name
         cc_ref_path = os.path.join(conf.colored_region_path, image_filename)
-        await input.color_coded_reference_image.save(cc_ref_path)
+        await input.mask_region_reference_image.save(cc_ref_path)
         mask_folder_path = os.path.join(conf.colored_region_path, photos_id)
         output = auto_create_masks(cc_ref_path, mask_folder_path)
         mask_files = {}
@@ -54,7 +54,7 @@ async def add_item(conf: Config, input: ItemInput):
             mask_files[key] = outpath
 
         color_coded_images = asdict(
-            ColorCodeImages(
+            MaskRegionImages(
                 reference_path=cc_ref_path,
                 folder_path=mask_folder_path,
                 mask_files=mask_files,
@@ -92,13 +92,13 @@ async def delete_item(id: int):
         if os.path.exists(item.controlnet_reference_image):
             os.remove(item.controlnet_reference_image)
 
-    if item.color_coded_images is not None:
-        color_coded_images = ColorCodeImages(**item.color_coded_images)
-        if os.path.exists(color_coded_images.reference_path):
-            os.remove(color_coded_images.reference_path)
+    if item.mask_region_images is not None:
+        mask_region_images = MaskRegionImages(**item.mask_region_images)
+        if os.path.exists(mask_region_images.reference_path):
+            os.remove(mask_region_images.reference_path)
 
-        if os.path.exists(color_coded_images.folder_path):
-            shutil.rmtree(color_coded_images.folder_path)
+        if os.path.exists(mask_region_images.folder_path):
+            shutil.rmtree(mask_region_images.folder_path)
 
     await item.delete()
 
@@ -160,13 +160,13 @@ async def edit_item(conf: Config, id: int, ui_input: ItemInput):
         await ui_input.controlnet_reference_image.save(controlnt_ref_path)
         item.controlnet_reference_image = controlnt_ref_path
 
-    if ui_input.color_coded_reference_image is not None:
+    if ui_input.mask_region_reference_image is not None:
         photos_id = str(uuid.uuid4())
         image_filename = (
-            str(photos_id) + "_" + ui_input.color_coded_reference_image.name
+            str(photos_id) + "_" + ui_input.mask_region_reference_image.name
         )
         cc_ref_path = os.path.join(conf.colored_region_path, image_filename)
-        await ui_input.color_coded_reference_image.save(cc_ref_path)
+        await ui_input.mask_region_reference_image.save(cc_ref_path)
         mask_folder_path = os.path.join(conf.colored_region_path, photos_id)
         output = auto_create_masks(cc_ref_path, mask_folder_path)
         mask_files = {}
@@ -174,13 +174,13 @@ async def edit_item(conf: Config, id: int, ui_input: ItemInput):
             mask_files[key] = outpath
 
         color_coded_images = asdict(
-            ColorCodeImages(
+            MaskRegionImages(
                 reference_path=cc_ref_path,
                 folder_path=mask_folder_path,
                 mask_files=mask_files,
             )
         )
-        item.color_coded_images = color_coded_images
+        item.mask_region_images = color_coded_images
 
     await item.save()
 
@@ -204,11 +204,11 @@ async def list_items(group_id: int) -> list[ItemOutput]:
                 f"/thumbnails_path/{os.path.basename(rec.thumbnail_image)}"
             )
 
-        color_coded_images = None
-        color_coded_images_keys = None
-        if rec.color_coded_images is not None:
-            color_coded_images = ColorCodeImages(**rec.color_coded_images)
-            color_coded_images_keys = f"{list(color_coded_images.mask_files.keys())}"
+        mask_region_images = None
+        mask_region_images_keys = None
+        if rec.mask_region_images is not None:
+            mask_region_images = MaskRegionImages(**rec.mask_region_images)
+            mask_region_images_keys = f"{list(mask_region_images.mask_files.keys())}"
 
         io = ItemOutput(
             id=rec.id,
@@ -222,8 +222,8 @@ async def list_items(group_id: int) -> list[ItemOutput]:
             show_controlnet_reference_image=show_controlnet_reference_image,
             ipadapter_reference_image=rec.ipadapter_reference_image,
             show_ipadapter_reference_image=show_ipadapter_reference_image,
-            color_coded_images=color_coded_images,
-            color_coded_images_keys=color_coded_images_keys,
+            mask_region_images=mask_region_images,
+            mask_region_images_keys=mask_region_images_keys,
             thumbnail_image=rec.thumbnail_image,
             show_thumbnail_image=show_thumbnail_image,
         )

@@ -1,12 +1,11 @@
 import copy
-import re
 from typing import Any
 
-from src.db.records.job_rec import ColorCodedPrompt
+from src.db.records.job_rec import MaskRegionPrompt
 
 
 def inject_masks(
-    original_workflow: dict[str, Any], prompts: list[ColorCodedPrompt]
+    original_workflow: dict[str, Any], prompts: list[MaskRegionPrompt]
 ) -> dict[str, Any]:
     if not prompts:
         return copy.deepcopy(original_workflow)

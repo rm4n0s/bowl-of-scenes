@@ -7,8 +7,8 @@ from nicegui.elements.upload_files import FileUpload
 from yet_another_comfy_client import YetAnotherComfyClient
 
 from src.db.records import FixerRecord, GroupRecord
-from src.db.records.item_rec import ColorCodeImages
-from src.db.records.job_rec import ColorCodedPrompt, JobRecord, JobStatus
+from src.db.records.item_rec import CoordinatedRegion, MaskRegionImages
+from src.db.records.job_rec import JobRecord, JobStatus, MaskRegionPrompt
 
 
 @dataclass
@@ -31,7 +31,8 @@ class GroupInput:
     use_lora: bool
     use_controlnet: bool
     use_ip_adapter: bool
-    use_color_coded_region: bool
+    use_mask_region: bool
+    use_coordinates_region: bool
     thumbnail_image: FileUpload | None
 
 
@@ -45,7 +46,8 @@ class GroupOutput:
     use_lora: bool
     use_controlnet: bool
     use_ip_adapter: bool
-    use_color_coded_region: bool
+    use_mask_region: bool
+    use_coordinates_region: bool
     thumbnail_image: str | None
     show_thumbnail_image: str | None
 
@@ -60,7 +62,8 @@ class ItemInput:
     lora: str | None
     controlnet_reference_image: FileUpload | None
     ipadapter_reference_image: FileUpload | None
-    color_coded_reference_image: FileUpload | None
+    mask_region_reference_image: FileUpload | None
+    coordinated_regions: list[CoordinatedRegion] | None
     thumbnail_image: FileUpload | None
 
 
@@ -77,8 +80,9 @@ class ItemOutput:
     show_controlnet_reference_image: str | None
     ipadapter_reference_image: str | None
     show_ipadapter_reference_image: str | None
-    color_coded_images: ColorCodeImages | None
-    color_coded_images_keys: str | None
+    mask_region_images: MaskRegionImages | None
+    mask_region_images_keys: str | None
+    coordinated_regions: list[CoordinatedRegion] | None
     thumbnail_image: str | None
     show_thumbnail_image: str | None
 
@@ -112,7 +116,7 @@ class JobOutput:
     prompt_negative: str
     reference_controlnet_img: str | None
     reference_ipadapter_img: str | None
-    color_coded_prompts: dict[str, ColorCodedPrompt] | None
+    mask_region_prompts: dict[str, MaskRegionPrompt] | None
     lora_list: list[dict[str, Any]]
     result_img: str
     show_result_img: str
@@ -228,18 +232,19 @@ def serialize_group(rec: GroupRecord) -> GroupOutput:
         use_lora=rec.use_lora,
         use_controlnet=rec.use_controlnet,
         use_ip_adapter=rec.use_ip_adapter,
-        use_color_coded_region=rec.use_color_coded_region,
+        use_mask_region=rec.use_mask_region,
+        use_coordinates_region=rec.use_coordinates_region,
         thumbnail_image=rec.thumbnail_image,
         show_thumbnail_image=show_thumbnail_image,
     )
 
 
 def serialize_job(rec: JobRecord) -> JobOutput:
-    color_coded_prompts = None
-    if rec.color_coded_prompts is not None:
-        color_coded_prompts = {}
-        for k, p in rec.color_coded_prompts.items():
-            color_coded_prompts[k] = ColorCodedPrompt(**p)
+    mask_region_prompts = None
+    if rec.mask_region_prompts is not None:
+        mask_region_prompts = {}
+        for k, p in rec.mask_region_prompts.items():
+            mask_region_prompts[k] = MaskRegionPrompt(**p)
 
     return JobOutput(
         id=rec.id,
@@ -255,7 +260,7 @@ def serialize_job(rec: JobRecord) -> JobOutput:
         comfyui_prompt_id=rec.comfyui_prompt_id,
         prompt_positive=rec.prompt_positive,
         prompt_negative=rec.prompt_negative,
-        color_coded_prompts=color_coded_prompts,
+        mask_region_prompts=mask_region_prompts,
         reference_controlnet_img=rec.reference_controlnet_img,
         reference_ipadapter_img=rec.reference_ipadapter_img,
         lora_list=rec.lora_list,

@@ -111,7 +111,9 @@ class GroupsPage:
             use_lora_input = ui.checkbox("Use LoRA").props("outlined")
             use_controlnet_input = ui.checkbox("Use ControlNet").props("outlined")
             use_ip_adapter_input = ui.checkbox("Use IPAdapter").props("outlined")
-            use_color_coded_region_input = ui.checkbox("Use Color Coded Region").props(
+            use_mask_region_input = ui.checkbox("Use Mask Region").props("outlined")
+
+            use_coordinates_region = ui.checkbox("Use Coordinates Region").props(
                 "outlined"
             )
             thumbnail_image_input = None
@@ -143,7 +145,8 @@ class GroupsPage:
                         use_lora_input.value,
                         use_controlnet_input.value,
                         use_ip_adapter_input.value,
-                        use_color_coded_region_input.value,
+                        use_mask_region_input.value,
+                        use_coordinates_region.value,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -160,7 +163,8 @@ class GroupsPage:
         use_lora: bool,
         use_controlnet: bool,
         use_ip_adapter: bool,
-        use_color_coded_region: bool,
+        use_mask_region: bool,
+        use_coordinates_region: bool,
         thumbnail_image: FileUpload | None,
     ):
         input = GroupInput(
@@ -171,7 +175,8 @@ class GroupsPage:
             use_lora=use_lora,
             use_controlnet=use_controlnet,
             use_ip_adapter=use_ip_adapter,
-            use_color_coded_region=use_color_coded_region,
+            use_mask_region=use_mask_region,
+            use_coordinates_region=use_coordinates_region,
             thumbnail_image=thumbnail_image,
         )
 
@@ -205,8 +210,11 @@ class GroupsPage:
             use_ip_adapter_input = ui.checkbox(
                 "Use IP Adapter", value=item["use_ip_adapter"]
             ).props("outlined")
-            use_color_coded_region_input = ui.checkbox(
-                "Use Color Coded Region", value=item["use_color_coded_region"]
+            use_mask_region_input = ui.checkbox(
+                "Use Mask Region", value=item["use_mask_region"]
+            ).props("outlined")
+            use_coordinates_region_input = ui.checkbox(
+                "Use Coordinates Region", value=item["use_coordinates_region"]
             ).props("outlined")
             thumbnail_image_input = None
 
@@ -233,7 +241,8 @@ class GroupsPage:
                         use_lora_input.value,
                         use_controlnet_input.value,
                         use_ip_adapter_input.value,
-                        use_color_coded_region_input.value,
+                        use_mask_region_input.value,
+                        use_coordinates_region_input.value,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -251,7 +260,8 @@ class GroupsPage:
         use_lora: bool,
         use_controlnet: bool,
         use_ip_adapter: bool,
-        use_color_coded_region: bool,
+        use_mask_region: bool,
+        use_coordinates_region: bool,
         thumbnail_image: FileUpload | None,
     ):
         input = GroupInput(
@@ -262,7 +272,8 @@ class GroupsPage:
             use_lora=use_lora,
             use_controlnet=use_controlnet,
             use_ip_adapter=use_ip_adapter,
-            use_color_coded_region=use_color_coded_region,
+            use_mask_region=use_mask_region,
+            use_coordinates_region=use_coordinates_region,
             thumbnail_image=thumbnail_image,
         )
 
@@ -343,6 +354,18 @@ class GroupsPage:
                     "name": "use_ip_adapter",
                     "label": "Uses IP Adapter",
                     "field": "use_ip_adapter",
+                    "align": "left",
+                },
+                {
+                    "name": "use_mask_region",
+                    "label": "Uses Mask Region",
+                    "field": "use_mask_region",
+                    "align": "left",
+                },
+                {
+                    "name": "use_coordinates_region",
+                    "label": "Uses Coordinates Region",
+                    "field": "use_coordinates_region",
                     "align": "left",
                 },
                 {

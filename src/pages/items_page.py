@@ -73,7 +73,7 @@ class ItemsPage:
                 ).props('accept="image/jpeg,image/png"')
 
             color_coded_reference_image_input = None
-            if self.group.use_color_coded_region:
+            if self.group.use_mask_region:
 
                 async def handle_color_coded_upload(event: MultiUploadEventArguments):
                     nonlocal color_coded_reference_image_input
@@ -165,7 +165,7 @@ class ItemsPage:
             lora=lora,
             controlnet_reference_image=controlnet_reference_image,
             ipadapter_reference_image=ipadapter_reference_image,
-            color_coded_reference_image=color_coded_reference_image,
+            mask_region_reference_image=color_coded_reference_image,
             thumbnail_image=thumbnail_image,
         )
 
@@ -227,7 +227,7 @@ class ItemsPage:
                 ).props('accept="image/jpeg,image/png"')
 
             color_coded_reference_image_input = None
-            if self.group.use_color_coded_region:
+            if self.group.use_mask_region:
 
                 async def handle_color_coded_upload(event: MultiUploadEventArguments):
                     nonlocal color_coded_reference_image_input
@@ -306,7 +306,7 @@ class ItemsPage:
             lora=lora,
             controlnet_reference_image=controlnet_reference_image,
             ipadapter_reference_image=ipadapter_reference_image,
-            color_coded_reference_image=color_coded_reference_image,
+            mask_region_reference_image=color_coded_reference_image,
             thumbnail_image=thumbnail_image,
         )
 

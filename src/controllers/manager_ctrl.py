@@ -21,7 +21,7 @@ from src.db.records import (
     JobRecord,
     ServerRecord,
 )
-from src.db.records.job_rec import ColorCodedPrompt, JobStatus
+from src.db.records.job_rec import JobStatus, MaskRegionPrompt
 
 
 async def listen_for_events_from_comfyui(sd: ServerData):
@@ -230,10 +230,10 @@ async def generate_image(client: YetAnotherComfyClient, job: JobRecord):
         inj.add_multiple_loras(job.lora_list)
         prompt = inj.get_workflow()
 
-    if job.color_coded_prompts is not None:
+    if job.mask_region_prompts is not None:
         ccps = []
-        for v in job.color_coded_prompts.values():
-            ccp = ColorCodedPrompt(**v)
+        for v in job.mask_region_prompts.values():
+            ccp = MaskRegionPrompt(**v)
             ccps.append(ccp)
 
         prompt = inject_masks(

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from src.controllers.command_ctrl.command_parser import GroupSelection, ParsedCommand
 from src.db.records import GeneratorRecord, GroupRecord, ItemRecord, ServerRecord
 from src.db.records.fixer_rec import FixerRecord
-from src.db.records.item_rec import ColorCodeImages
+from src.db.records.item_rec import MaskRegionImages
 
 
 @dataclass
@@ -47,13 +47,13 @@ async def validate_color_coded(group_selections: list[GroupSelection]) -> list[s
     errors = []
     color_coded_count = 0
     for gs in group_selections:
-        if not gs.is_color_coded:
+        if not gs.is_regioned:
             continue
 
         color_coded_count += 1
-        if gs.color_coded_group_selections is None:
+        if gs.region_group_selections is None:
             errors.append(
-                f"color_coded_group_selections was empty for '{gs.group_code_name}'"
+                f"region_group_selections was empty for '{gs.group_code_name}'"
             )
             continue
 
@@ -65,14 +65,14 @@ async def validate_color_coded(group_selections: list[GroupSelection]) -> list[s
         masked_items = await ItemRecord.filter(group_id=group.id).all()
         keywords_from_group = set()
         for mi in masked_items:
-            ccis_dict = mi.color_coded_images
+            ccis_dict = mi.mask_region_images
             if ccis_dict is None:
                 continue
 
-            ccis = ColorCodeImages(**ccis_dict)
+            ccis = MaskRegionImages(**ccis_dict)
             keywords_from_group.update(ccis.mask_files.keys())
 
-        keywords_from_command = set(gs.color_coded_group_selections.keys())
+        keywords_from_command = set(gs.region_group_selections.keys())
         if keywords_from_group != keywords_from_command:
             missing_in_command = keywords_from_group - keywords_from_command
             missing_in_items = keywords_from_command - keywords_from_group
@@ -98,7 +98,7 @@ async def validate_group_selections(
 ) -> list[str]:
     errors = []
     for group_sel in group_selections:
-        if group_sel.is_color_coded:
+        if group_sel.is_regioned:
             continue
 
         # Handle merged groups

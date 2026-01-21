@@ -23,8 +23,8 @@ from src.db.records import (
     ServerRecord,
 )
 from src.db.records.fixer_rec import FixerRecord
-from src.db.records.item_rec import ColorCodeImages
-from src.db.records.job_rec import ColorCodedPrompt
+from src.db.records.item_rec import MaskRegionImages
+from src.db.records.job_rec import MaskRegionPrompt
 
 
 @dataclass
@@ -42,7 +42,7 @@ class CommandOutput:
     command_json: dict[str, Any]
 
 
-async def get_items_per_group_without_color_coded_prompts(
+async def get_items_per_group_without_regioned_prompts(
     group_selections: list[GroupSelection],
 ) -> list[list[ItemRecord]]:
     items_per_group: list[list[ItemRecord]] = []
@@ -112,19 +112,19 @@ async def get_items_per_group_without_color_coded_prompts(
 
 
 @dataclass
-class ColorCodedPromptCombOutput:
+class RegionPromptCombOutput:
     masked_items: list[ItemRecord]
     loras: list[dict[str, Any]]  # contains the items with color coded mask file
-    coded_prompts: list[dict[str, ColorCodedPrompt]]
+    regioned_prompts: list[dict[str, MaskRegionPrompt]]
 
 
-async def get_color_coded_prompt_comb(
+async def get_region_prompt_comb(
     group_selections: list[GroupSelection],
-) -> ColorCodedPromptCombOutput | None:
+) -> RegionPromptCombOutput | None:
     the_group = None
     the_gs = None
     for gs in group_selections:
-        if not gs.is_color_coded:
+        if not gs.is_regioned:
             continue
 
         the_gs = gs
@@ -137,23 +137,23 @@ async def get_color_coded_prompt_comb(
     if the_gs is None or the_group is None:
         return None
 
-    assert the_gs.color_coded_group_selections is not None
+    assert the_gs.region_group_selections is not None
 
     masked_items = await ItemRecord.filter(group_id=the_group.id).all()
-    color_coded_prompts_per_key: dict[str, list[ColorCodedPrompt]] = {}
+    mask_region_prompts_per_key: dict[str, list[MaskRegionPrompt]] = {}
     loras = {}
     for mi in masked_items:
-        ccis_dict = mi.color_coded_images
+        ccis_dict = mi.mask_region_images
         assert ccis_dict is not None
-        ccis = ColorCodeImages(**ccis_dict)
+        ccis = MaskRegionImages(**ccis_dict)
         for keyword, mask_file in ccis.mask_files.items():
-            group_sels = the_gs.color_coded_group_selections[keyword]
+            group_sels = the_gs.region_group_selections[keyword]
 
-            items_per_group = await get_items_per_group_without_color_coded_prompts(
+            items_per_group = await get_items_per_group_without_regioned_prompts(
                 group_sels
             )
             combined_items = [list(combo) for combo in product(*items_per_group)]
-            color_coded_prompts_per_key[keyword] = []
+            mask_region_prompts_per_key[keyword] = []
             for items in combined_items:
                 prompt_positive = ""
                 for item in items:
@@ -163,23 +163,23 @@ async def get_color_coded_prompt_comb(
                     if len(item.positive_prompt) > 0:
                         prompt_positive += item.positive_prompt + ", "
 
-                ccp = ColorCodedPrompt(
+                ccp = MaskRegionPrompt(
                     keyword=keyword,
                     mask_file=os.path.abspath(mask_file),
                     prompt=prompt_positive,
                 )
-                color_coded_prompts_per_key[keyword].append(ccp)
+                mask_region_prompts_per_key[keyword].append(ccp)
 
-    if len(color_coded_prompts_per_key) == 0:
+    if len(mask_region_prompts_per_key) == 0:
         return None
 
-    keys = list(color_coded_prompts_per_key.keys())
-    values_lists = list(color_coded_prompts_per_key.values())
-    coded_prompts = [dict(zip(keys, combo)) for combo in product(*values_lists)]
+    keys = list(mask_region_prompts_per_key.keys())
+    values_lists = list(mask_region_prompts_per_key.values())
+    regioned_prompts = [dict(zip(keys, combo)) for combo in product(*values_lists)]
 
-    return ColorCodedPromptCombOutput(
+    return RegionPromptCombOutput(
         masked_items=masked_items,
-        coded_prompts=coded_prompts,
+        regioned_prompts=regioned_prompts,
         loras=list(loras.values()),
     )
 
@@ -204,12 +204,12 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
 
             fixers.append(fix_rec)
 
-    items_per_group = await get_items_per_group_without_color_coded_prompts(
+    items_per_group = await get_items_per_group_without_regioned_prompts(
         cmd.group_selections
     )
     combined_items = [list(combo) for combo in product(*items_per_group)]
 
-    ccp_comb = await get_color_coded_prompt_comb(cmd.group_selections)
+    ccp_comb = await get_region_prompt_comb(cmd.group_selections)
 
     print(f"Will run {len(combined_items)}")
     res: list[JobRecord] = []
@@ -255,7 +255,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
             if len(ccp_comb.loras) > 0:
                 lora_list.extend(ccp_comb.loras)
 
-            for i, ccp in enumerate(ccp_comb.coded_prompts):
+            for i, ccp in enumerate(ccp_comb.regioned_prompts):
                 result_img = os.path.join(
                     conf.result_path,
                     result_filename_img + f"_ccp_{i}" + ".png",

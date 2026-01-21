@@ -5,7 +5,7 @@ import uuid
 from src.controllers.ctrl_types import GroupInput, GroupOutput, serialize_group
 from src.core.config import Config
 from src.db.records import GroupRecord, ItemRecord
-from src.db.records.item_rec import ColorCodeImages
+from src.db.records.item_rec import MaskRegionImages
 
 
 async def add_group(conf: Config, input: GroupInput):
@@ -23,7 +23,8 @@ async def add_group(conf: Config, input: GroupInput):
         use_lora=input.use_lora,
         use_controlnet=input.use_controlnet,
         use_ip_adapter=input.use_ip_adapter,
-        use_color_coded_region=input.use_color_coded_region,
+        use_mask_region=input.use_mask_region,
+        use_coordinates_region=input.use_coordinates_region,
         thumbnail_image=thumbnail_path,
     )
 
@@ -39,7 +40,8 @@ async def add_group_of_positives_from_text_file(
         use_lora=False,
         use_controlnet=False,
         use_ip_adapter=False,
-        use_color_coded_region=False,
+        use_mask_region=False,
+        use_coordinates_region=False,
         thumbnail_image=None,
     )
 
@@ -70,7 +72,8 @@ async def edit_group(conf: Config, id: int, input: GroupInput):
     group.use_lora = input.use_lora
     group.use_ip_adapter = input.use_ip_adapter
     group.use_controlnet = input.use_controlnet
-    group.use_color_coded_region = input.use_color_coded_region
+    group.use_mask_region = input.use_mask_region
+    group.use_coordinates_region = input.use_coordinates_region
 
     if input.thumbnail_image is not None:
         if group.thumbnail_image is not None:
@@ -118,13 +121,13 @@ async def delete_group(id: int):
             if os.path.exists(item.controlnet_reference_image):
                 os.remove(item.controlnet_reference_image)
 
-        if item.color_coded_images is not None:
-            color_coded_images = ColorCodeImages(**item.color_coded_images)
-            if os.path.exists(color_coded_images.reference_path):
-                os.remove(color_coded_images.reference_path)
+        if item.mask_region_images is not None:
+            mask_region_images = MaskRegionImages(**item.mask_region_images)
+            if os.path.exists(mask_region_images.reference_path):
+                os.remove(mask_region_images.reference_path)
 
-            if os.path.exists(color_coded_images.folder_path):
-                shutil.rmtree(color_coded_images.folder_path)
+            if os.path.exists(mask_region_images.folder_path):
+                shutil.rmtree(mask_region_images.folder_path)
 
         await item.delete()
 
