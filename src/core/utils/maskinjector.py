@@ -1,11 +1,11 @@
 import copy
 from typing import Any
 
-from src.db.records.job_rec import MaskRegionPrompt
+from src.db.records.job_rec import RegionPrompt
 
 
 def inject_masks(
-    original_workflow: dict[str, Any], prompts: list[MaskRegionPrompt]
+    original_workflow: dict[str, Any], prompts: list[RegionPrompt]
 ) -> dict[str, Any]:
     if not prompts:
         return copy.deepcopy(original_workflow)
@@ -88,22 +88,16 @@ def inject_masks(
     current_cond = [base_cond_id, base_cond_output]
 
     for prompt_obj in prompts:
-        # Add LoadImage node for the mask file
-        load_mask_id = get_next_id()
-        workflow[load_mask_id] = {
-            "class_type": "LoadImage",
-            "inputs": {"image": prompt_obj.mask_file},
-        }
+        # Validate that we have either mask_file or coordinates
+        if prompt_obj.mask_file is None and prompt_obj.coordinates is None:
+            raise ValueError(
+                f"RegionPrompt for '{prompt_obj.keyword}' must have either mask_file or coordinates"
+            )
 
-        # Add ImageToMask node to convert image to mask (assuming grayscale/BW mask)
-        mask_id = get_next_id()
-        workflow[mask_id] = {
-            "class_type": "ImageToMask",
-            "inputs": {
-                "image": [load_mask_id, 0],
-                "channel": "red",
-            },  # 'red' works for grayscale
-        }
+        if prompt_obj.mask_file is not None and prompt_obj.coordinates is not None:
+            raise ValueError(
+                f"RegionPrompt for '{prompt_obj.keyword}' cannot have both mask_file and coordinates"
+            )
 
         # Add CLIPTextEncode for the regional prompt
         region_encode_id = get_next_id()
@@ -112,17 +106,54 @@ def inject_masks(
             "inputs": {"text": prompt_obj.prompt, "clip": [clip_id, clip_output]},
         }
 
-        # Add ConditioningSetMask to apply the mask to the regional conditioning
-        set_mask_id = get_next_id()
-        workflow[set_mask_id] = {
-            "class_type": "ConditioningSetMask",
-            "inputs": {
-                "conditioning": [region_encode_id, 0],
-                "mask": [mask_id, 0],
-                "strength": 1.0,
-                "set_cond_area": "default",  # "mask bounds",
-            },
-        }
+        # Branch based on whether we're using mask or coordinates
+        if prompt_obj.mask_file is not None:
+            # ===== MASK PATH =====
+            # Add LoadImage node for the mask file
+            load_mask_id = get_next_id()
+            workflow[load_mask_id] = {
+                "class_type": "LoadImage",
+                "inputs": {"image": prompt_obj.mask_file},
+            }
+
+            # Add ImageToMask node to convert image to mask
+            mask_id = get_next_id()
+            workflow[mask_id] = {
+                "class_type": "ImageToMask",
+                "inputs": {
+                    "image": [load_mask_id, 0],
+                    "channel": "red",
+                },
+            }
+
+            # Add ConditioningSetMask to apply the mask
+            conditioned_id = get_next_id()
+            workflow[conditioned_id] = {
+                "class_type": "ConditioningSetMask",
+                "inputs": {
+                    "conditioning": [region_encode_id, 0],
+                    "mask": [mask_id, 0],
+                    "strength": 1.0,
+                    "set_cond_area": "default",
+                },
+            }
+
+        else:
+            # ===== COORDINATES PATH =====
+            # Add ConditioningSetArea using coordinates
+            assert prompt_obj.coordinates is not None
+            conditioned_id = get_next_id()
+            workflow[conditioned_id] = {
+                "class_type": "ConditioningSetArea",
+                "inputs": {
+                    "conditioning": [region_encode_id, 0],
+                    "width": prompt_obj.coordinates.width,
+                    "height": prompt_obj.coordinates.height,
+                    "x": prompt_obj.coordinates.x,
+                    "y": prompt_obj.coordinates.y,
+                    "strength": 1.0,
+                },
+            }
 
         # Add ConditioningCombine to combine with the current conditioning
         combine_id = get_next_id()
@@ -130,7 +161,7 @@ def inject_masks(
             "class_type": "ConditioningCombine",
             "inputs": {
                 "conditioning_1": current_cond,
-                "conditioning_2": [set_mask_id, 0],
+                "conditioning_2": [conditioned_id, 0],
             },
         }
 

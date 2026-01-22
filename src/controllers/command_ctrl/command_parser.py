@@ -34,8 +34,8 @@ class GroupSelection:
             assert self.region_group_selections
             result["is_regioned"] = True
             result["region_group_selections"] = {
-                color: [gs.to_dict() for gs in selections]
-                for color, selections in self.region_group_selections.items()
+                region: [gs.to_dict() for gs in selections]
+                for region, selections in self.region_group_selections.items()
             }
         return result
 
@@ -114,7 +114,7 @@ class PromptLanguageParser:
 
     def _parse_groups(self, groups_part: str) -> list[GroupSelection]:
         """Parse the groups portion of the command"""
-        # Handle color-coded groups first (they contain ' x ' inside {})
+        # Handle region groups first (they contain ' x ' inside {})
         # Split by ' x ' but respect {} boundaries
         group_expressions = []
         current = []
@@ -150,9 +150,9 @@ class PromptLanguageParser:
 
         selections = []
         for expr in group_expressions:
-            # Check if this expression has color-coded groups (contains {)
+            # Check if this expression has region groups (contains {)
             if "{" in expr:
-                selection = self._parse_color_coded_groups(expr)
+                selection = self._parse_region_groups(expr)
             # Check if this expression has 'and' (merge groups)
             elif " and " in expr:
                 selection = self._parse_merged_groups(expr)
@@ -217,15 +217,15 @@ class PromptLanguageParser:
             merged_groups=merged_groups,
         )
 
-    def _parse_color_coded_groups(self, expr: str) -> GroupSelection:
+    def _parse_region_groups(self, expr: str) -> GroupSelection:
         """
-        Parse color-coded groups expression like:
+        Parse region groups expression like:
         - group_1{red: group_2 x group_3, blue: group_4}
         """
         # Extract group name and the content inside {}
         match = re.match(r"(\w+)\s*\{(.+)\}", expr)
         if not match:
-            raise ValueError(f"Invalid color-coded syntax: {expr}")
+            raise ValueError(f"Invalid region syntax: {expr}")
 
         main_group_name = match.group(1)
         color_content = match.group(2)

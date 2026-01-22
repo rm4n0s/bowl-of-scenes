@@ -3,7 +3,6 @@ import os
 import shutil
 import uuid
 from dataclasses import asdict
-from turtle import color
 
 from src.controllers.ctrl_types import ItemInput, ItemOutput
 from src.core.config import Config
@@ -41,7 +40,7 @@ async def add_item(conf: Config, input: ItemInput):
         )
         await input.controlnet_reference_image.save(controlnt_ref_path)
 
-    color_coded_images = None
+    mask_region_images = None
     if input.mask_region_reference_image is not None:
         photos_id = str(uuid.uuid4())
         image_filename = str(photos_id) + "_" + input.mask_region_reference_image.name
@@ -53,13 +52,17 @@ async def add_item(conf: Config, input: ItemInput):
         for key, outpath in output.items():
             mask_files[key] = outpath
 
-        color_coded_images = asdict(
+        mask_region_images = asdict(
             MaskRegionImages(
                 reference_path=cc_ref_path,
                 folder_path=mask_folder_path,
                 mask_files=mask_files,
             )
         )
+
+    coordinated_regions = None
+    if input.coordinated_regions is not None and len(input.coordinated_regions) > 0:
+        coordinated_regions = json.loads(input.coordinated_regions)
 
     lora = None
     if input.lora is not None and len(input.lora) > 0:
@@ -74,7 +77,8 @@ async def add_item(conf: Config, input: ItemInput):
         lora=lora,
         controlnet_reference_image=controlnt_ref_path,
         ipadapter_reference_image=ipadapter_ref_path,
-        color_coded_images=color_coded_images,
+        mask_region_images=mask_region_images,
+        coordinated_regions=coordinated_regions,
         thumbnail_image=thumbnail_path,
     )
 
@@ -173,14 +177,20 @@ async def edit_item(conf: Config, id: int, ui_input: ItemInput):
         for key, outpath in output.items():
             mask_files[key] = outpath
 
-        color_coded_images = asdict(
+        mask_region_images = asdict(
             MaskRegionImages(
                 reference_path=cc_ref_path,
                 folder_path=mask_folder_path,
                 mask_files=mask_files,
             )
         )
-        item.mask_region_images = color_coded_images
+        item.mask_region_images = mask_region_images
+
+    if (
+        ui_input.coordinated_regions is not None
+        and len(ui_input.coordinated_regions) > 0
+    ):
+        item.coordinated_regions = json.loads(ui_input.coordinated_regions)
 
     await item.save()
 
@@ -192,6 +202,7 @@ async def list_items(group_id: int) -> list[ItemOutput]:
         lora = None
         if rec.lora is not None:
             lora = json.dumps(rec.lora)
+
         show_controlnet_reference_image = None
         if rec.controlnet_reference_image is not None:
             show_controlnet_reference_image = f"/controlnet_references_path/{os.path.basename(rec.controlnet_reference_image)}"
@@ -210,6 +221,14 @@ async def list_items(group_id: int) -> list[ItemOutput]:
             mask_region_images = MaskRegionImages(**rec.mask_region_images)
             mask_region_images_keys = f"{list(mask_region_images.mask_files.keys())}"
 
+        coordinated_regions = None
+        coordinated_region_keys = None
+        if rec.coordinated_regions is not None:
+            coordinated_regions = json.dumps(rec.coordinated_regions)
+            coordinated_region_keys = (
+                f"{list(map(lambda x: x['keyword'], rec.coordinated_regions))}"
+            )
+
         io = ItemOutput(
             id=rec.id,
             group_id=rec.group_id,
@@ -218,6 +237,8 @@ async def list_items(group_id: int) -> list[ItemOutput]:
             positive_prompt=rec.positive_prompt,
             negative_prompt=rec.negative_prompt,
             lora=lora,
+            coordinated_regions=coordinated_regions,
+            coordinated_region_keys=coordinated_region_keys,
             controlnet_reference_image=rec.controlnet_reference_image,
             show_controlnet_reference_image=show_controlnet_reference_image,
             ipadapter_reference_image=rec.ipadapter_reference_image,

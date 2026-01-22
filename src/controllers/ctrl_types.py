@@ -7,8 +7,8 @@ from nicegui.elements.upload_files import FileUpload
 from yet_another_comfy_client import YetAnotherComfyClient
 
 from src.db.records import FixerRecord, GroupRecord
-from src.db.records.item_rec import CoordinatedRegion, MaskRegionImages
-from src.db.records.job_rec import JobRecord, JobStatus, MaskRegionPrompt
+from src.db.records.item_rec import MaskRegionImages
+from src.db.records.job_rec import JobRecord, JobStatus, RegionPrompt
 
 
 @dataclass
@@ -60,10 +60,10 @@ class ItemInput:
     positive_prompt: str
     negative_prompt: str
     lora: str | None
+    coordinated_regions: str | None
     controlnet_reference_image: FileUpload | None
     ipadapter_reference_image: FileUpload | None
     mask_region_reference_image: FileUpload | None
-    coordinated_regions: list[CoordinatedRegion] | None
     thumbnail_image: FileUpload | None
 
 
@@ -76,13 +76,14 @@ class ItemOutput:
     positive_prompt: str
     negative_prompt: str
     lora: str | None
+    coordinated_regions: str | None
+    coordinated_region_keys: str | None
     controlnet_reference_image: str | None
     show_controlnet_reference_image: str | None
     ipadapter_reference_image: str | None
     show_ipadapter_reference_image: str | None
     mask_region_images: MaskRegionImages | None
     mask_region_images_keys: str | None
-    coordinated_regions: list[CoordinatedRegion] | None
     thumbnail_image: str | None
     show_thumbnail_image: str | None
 
@@ -116,7 +117,7 @@ class JobOutput:
     prompt_negative: str
     reference_controlnet_img: str | None
     reference_ipadapter_img: str | None
-    mask_region_prompts: dict[str, MaskRegionPrompt] | None
+    region_prompts: dict[str, RegionPrompt] | None
     lora_list: list[dict[str, Any]]
     result_img: str
     show_result_img: str
@@ -240,11 +241,11 @@ def serialize_group(rec: GroupRecord) -> GroupOutput:
 
 
 def serialize_job(rec: JobRecord) -> JobOutput:
-    mask_region_prompts = None
-    if rec.mask_region_prompts is not None:
-        mask_region_prompts = {}
-        for k, p in rec.mask_region_prompts.items():
-            mask_region_prompts[k] = MaskRegionPrompt(**p)
+    region_prompts = None
+    if rec.region_prompts is not None:
+        region_prompts = {}
+        for k, p in rec.region_prompts.items():
+            region_prompts[k] = RegionPrompt(**p)
 
     return JobOutput(
         id=rec.id,
@@ -260,7 +261,7 @@ def serialize_job(rec: JobRecord) -> JobOutput:
         comfyui_prompt_id=rec.comfyui_prompt_id,
         prompt_positive=rec.prompt_positive,
         prompt_negative=rec.prompt_negative,
-        mask_region_prompts=mask_region_prompts,
+        region_prompts=region_prompts,
         reference_controlnet_img=rec.reference_controlnet_img,
         reference_ipadapter_img=rec.reference_ipadapter_img,
         lora_list=rec.lora_list,

@@ -14,7 +14,7 @@ class MaskRegionImages:
 
 
 @dataclass
-class CoordinatedRegion:
+class CoordinatedRegionKeyword:
     keyword: str
     width: int
     height: int

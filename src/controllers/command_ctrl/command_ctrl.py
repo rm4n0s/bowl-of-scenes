@@ -23,8 +23,8 @@ from src.db.records import (
     ServerRecord,
 )
 from src.db.records.fixer_rec import FixerRecord
-from src.db.records.item_rec import MaskRegionImages
-from src.db.records.job_rec import MaskRegionPrompt
+from src.db.records.item_rec import CoordinatedRegionKeyword, MaskRegionImages
+from src.db.records.job_rec import CoordinatedRegion, RegionPrompt
 
 
 @dataclass
@@ -113,9 +113,9 @@ async def get_items_per_group_without_regioned_prompts(
 
 @dataclass
 class RegionPromptCombOutput:
-    masked_items: list[ItemRecord]
+    region_items: list[ItemRecord]
     loras: list[dict[str, Any]]  # contains the items with color coded mask file
-    regioned_prompts: list[dict[str, MaskRegionPrompt]]
+    regioned_prompts: list[dict[str, RegionPrompt]]
 
 
 async def get_region_prompt_comb(
@@ -139,46 +139,73 @@ async def get_region_prompt_comb(
 
     assert the_gs.region_group_selections is not None
 
-    masked_items = await ItemRecord.filter(group_id=the_group.id).all()
-    mask_region_prompts_per_key: dict[str, list[MaskRegionPrompt]] = {}
+    region_items = await ItemRecord.filter(group_id=the_group.id).all()
+    region_prompts_per_key: dict[str, list[RegionPrompt]] = {}
     loras = {}
-    for mi in masked_items:
-        ccis_dict = mi.mask_region_images
-        assert ccis_dict is not None
-        ccis = MaskRegionImages(**ccis_dict)
-        for keyword, mask_file in ccis.mask_files.items():
-            group_sels = the_gs.region_group_selections[keyword]
+    for ri in region_items:
+        if ri.mask_region_images is not None:
+            mri = MaskRegionImages(**ri.mask_region_images)
+            for keyword, mask_file in mri.mask_files.items():
+                group_sels = the_gs.region_group_selections[keyword]
 
-            items_per_group = await get_items_per_group_without_regioned_prompts(
-                group_sels
-            )
-            combined_items = [list(combo) for combo in product(*items_per_group)]
-            mask_region_prompts_per_key[keyword] = []
-            for items in combined_items:
-                prompt_positive = ""
-                for item in items:
-                    if item.lora is not None:
-                        loras[item.lora["name"]] = item.lora
-
-                    if len(item.positive_prompt) > 0:
-                        prompt_positive += item.positive_prompt + ", "
-
-                ccp = MaskRegionPrompt(
-                    keyword=keyword,
-                    mask_file=os.path.abspath(mask_file),
-                    prompt=prompt_positive,
+                items_per_group = await get_items_per_group_without_regioned_prompts(
+                    group_sels
                 )
-                mask_region_prompts_per_key[keyword].append(ccp)
+                combined_items = [list(combo) for combo in product(*items_per_group)]
+                region_prompts_per_key[keyword] = []
+                for items in combined_items:
+                    prompt_positive = ""
+                    for item in items:
+                        if item.lora is not None:
+                            loras[item.lora["name"]] = item.lora
 
-    if len(mask_region_prompts_per_key) == 0:
+                        if len(item.positive_prompt) > 0:
+                            prompt_positive += item.positive_prompt + ", "
+
+                    rp = RegionPrompt(
+                        keyword=keyword,
+                        mask_file=os.path.abspath(mask_file),
+                        coordinates=None,
+                        prompt=prompt_positive,
+                    )
+                    region_prompts_per_key[keyword].append(rp)
+        elif ri.coordinated_regions is not None:
+            crns = [CoordinatedRegionKeyword(**v) for v in ri.coordinated_regions]
+            for crn in crns:
+                group_sels = the_gs.region_group_selections[crn.keyword]
+                items_per_group = await get_items_per_group_without_regioned_prompts(
+                    group_sels
+                )
+                combined_items = [list(combo) for combo in product(*items_per_group)]
+                region_prompts_per_key[crn.keyword] = []
+                for items in combined_items:
+                    prompt_positive = ""
+                    for item in items:
+                        if item.lora is not None:
+                            loras[item.lora["name"]] = item.lora
+
+                        if len(item.positive_prompt) > 0:
+                            prompt_positive += item.positive_prompt + ", "
+
+                    rp = RegionPrompt(
+                        keyword=crn.keyword,
+                        mask_file=None,
+                        coordinates=CoordinatedRegion(
+                            width=crn.width, height=crn.height, x=crn.x, y=crn.y
+                        ),
+                        prompt=prompt_positive,
+                    )
+                    region_prompts_per_key[crn.keyword].append(rp)
+
+    if len(region_prompts_per_key) == 0:
         return None
 
-    keys = list(mask_region_prompts_per_key.keys())
-    values_lists = list(mask_region_prompts_per_key.values())
+    keys = list(region_prompts_per_key.keys())
+    values_lists = list(region_prompts_per_key.values())
     regioned_prompts = [dict(zip(keys, combo)) for combo in product(*values_lists)]
 
     return RegionPromptCombOutput(
-        masked_items=masked_items,
+        region_items=region_items,
         regioned_prompts=regioned_prompts,
         loras=list(loras.values()),
     )
@@ -270,7 +297,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                     generator_code_name=generator.code_name,
                     prompt_positive=prompt_positive,
                     prompt_negative=prompt_negative,
-                    color_coded_prompts=ccp,
+                    region_prompts=ccp,
                     reference_controlnet_img=reference_controlnet_img,
                     reference_ipadapter_img=reference_ipadapter_img,
                     lora_list=lora_list,

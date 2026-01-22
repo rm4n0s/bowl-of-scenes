@@ -14,9 +14,18 @@ class JobStatus(enum.StrEnum):
 
 
 @dataclass
-class MaskRegionPrompt:
+class CoordinatedRegion:
+    width: int
+    height: int
+    x: int
+    y: int
+
+
+@dataclass
+class RegionPrompt:
     keyword: str
-    mask_file: str
+    mask_file: str | None
+    coordinates: CoordinatedRegion | None
     prompt: str
 
 
@@ -35,9 +44,9 @@ class JobRecord(TimestampMixin, Model):
     comfyui_prompt_id = fields.CharField(max_length=200, null=True, default=None)
     prompt_positive = fields.TextField()
     prompt_negative = fields.TextField()
-    mask_region_prompts = fields.JSONField(
+    region_prompts = fields.JSONField(
         null=True, default=None
-    )  # dict[str, ColorCodedPrompt]
+    )  # dict[str, RegionPrompt]
     reference_controlnet_img = fields.TextField(null=True)
     reference_ipadapter_img = fields.TextField(null=True)
     lora_list = fields.JSONField(null=True)

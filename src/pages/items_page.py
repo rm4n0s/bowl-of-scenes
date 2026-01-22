@@ -57,6 +57,21 @@ class ItemsPage:
                     """,
                 ).props("outlined")
 
+            coordinated_regions_input = None
+            if self.group.use_coordinates_region:
+                coordinated_regions_input = ui.textarea(
+                    "Coordinated Regions in JSON",
+                    placeholder="""
+            [{
+               "keyword": "left",
+               "width": 512,
+               "height": 1024,
+               "x": 0,
+               "y": 0
+            }]
+                                """,
+                ).props("outlined")
+
             ipadapter_reference_image_input = None
             if self.group.use_ip_adapter:
 
@@ -72,17 +87,21 @@ class ItemsPage:
                     max_files=1,
                 ).props('accept="image/jpeg,image/png"')
 
-            color_coded_reference_image_input = None
+            mask_region_reference_image_input = None
             if self.group.use_mask_region:
 
-                async def handle_color_coded_upload(event: MultiUploadEventArguments):
-                    nonlocal color_coded_reference_image_input
+                async def handle_mask_region_reference_image_upload(
+                    event: MultiUploadEventArguments,
+                ):
+                    nonlocal mask_region_reference_image_input
                     if event.files:
-                        color_coded_reference_image_input = event.files[0]
+                        mask_region_reference_image_input = event.files[0]
 
-                ui.label("Upload Color code image").classes("text-h6")
+                ui.label("Upload Mask Region Reference image").classes("text-h6")
                 ui.upload(
-                    on_multi_upload=lambda e: handle_color_coded_upload(e),
+                    on_multi_upload=lambda e: handle_mask_region_reference_image_upload(
+                        e
+                    ),
                     auto_upload=True,
                     max_files=1,
                 ).props('accept="image/jpeg,image/png"')
@@ -129,9 +148,10 @@ class ItemsPage:
                         positive_prompt_input.value,
                         negative_prompt_input.value,
                         lora_input,
+                        coordinated_regions_input,
                         controlnet_reference_image_input,
                         ipadapter_reference_image_input,
-                        color_coded_reference_image_input,
+                        mask_region_reference_image_input,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -146,15 +166,21 @@ class ItemsPage:
         positive_prompt: str,
         negative_prompt: str,
         lora_input: Textarea | None,
+        coordinated_regions_input: Textarea | None,
         controlnet_reference_image: FileUpload | None,
         ipadapter_reference_image: FileUpload | None,
-        color_coded_reference_image: FileUpload | None,
+        mask_region_reference_image: FileUpload | None,
         thumbnail_image: FileUpload | None,
     ):
         lora = None
         if lora_input is not None:
             if len(lora_input.value) > 0:
                 lora = lora_input.value
+
+        coordinated_regions = None
+        if coordinated_regions_input is not None:
+            if len(coordinated_regions_input.value) > 0:
+                coordinated_regions = coordinated_regions_input.value
 
         input = ItemInput(
             group_id=self.group.id,
@@ -163,9 +189,10 @@ class ItemsPage:
             positive_prompt=positive_prompt,
             negative_prompt=negative_prompt,
             lora=lora,
+            coordinated_regions=coordinated_regions,
             controlnet_reference_image=controlnet_reference_image,
             ipadapter_reference_image=ipadapter_reference_image,
-            mask_region_reference_image=color_coded_reference_image,
+            mask_region_reference_image=mask_region_reference_image,
             thumbnail_image=thumbnail_image,
         )
 
@@ -195,6 +222,17 @@ class ItemsPage:
                 if item["lora"] is not None:
                     lora = item["lora"]
                 lora_input = ui.textarea("LoRA in JSON", value=lora).props("outlined")
+
+            coordinated_regions_input = None
+            if self.group.use_coordinates_region:
+                cr = ""
+                if item["coordinated_regions"] is not None:
+                    cr = item["coordinated_regions"]
+
+                coordinated_regions_input = ui.textarea(
+                    "Coordinated Regions in JSON",
+                    value=cr,
+                ).props("outlined")
 
             ipadapter_reference_image_input = None
             if self.group.use_ip_adapter:
@@ -226,17 +264,21 @@ class ItemsPage:
                     max_files=1,
                 ).props('accept="image/jpeg,image/png"')
 
-            color_coded_reference_image_input = None
+            mask_region_reference_image_input = None
             if self.group.use_mask_region:
 
-                async def handle_color_coded_upload(event: MultiUploadEventArguments):
-                    nonlocal color_coded_reference_image_input
+                async def handle_mask_region_reference_image_upload(
+                    event: MultiUploadEventArguments,
+                ):
+                    nonlocal mask_region_reference_image_input
                     if event.files:
-                        color_coded_reference_image_input = event.files[0]
+                        mask_region_reference_image_input = event.files[0]
 
                 ui.label("Upload Color code image").classes("text-h6")
                 ui.upload(
-                    on_multi_upload=lambda e: handle_color_coded_upload(e),
+                    on_multi_upload=lambda e: handle_mask_region_reference_image_upload(
+                        e
+                    ),
                     auto_upload=True,
                     max_files=1,
                 ).props('accept="image/jpeg,image/png"')
@@ -245,9 +287,7 @@ class ItemsPage:
 
             async def handle_thumbnail_upload(event: MultiUploadEventArguments):
                 nonlocal thumbnail_image_input
-                print("handle upload", event.files is not None)
                 if event.files:
-                    print("event files", len(event.files))
                     thumbnail_image_input = event.files[0]
 
             ui.label("Upload thumbnail image").classes("text-h6")
@@ -269,9 +309,10 @@ class ItemsPage:
                         positive_prompt_input.value,
                         negative_prompt_input.value,
                         lora_input,
+                        coordinated_regions_input,
                         controlnet_reference_image_input,
                         ipadapter_reference_image_input,
-                        color_coded_reference_image_input,
+                        mask_region_reference_image_input,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -287,6 +328,7 @@ class ItemsPage:
         positive_prompt: str,
         negative_prompt: str,
         lora_input: Textarea | None,
+        coordinated_regions_input: Textarea | None,
         controlnet_reference_image: FileUpload | None,
         ipadapter_reference_image: FileUpload | None,
         color_coded_reference_image: FileUpload | None,
@@ -297,6 +339,11 @@ class ItemsPage:
             if len(lora_input.value) > 0:
                 lora = lora_input.value
 
+        cr = None
+        if coordinated_regions_input is not None:
+            if len(coordinated_regions_input.value) > 0:
+                cr = coordinated_regions_input.value
+
         input = ItemInput(
             group_id=self.group.id,
             name=name,
@@ -304,6 +351,7 @@ class ItemsPage:
             positive_prompt=positive_prompt,
             negative_prompt=negative_prompt,
             lora=lora,
+            coordinated_regions=cr,
             controlnet_reference_image=controlnet_reference_image,
             ipadapter_reference_image=ipadapter_reference_image,
             mask_region_reference_image=color_coded_reference_image,
@@ -370,9 +418,15 @@ class ItemsPage:
                     "align": "left",
                 },
                 {
-                    "name": "color_coded_images_keys",
-                    "label": "Color code keys",
-                    "field": "color_coded_images_keys",
+                    "name": "mask_region_images_keys",
+                    "label": "Mask Region keys",
+                    "field": "mask_region_images_keys",
+                    "align": "left",
+                },
+                {
+                    "name": "coordinated_region_keys",
+                    "label": "Coordinated Region keys",
+                    "field": "coordinated_region_keys",
                     "align": "left",
                 },
                 {

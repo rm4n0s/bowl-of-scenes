@@ -55,7 +55,7 @@ async def add_group_of_positives_from_text_file(
             lora=None,
             controlnet_reference_image=None,
             ipadapter_reference_image=None,
-            color_coded_images=None,
+            mask_region_images=None,
             thumbnail_image=None,
         )
 

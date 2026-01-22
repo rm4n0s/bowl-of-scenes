@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from src.controllers.command_ctrl.command_parser import GroupSelection, ParsedCommand
 from src.db.records import GeneratorRecord, GroupRecord, ItemRecord, ServerRecord
 from src.db.records.fixer_rec import FixerRecord
-from src.db.records.item_rec import MaskRegionImages
+from src.db.records.item_rec import CoordinatedRegionKeyword, MaskRegionImages
 
 
 @dataclass
@@ -36,21 +36,23 @@ async def validate_code_names(cmd: ParsedCommand) -> ValidationResult:
     # Validate groups and items
     gr_errors = await validate_group_selections(cmd.group_selections)
 
-    cc_errors = await validate_color_coded(cmd.group_selections)
+    cc_errors = await validate_region_group_selections(cmd.group_selections)
 
     errors.extend(gr_errors)
     errors.extend(cc_errors)
     return ValidationResult(is_valid=len(errors) == 0, errors=errors)
 
 
-async def validate_color_coded(group_selections: list[GroupSelection]) -> list[str]:
+async def validate_region_group_selections(
+    group_selections: list[GroupSelection],
+) -> list[str]:
     errors = []
-    color_coded_count = 0
+    region_count = 0
     for gs in group_selections:
         if not gs.is_regioned:
             continue
 
-        color_coded_count += 1
+        region_count += 1
         if gs.region_group_selections is None:
             errors.append(
                 f"region_group_selections was empty for '{gs.group_code_name}'"
@@ -62,15 +64,25 @@ async def validate_color_coded(group_selections: list[GroupSelection]) -> list[s
             errors.append(f"Group '{gs.group_code_name}' not found")
             continue
 
-        masked_items = await ItemRecord.filter(group_id=group.id).all()
+        region_items = await ItemRecord.filter(group_id=group.id).all()
         keywords_from_group = set()
-        for mi in masked_items:
+        for mi in region_items:
             ccis_dict = mi.mask_region_images
             if ccis_dict is None:
                 continue
 
             ccis = MaskRegionImages(**ccis_dict)
             keywords_from_group.update(ccis.mask_files.keys())
+
+        for ri in region_items:
+            ccis_dict = ri.coordinated_regions
+            if ccis_dict is None:
+                continue
+
+            ccis = [
+                CoordinatedRegionKeyword(**v).keyword for v in ri.coordinated_regions
+            ]
+            keywords_from_group.update(ccis)
 
         keywords_from_command = set(gs.region_group_selections.keys())
         if keywords_from_group != keywords_from_command:
@@ -79,7 +91,7 @@ async def validate_color_coded(group_selections: list[GroupSelection]) -> list[s
 
             if len(missing_in_command) > 0:
                 errors.append(
-                    f"Missing color coded keywords from command: {missing_in_command}"
+                    f"Missing region keywords from command: {missing_in_command}"
                 )
 
             if len(missing_in_items) > 0:
@@ -87,7 +99,7 @@ async def validate_color_coded(group_selections: list[GroupSelection]) -> list[s
                     f"Missing color coded keywords from group '{gs.group_code_name}': {missing_in_items}'"
                 )
 
-    if color_coded_count > 1:
+    if region_count > 1:
         errors.append("You can use only one color coded group in the command")
 
     return errors
