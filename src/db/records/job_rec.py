@@ -48,6 +48,6 @@ class JobRecord(TimestampMixin, Model):
         null=True, default=None
     )  # dict[str, RegionPrompt]
     reference_controlnet_img = fields.TextField(null=True)
-    reference_ipadapter_img = fields.TextField(null=True)
+    ipadapter_list = fields.JSONField(null=True)
     lora_list = fields.JSONField(null=True)
     result_img = fields.TextField()

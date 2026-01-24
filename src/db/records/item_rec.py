@@ -22,6 +22,17 @@ class CoordinatedRegionKeyword:
     y: int
 
 
+@dataclass
+class IPAdapter:
+    image_file: str
+    weight: float
+    weight_type: str
+    start_at: float
+    end_at: float
+    clip_vision_model: str
+    model_name: str
+
+
 class ItemRecord(TimestampMixin, Model):
     id = fields.IntField(primary_key=True)
     group_id = fields.IntField()
@@ -31,7 +42,7 @@ class ItemRecord(TimestampMixin, Model):
     negative_prompt = fields.TextField()
     lora = fields.JSONField(null=True)
     controlnet_reference_image = fields.TextField(null=True)
-    ipadapter_reference_image = fields.TextField(null=True)
+    ipadapter = fields.JSONField(null=True)
     mask_region_images = fields.JSONField(null=True)
     coordinated_regions = fields.JSONField(null=True)
     thumbnail_image = fields.TextField(null=True)

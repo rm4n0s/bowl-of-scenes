@@ -72,8 +72,24 @@ class ItemsPage:
                                 """,
                 ).props("outlined")
 
-            ipadapter_reference_image_input = None
+            ipadapter_input = None
             if self.group.use_ip_adapter:
+                ipadapter_model_input = ui.input("IPAdapter's Model Name").props(
+                    "outlined"
+                )
+                ipadapter_clip_vision_model_input = ui.input(
+                    "IPAdapter's Clip Vision Model Name"
+                ).props("outlined")
+                ipadapter_weight_input = ui.input("IPAdapter Weight").props("outlined")
+                ipadapter_weight_type_input = ui.input("IPAdapter Weight Type").props(
+                    "outlined"
+                )
+                ipadapter_start_at_input = ui.input("IPAdapter Start At").props(
+                    "outlined"
+                )
+                ipadapter_end_at_input = ui.input("IPAdapter End At").props("outlined")
+
+                ipadapter_reference_image_input = None
 
                 async def handle_ipadapter_upload(event: MultiUploadEventArguments):
                     nonlocal ipadapter_reference_image_input

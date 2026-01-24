@@ -1,4 +1,5 @@
-from src.controllers.ctrl_types import FixerInput, FixerOutput, serialize_fixer
+from src.controllers.ctrl_types import FixerInput, FixerOutput
+from src.controllers.serializers import serialize_fixer
 from src.db.records import FixerRecord
 
 

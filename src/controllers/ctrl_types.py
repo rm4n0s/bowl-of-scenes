@@ -53,6 +53,29 @@ class GroupOutput:
 
 
 @dataclass
+class ItemIPAdapterInput:
+    reference_image: FileUpload
+    weight: int
+    weight_type: str
+    start_at: float
+    end_at: float
+    clip_vision_model: str
+    model_name: str
+
+
+@dataclass
+class ItemIPAdapterOutput:
+    reference_image: str
+    show_reference_image: str
+    weight: int
+    weight_type: str
+    start_at: float
+    end_at: float
+    clip_vision_model: str
+    model_name: str
+
+
+@dataclass
 class ItemInput:
     group_id: int
     name: str
@@ -62,7 +85,7 @@ class ItemInput:
     lora: str | None
     coordinated_regions: str | None
     controlnet_reference_image: FileUpload | None
-    ipadapter_reference_image: FileUpload | None
+    ipadapter: ItemIPAdapterInput | None
     mask_region_reference_image: FileUpload | None
     thumbnail_image: FileUpload | None
 
@@ -80,8 +103,7 @@ class ItemOutput:
     coordinated_region_keys: str | None
     controlnet_reference_image: str | None
     show_controlnet_reference_image: str | None
-    ipadapter_reference_image: str | None
-    show_ipadapter_reference_image: str | None
+    ipadapter: ItemIPAdapterOutput | None
     mask_region_images: MaskRegionImages | None
     mask_region_images_keys: str | None
     thumbnail_image: str | None
@@ -116,7 +138,7 @@ class JobOutput:
     prompt_positive: str
     prompt_negative: str
     reference_controlnet_img: str | None
-    reference_ipadapter_img: str | None
+    ipadapter_list: list[dict[str, Any]]
     region_prompts: dict[str, RegionPrompt] | None
     lora_list: list[dict[str, Any]]
     result_img: str
@@ -213,71 +235,3 @@ class FixerOutput:
     load_image_title: str
     save_image_title: str
     workflow_json: dict[str, Any]
-
-
-def serialize_group(rec: GroupRecord) -> GroupOutput:
-    show_thumbnail_image = None
-    if rec.thumbnail_image is not None:
-        show_thumbnail_image = (
-            f"/thumbnails_path/{os.path.basename(rec.thumbnail_image)}"
-        )
-
-    return GroupOutput(
-        id=rec.id,
-        name=rec.name,
-        description=rec.description,
-        code_name=rec.code_name,
-        category_id=rec.category_id,
-        use_lora=rec.use_lora,
-        use_controlnet=rec.use_controlnet,
-        use_ip_adapter=rec.use_ip_adapter,
-        use_mask_region=rec.use_mask_region,
-        use_coordinates_region=rec.use_coordinates_region,
-        thumbnail_image=rec.thumbnail_image,
-        show_thumbnail_image=show_thumbnail_image,
-    )
-
-
-def serialize_job(rec: JobRecord) -> JobOutput:
-    region_prompts = None
-    if rec.region_prompts is not None:
-        region_prompts = {}
-        for k, p in rec.region_prompts.items():
-            region_prompts[k] = RegionPrompt(**p)
-
-    return JobOutput(
-        id=rec.id,
-        project_id=rec.project_id,
-        command_id=rec.command_id,
-        group_item_id_list=rec.group_item_id_list,
-        code_str=rec.code_str,
-        server_code_name=rec.server_code_name,
-        server_host=rec.server_host,
-        status=rec.status,
-        generator_code_name=rec.generator_code_name,
-        fixer_code_name=rec.fixer_code_name,
-        comfyui_prompt_id=rec.comfyui_prompt_id,
-        prompt_positive=rec.prompt_positive,
-        prompt_negative=rec.prompt_negative,
-        region_prompts=region_prompts,
-        reference_controlnet_img=rec.reference_controlnet_img,
-        reference_ipadapter_img=rec.reference_ipadapter_img,
-        lora_list=rec.lora_list,
-        result_img=rec.result_img,
-        show_result_img=f"/result_path/{os.path.basename(rec.result_img)}",
-    )
-
-
-def serialize_fixer(rec: FixerRecord) -> FixerOutput:
-    return FixerOutput(
-        id=rec.id,
-        name=rec.name,
-        code_name=rec.code_name,
-        positive_prompt=rec.positive_prompt,
-        negative_prompt=rec.negative_prompt,
-        positive_prompt_title=rec.positive_prompt_title,
-        negative_prompt_title=rec.negative_prompt_title,
-        load_image_title=rec.load_image_title,
-        save_image_title=rec.save_image_title,
-        workflow_json=rec.workflow_json,
-    )

@@ -4,11 +4,13 @@ import shutil
 import uuid
 from dataclasses import asdict
 
+from src.controllers.common import delete_item_files
 from src.controllers.ctrl_types import ItemInput, ItemOutput
+from src.controllers.serializers import serialize_item
 from src.core.config import Config
 from src.core.utils.auto_masking import auto_create_masks
 from src.db.records import ItemRecord
-from src.db.records.item_rec import MaskRegionImages
+from src.db.records.item_rec import IPAdapter, MaskRegionImages
 
 
 async def add_item(conf: Config, input: ItemInput):
@@ -24,13 +26,24 @@ async def add_item(conf: Config, input: ItemInput):
         thumbnail_path = os.path.join(conf.thumbnails_path, image_filename)
         await input.thumbnail_image.save(thumbnail_path)
 
-    ipadapter_ref_path = None
-    if input.ipadapter_reference_image is not None:
-        image_filename = str(uuid.uuid4()) + "_" + input.ipadapter_reference_image.name
+    ipadapter = None
+    if input.ipadapter is not None:
+        image_filename = str(uuid.uuid4()) + "_" + input.ipadapter.reference_image.name
         ipadapter_ref_path = os.path.join(
             conf.ipadapter_references_path, image_filename
         )
-        await input.ipadapter_reference_image.save(ipadapter_ref_path)
+        await input.ipadapter.reference_image.save(ipadapter_ref_path)
+        ipadapter = asdict(
+            IPAdapter(
+                image_file=ipadapter_ref_path,
+                weight=input.ipadapter.weight,
+                weight_type=input.ipadapter.weight_type,
+                start_at=input.ipadapter.start_at,
+                end_at=input.ipadapter.end_at,
+                clip_vision_model=input.ipadapter.clip_vision_model,
+                model_name=input.ipadapter.model_name,
+            )
+        )
 
     controlnt_ref_path = None
     if input.controlnet_reference_image is not None:
@@ -76,7 +89,7 @@ async def add_item(conf: Config, input: ItemInput):
         negative_prompt=input.negative_prompt,
         lora=lora,
         controlnet_reference_image=controlnt_ref_path,
-        ipadapter_reference_image=ipadapter_ref_path,
+        ipadapter=ipadapter,
         mask_region_images=mask_region_images,
         coordinated_regions=coordinated_regions,
         thumbnail_image=thumbnail_path,
@@ -88,21 +101,7 @@ async def delete_item(id: int):
     if item is None:
         raise ValueError("Item doesn't exist")
 
-    if item.ipadapter_reference_image is not None:
-        if os.path.exists(item.ipadapter_reference_image):
-            os.remove(item.ipadapter_reference_image)
-
-    if item.controlnet_reference_image is not None:
-        if os.path.exists(item.controlnet_reference_image):
-            os.remove(item.controlnet_reference_image)
-
-    if item.mask_region_images is not None:
-        mask_region_images = MaskRegionImages(**item.mask_region_images)
-        if os.path.exists(mask_region_images.reference_path):
-            os.remove(mask_region_images.reference_path)
-
-        if os.path.exists(mask_region_images.folder_path):
-            shutil.rmtree(mask_region_images.folder_path)
+    await delete_item_files(item)
 
     await item.delete()
 
@@ -121,39 +120,36 @@ async def edit_item(conf: Config, id: int, ui_input: ItemInput):
         item.lora = json.loads(ui_input.lora)
 
     if ui_input.thumbnail_image is not None:
-        if item.thumbnail_image is not None:
-            image_filename = item.thumbnail_image
-        else:
-            image_filename = str(uuid.uuid4()) + "_" + ui_input.thumbnail_image.name
-
+        image_filename = str(uuid.uuid4()) + "_" + ui_input.thumbnail_image.name
         thumbnail_path = os.path.join(conf.thumbnails_path, image_filename)
         await ui_input.thumbnail_image.save(thumbnail_path)
         item.thumbnail_image = thumbnail_path
 
-    if ui_input.ipadapter_reference_image is not None:
-        if item.ipadapter_reference_image is not None:
-            image_filename = item.ipadapter_reference_image
-        else:
-            image_filename = (
-                str(uuid.uuid4()) + "_" + ui_input.ipadapter_reference_image.name
-            )
-
+    if ui_input.ipadapter is not None:
         image_filename = (
-            str(uuid.uuid4()) + "_" + ui_input.ipadapter_reference_image.name
+            str(uuid.uuid4()) + "_" + ui_input.ipadapter.reference_image.name
         )
+
         ipadapter_ref_path = os.path.join(
             conf.ipadapter_references_path, image_filename
         )
-        await ui_input.ipadapter_reference_image.save(ipadapter_ref_path)
-        item.ipadapter_reference_image = ipadapter_ref_path
+        await ui_input.ipadapter.reference_image.save(ipadapter_ref_path)
+        item.ipadapter = asdict(
+            IPAdapter(
+                image_file=ipadapter_ref_path,
+                weight=ui_input.ipadapter.weight,
+                weight_type=ui_input.ipadapter.weight_type,
+                start_at=ui_input.ipadapter.start_at,
+                end_at=ui_input.ipadapter.end_at,
+                clip_vision_model=ui_input.ipadapter.clip_vision_model,
+                model_name=ui_input.ipadapter.model_name,
+            )
+        )
 
     if ui_input.controlnet_reference_image is not None:
-        if item.controlnet_reference_image is not None:
-            image_filename = item.controlnet_reference_image
-        else:
-            image_filename = (
-                str(uuid.uuid4()) + "_" + ui_input.controlnet_reference_image.name
-            )
+        image_filename = (
+            str(uuid.uuid4()) + "_" + ui_input.controlnet_reference_image.name
+        )
 
         image_filename = (
             str(uuid.uuid4()) + "_" + ui_input.controlnet_reference_image.name
@@ -199,54 +195,6 @@ async def list_items(group_id: int) -> list[ItemOutput]:
     recs = await ItemRecord.filter(group_id=group_id)
     outs = []
     for rec in recs:
-        lora = None
-        if rec.lora is not None:
-            lora = json.dumps(rec.lora)
-
-        show_controlnet_reference_image = None
-        if rec.controlnet_reference_image is not None:
-            show_controlnet_reference_image = f"/controlnet_references_path/{os.path.basename(rec.controlnet_reference_image)}"
-        show_ipadapter_reference_image = None
-        if rec.ipadapter_reference_image is not None:
-            show_ipadapter_reference_image = f"/ipadapter_references_path/{os.path.basename(rec.ipadapter_reference_image)}"
-        show_thumbnail_image = None
-        if rec.thumbnail_image is not None:
-            show_thumbnail_image = (
-                f"/thumbnails_path/{os.path.basename(rec.thumbnail_image)}"
-            )
-
-        mask_region_images = None
-        mask_region_images_keys = None
-        if rec.mask_region_images is not None:
-            mask_region_images = MaskRegionImages(**rec.mask_region_images)
-            mask_region_images_keys = f"{list(mask_region_images.mask_files.keys())}"
-
-        coordinated_regions = None
-        coordinated_region_keys = None
-        if rec.coordinated_regions is not None:
-            coordinated_regions = json.dumps(rec.coordinated_regions)
-            coordinated_region_keys = (
-                f"{list(map(lambda x: x['keyword'], rec.coordinated_regions))}"
-            )
-
-        io = ItemOutput(
-            id=rec.id,
-            group_id=rec.group_id,
-            name=rec.name,
-            code_name=rec.code_name,
-            positive_prompt=rec.positive_prompt,
-            negative_prompt=rec.negative_prompt,
-            lora=lora,
-            coordinated_regions=coordinated_regions,
-            coordinated_region_keys=coordinated_region_keys,
-            controlnet_reference_image=rec.controlnet_reference_image,
-            show_controlnet_reference_image=show_controlnet_reference_image,
-            ipadapter_reference_image=rec.ipadapter_reference_image,
-            show_ipadapter_reference_image=show_ipadapter_reference_image,
-            mask_region_images=mask_region_images,
-            mask_region_images_keys=mask_region_images_keys,
-            thumbnail_image=rec.thumbnail_image,
-            show_thumbnail_image=show_thumbnail_image,
-        )
+        io = serialize_item(rec)
         outs.append(io)
     return outs

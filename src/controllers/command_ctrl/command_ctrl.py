@@ -244,10 +244,10 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
         prompt_positive = ""
         prompt_negative = ""
         reference_controlnet_img = None
-        reference_ipadapter_img = None
         lora_list = []
-
+        ipadapter_list = []
         group_item_id_list = []
+
         result_filename_img = f"{server.code_name}_{generator.code_name}_{command.id}"
         for item in items:
             group = await GroupRecord.get_or_none(id=item.group_id)
@@ -270,10 +270,8 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                     item.controlnet_reference_image
                 )
 
-            if item.ipadapter_reference_image is not None:
-                reference_ipadapter_img = os.path.abspath(
-                    item.ipadapter_reference_image
-                )
+            if item.ipadapter is not None:
+                ipadapter_list.append(item.ipadapter)
 
             if item.lora is not None:
                 lora_list.append(item.lora)
@@ -299,7 +297,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                     prompt_negative=prompt_negative,
                     region_prompts=ccp,
                     reference_controlnet_img=reference_controlnet_img,
-                    reference_ipadapter_img=reference_ipadapter_img,
+                    ipadapter_list=ipadapter_list,
                     lora_list=lora_list,
                     result_img=result_img,
                 )
@@ -317,7 +315,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                 prompt_positive=prompt_positive,
                 prompt_negative=prompt_negative,
                 reference_controlnet_img=reference_controlnet_img,
-                reference_ipadapter_img=reference_ipadapter_img,
+                ipadapter_list=ipadapter_list,
                 lora_list=lora_list,
                 result_img=result_img,
             )

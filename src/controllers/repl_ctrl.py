@@ -2,8 +2,9 @@ import json
 import os
 import re
 
-from src.controllers.ctrl_types import JobOutput, ReplInput, serialize_job
+from src.controllers.ctrl_types import JobOutput, ReplInput
 from src.controllers.manager_ctrl import Manager
+from src.controllers.serializers import serialize_job
 from src.core.config import Config
 from src.db.records import GeneratorRecord, GroupRecord, JobRecord, ServerRecord
 from src.db.records.item_rec import ItemRecord
@@ -117,8 +118,8 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
         if item.controlnet_reference_image is not None:
             reference_controlnet_img = item.controlnet_reference_image
 
-        if item.ipadapter_reference_image is not None:
-            reference_ipadapter_img = item.ipadapter_reference_image
+        # if item.ipadapter_reference_image is not None:
+        #     reference_ipadapter_img = item.ipadapter_reference_image
 
         if item.lora is not None:
             lora_list.append(item.lora)

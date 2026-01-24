@@ -1,11 +1,11 @@
 import os
-import shutil
 import uuid
 
-from src.controllers.ctrl_types import GroupInput, GroupOutput, serialize_group
+from src.controllers.common import delete_item_files
+from src.controllers.ctrl_types import GroupInput, GroupOutput
+from src.controllers.serializers import serialize_group
 from src.core.config import Config
 from src.db.records import GroupRecord, ItemRecord
-from src.db.records.item_rec import MaskRegionImages
 
 
 async def add_group(conf: Config, input: GroupInput):
@@ -113,21 +113,7 @@ async def delete_group(id: int):
 
     items = await ItemRecord.filter(group_id=id).all()
     for item in items:
-        if item.ipadapter_reference_image is not None:
-            if os.path.exists(item.ipadapter_reference_image):
-                os.remove(item.ipadapter_reference_image)
-
-        if item.controlnet_reference_image is not None:
-            if os.path.exists(item.controlnet_reference_image):
-                os.remove(item.controlnet_reference_image)
-
-        if item.mask_region_images is not None:
-            mask_region_images = MaskRegionImages(**item.mask_region_images)
-            if os.path.exists(mask_region_images.reference_path):
-                os.remove(mask_region_images.reference_path)
-
-            if os.path.exists(mask_region_images.folder_path):
-                shutil.rmtree(mask_region_images.folder_path)
+        await delete_item_files(item)
 
         await item.delete()
 
