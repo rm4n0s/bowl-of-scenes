@@ -172,7 +172,6 @@ class GeneratorInput:
     workflow_json: dict[str, Any]
     positive_prompt_title: str | None
     negative_prompt_title: str | None
-    load_image_ipadapter_title: str | None
     load_image_controlnet_title: str | None
     save_image_title: str
 
@@ -185,7 +184,6 @@ class GeneratorOutput:
     workflow_json: dict[str, Any]
     positive_prompt_title: str | None
     negative_prompt_title: str | None
-    load_image_ipadapter_title: str | None
     load_image_controlnet_title: str | None
     save_image_title: str
 

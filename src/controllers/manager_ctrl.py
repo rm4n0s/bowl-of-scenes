@@ -213,18 +213,6 @@ async def generate_image(client: YetAnotherComfyClient, job: JobRecord):
             job.reference_controlnet_img,
         )
 
-    if (
-        job.reference_ipadapter_img is not None
-        and gen.load_image_ipadapter_title is not None
-        and len(gen.load_image_ipadapter_title) > 0
-    ):
-        prompt = edit_prompt(
-            prompt,
-            gen.load_image_ipadapter_title,
-            "image",
-            job.reference_ipadapter_img,
-        )
-
     if job.lora_list is not None and len(job.lora_list) > 0:
         inj = LoRAInjector(prompt)
         inj.add_multiple_loras(job.lora_list)

@@ -49,10 +49,6 @@ class GeneratorsPage:
                 "LoadImage's title for ControlNet"
             ).props("outlined")
 
-            load_image_ipadapter_title_input = ui.input(
-                "LoadImage's title for IPAdapter"
-            ).props("outlined")
-
             async def handle_upload(event: UploadEventArguments):
                 nonlocal workflow_json
                 workflow_json = await event.file.json()
@@ -72,9 +68,6 @@ class GeneratorsPage:
                     low_title = title.lower()
                     if "controlnet" in low_title:
                         load_image_controlnet_title_input.value = title
-
-                    if "ipadapter" in low_title:
-                        load_image_ipadapter_title_input.value = title
 
                 prompt_titles = get_title_from_class_type(
                     workflow_json, "CLIPTextEncode"
@@ -103,7 +96,6 @@ class GeneratorsPage:
                         workflow_json,
                         positive_prompt_title_input.value,
                         negative_prompt_title_input.value,
-                        load_image_ipadapter_title_input.value,
                         load_image_controlnet_title_input.value,
                         save_image_title_input.value,
                     ),
@@ -119,7 +111,6 @@ class GeneratorsPage:
         workflow_json: dict[str, Any],
         positive_prompt_title: str,
         negative_prompt_title: str,
-        load_image_ipadapter_title: str,
         load_image_controlnet_title: str,
         save_image_title: str,
     ):
@@ -129,7 +120,6 @@ class GeneratorsPage:
             workflow_json=workflow_json,
             positive_prompt_title=positive_prompt_title,
             negative_prompt_title=negative_prompt_title,
-            load_image_ipadapter_title=load_image_ipadapter_title,
             load_image_controlnet_title=load_image_controlnet_title,
             save_image_title=save_image_title,
         )
@@ -161,10 +151,6 @@ class GeneratorsPage:
             negative_prompt_title_input = ui.input(
                 "Negative Prompt's title", value=item["negative_prompt_title"]
             ).props("outlined")
-            load_image_ipadapter_title_input = ui.input(
-                "LoadImage's for ipadapter's title",
-                value=item["load_image_ipadapter_title"],
-            ).props("outlined")
             load_image_controlnet_title_input = ui.input(
                 "LoadImage's for controlnet's title",
                 value=item["load_image_controlnet_title"],
@@ -185,7 +171,6 @@ class GeneratorsPage:
                         workflow_json_str.value,
                         positive_prompt_title_input.value,
                         negative_prompt_title_input.value,
-                        load_image_ipadapter_title_input.value,
                         load_image_controlnet_title_input.value,
                         save_image_title_input.value,
                     ),
@@ -202,7 +187,6 @@ class GeneratorsPage:
         workflow_json_str: str,
         positive_prompt_title: str,
         negative_prompt_title: str,
-        load_image_ipadapter_title: str,
         load_image_controlnet_title: str,
         save_image_title: str,
     ):
@@ -213,7 +197,6 @@ class GeneratorsPage:
             workflow_json=workflow_json,
             positive_prompt_title=positive_prompt_title,
             negative_prompt_title=negative_prompt_title,
-            load_image_ipadapter_title=load_image_ipadapter_title,
             load_image_controlnet_title=load_image_controlnet_title,
             save_image_title=save_image_title,
         )

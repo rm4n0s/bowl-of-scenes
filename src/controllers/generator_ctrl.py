@@ -8,7 +8,6 @@ async def add_generator(input: GeneratorInput):
         code_name=input.code_name,
         positive_prompt_title=input.positive_prompt_title,
         negative_prompt_title=input.negative_prompt_title,
-        load_image_ipadapter_title=input.load_image_ipadapter_title,
         load_image_controlnet_title=input.load_image_controlnet_title,
         save_image_title=input.save_image_title,
         workflow_json=input.workflow_json,
@@ -27,9 +26,6 @@ async def edit_generator(id: int, input: GeneratorInput):
 
     if input.negative_prompt_title is not None:
         gen.negative_prompt_title = input.negative_prompt_title
-
-    if input.load_image_ipadapter_title is not None:
-        gen.load_image_ipadapter_title = input.load_image_ipadapter_title
 
     if input.load_image_controlnet_title is not None:
         gen.load_image_controlnet_title = input.load_image_controlnet_title
@@ -51,7 +47,6 @@ async def list_generators() -> list[GeneratorOutput]:
             workflow_json=gen.workflow_json,
             positive_prompt_title=gen.positive_prompt_title,
             negative_prompt_title=gen.negative_prompt_title,
-            load_image_ipadapter_title=gen.load_image_ipadapter_title,
             load_image_controlnet_title=gen.load_image_controlnet_title,
             save_image_title=gen.save_image_title,
         )
