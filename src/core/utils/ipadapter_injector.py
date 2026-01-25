@@ -1,8 +1,8 @@
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
-def get_max_node_id(workflow: Dict[str, Any]) -> int:
+def get_max_node_id(workflow: dict[str, Any]) -> int:
     """Extract the maximum numeric node ID from workflow keys."""
     max_id = 0
     for key in workflow.keys():
@@ -12,7 +12,7 @@ def get_max_node_id(workflow: Dict[str, Any]) -> int:
     return max_id
 
 
-def generate_unique_id(workflow: Dict[str, Any], base_id: int) -> str:
+def generate_unique_id(workflow: dict[str, Any], base_id: int) -> str:
     """Generate a unique node ID that doesn't exist in the workflow."""
     node_id = str(base_id)
     while node_id in workflow:
@@ -22,10 +22,10 @@ def generate_unique_id(workflow: Dict[str, Any], base_id: int) -> str:
 
 
 def add_multiple_ipadapters_to_workflow(
-    workflow: Dict[str, Any],
-    reference_images: List[Dict[str, Any]],
+    workflow: dict[str, Any],
+    reference_images: list[dict[str, Any]],
     clip_vision_model: str = "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Add multiple IPAdapter nodes to a ComfyUI workflow in sequence.
     Works with ComfyUI_IPAdapter_plus extension.

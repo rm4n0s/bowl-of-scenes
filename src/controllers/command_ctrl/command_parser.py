@@ -114,8 +114,8 @@ class PromptLanguageParser:
 
     def _parse_groups(self, groups_part: str) -> list[GroupSelection]:
         """Parse the groups portion of the command"""
-        # Handle region groups first (they contain ' x ' inside {})
-        # Split by ' x ' but respect {} boundaries
+        # Handle region groups first (they contain ' * ' inside {})
+        # Split by ' * ' but respect {} boundaries
         group_expressions = []
         current = []
         depth = 0
@@ -133,13 +133,13 @@ class PromptLanguageParser:
             elif (
                 char == " "
                 and i + 2 < len(groups_part)
-                and groups_part[i : i + 3] == " x "
+                and groups_part[i : i + 3] == " * "
                 and depth == 0
             ):
-                # Found ' x ' outside braces
+                # Found ' * ' outside braces
                 group_expressions.append("".join(current).strip())
                 current = []
-                i += 2  # Skip ' x '
+                i += 2  # Skip ' * '
             else:
                 current.append(char)
 

@@ -11,7 +11,7 @@ After adding every attribute you want to use in groups, then you use a mini lang
 
 Here is the example in the mini language
 ```
-local_comfyui -$ workflow_for_anime: characters x  poses(~jumping) x emotions(cry)
+local_comfyui -$ workflow_for_anime: characters *  poses(~jumping) * emotions(cry)
 ```
 The execution of the above command will produce this json
 
