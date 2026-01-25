@@ -55,7 +55,7 @@ class GroupOutput:
 @dataclass
 class ItemIPAdapterInput:
     reference_image: FileUpload
-    weight: int
+    weight: float
     weight_type: str
     start_at: float
     end_at: float
@@ -67,7 +67,7 @@ class ItemIPAdapterInput:
 class ItemIPAdapterOutput:
     reference_image: str
     show_reference_image: str
-    weight: int
+    weight: float
     weight_type: str
     start_at: float
     end_at: float

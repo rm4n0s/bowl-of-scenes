@@ -23,14 +23,16 @@ async def add_item(conf: Config, input: ItemInput):
     thumbnail_path = None
     if input.thumbnail_image is not None:
         image_filename = str(uuid.uuid4()) + "_" + input.thumbnail_image.name
-        thumbnail_path = os.path.join(conf.thumbnails_path, image_filename)
+        thumbnail_path = os.path.abspath(
+            os.path.join(conf.thumbnails_path, image_filename)
+        )
         await input.thumbnail_image.save(thumbnail_path)
 
     ipadapter = None
     if input.ipadapter is not None:
         image_filename = str(uuid.uuid4()) + "_" + input.ipadapter.reference_image.name
-        ipadapter_ref_path = os.path.join(
-            conf.ipadapter_references_path, image_filename
+        ipadapter_ref_path = os.path.abspath(
+            os.path.join(conf.ipadapter_references_path, image_filename)
         )
         await input.ipadapter.reference_image.save(ipadapter_ref_path)
         ipadapter = asdict(
@@ -48,8 +50,8 @@ async def add_item(conf: Config, input: ItemInput):
     controlnt_ref_path = None
     if input.controlnet_reference_image is not None:
         image_filename = str(uuid.uuid4()) + "_" + input.controlnet_reference_image.name
-        controlnt_ref_path = os.path.join(
-            conf.controlnet_references_path, image_filename
+        controlnt_ref_path = os.path.abspath(
+            os.path.join(conf.controlnet_references_path, image_filename)
         )
         await input.controlnet_reference_image.save(controlnt_ref_path)
 

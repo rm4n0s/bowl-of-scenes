@@ -1,4 +1,4 @@
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 
 from fastapi import HTTPException
 from nicegui import ui
@@ -6,6 +6,7 @@ from nicegui.elements.textarea import Textarea
 from nicegui.elements.upload_files import FileUpload
 from nicegui.events import MultiUploadEventArguments
 
+from src.controllers.ctrl_types import ItemIPAdapterInput, ItemIPAdapterOutput
 from src.controllers.group_ctrl import GroupOutput, get_group
 from src.controllers.item_ctrl import (
     ItemInput,
@@ -16,6 +17,17 @@ from src.controllers.item_ctrl import (
 )
 from src.core.config import Config
 from src.pages.common.nav_menu import common_nav_menu
+
+
+@dataclass
+class IPAdapterForm:
+    ipadapter_clip_vision_model_input: ui.input
+    ipadapter_model_input: ui.input
+    ipadapter_weight_input: ui.number
+    ipadapter_weight_type_input: ui.input
+    ipadapter_start_at_input: ui.number
+    ipadapter_end_at_input: ui.number
+    ipadapter_reference_image_input: FileUpload | None
 
 
 class ItemsPage:
@@ -72,7 +84,7 @@ class ItemsPage:
                                 """,
                 ).props("outlined")
 
-            ipadapter_input = None
+            ipadapter_form = None
             if self.group.use_ip_adapter:
                 ipadapter_model_input = ui.input("IPAdapter's Model Name").props(
                     "outlined"
@@ -80,21 +92,34 @@ class ItemsPage:
                 ipadapter_clip_vision_model_input = ui.input(
                     "IPAdapter's Clip Vision Model Name"
                 ).props("outlined")
-                ipadapter_weight_input = ui.input("IPAdapter Weight").props("outlined")
-                ipadapter_weight_type_input = ui.input("IPAdapter Weight Type").props(
-                    "outlined"
-                )
-                ipadapter_start_at_input = ui.input("IPAdapter Start At").props(
-                    "outlined"
-                )
-                ipadapter_end_at_input = ui.input("IPAdapter End At").props("outlined")
+                ipadapter_weight_input = ui.number(
+                    "IPAdapter Start At", value=0.8, format="%.2f"
+                ).props("outlined")
+                ipadapter_weight_type_input = ui.input(
+                    "IPAdapter Weight Type", value="linear"
+                ).props("outlined")
+                ipadapter_start_at_input = ui.number(
+                    "IPAdapter Start At", value=0.0, format="%.2f"
+                ).props("outlined")
+                ipadapter_end_at_input = ui.number(
+                    "IPAdapter End At", value=1.0, format="%.2f"
+                ).props("outlined")
 
-                ipadapter_reference_image_input = None
+                ipadapter_form = IPAdapterForm(
+                    ipadapter_model_input=ipadapter_model_input,
+                    ipadapter_clip_vision_model_input=ipadapter_clip_vision_model_input,
+                    ipadapter_weight_input=ipadapter_weight_input,
+                    ipadapter_weight_type_input=ipadapter_weight_type_input,
+                    ipadapter_start_at_input=ipadapter_start_at_input,
+                    ipadapter_end_at_input=ipadapter_end_at_input,
+                    ipadapter_reference_image_input=None,
+                )
 
                 async def handle_ipadapter_upload(event: MultiUploadEventArguments):
-                    nonlocal ipadapter_reference_image_input
+                    nonlocal ipadapter_form
                     if event.files:
-                        ipadapter_reference_image_input = event.files[0]
+                        assert ipadapter_form is not None
+                        ipadapter_form.ipadapter_reference_image_input = event.files[0]
 
                 ui.label("Upload IP Adapter image").classes("text-h6")
                 ui.upload(
@@ -166,7 +191,7 @@ class ItemsPage:
                         lora_input,
                         coordinated_regions_input,
                         controlnet_reference_image_input,
-                        ipadapter_reference_image_input,
+                        ipadapter_form,
                         mask_region_reference_image_input,
                         thumbnail_image_input,
                     ),
@@ -184,7 +209,7 @@ class ItemsPage:
         lora_input: Textarea | None,
         coordinated_regions_input: Textarea | None,
         controlnet_reference_image: FileUpload | None,
-        ipadapter_reference_image: FileUpload | None,
+        ipadapter_form: IPAdapterForm | None,
         mask_region_reference_image: FileUpload | None,
         thumbnail_image: FileUpload | None,
     ):
@@ -198,6 +223,21 @@ class ItemsPage:
             if len(coordinated_regions_input.value) > 0:
                 coordinated_regions = coordinated_regions_input.value
 
+        item_ipadapter_input = None
+        if (
+            ipadapter_form is not None
+            and ipadapter_form.ipadapter_reference_image_input is not None
+        ):
+            item_ipadapter_input = ItemIPAdapterInput(
+                reference_image=ipadapter_form.ipadapter_reference_image_input,
+                weight=ipadapter_form.ipadapter_weight_input.value,
+                weight_type=ipadapter_form.ipadapter_weight_type_input.value,
+                model_name=ipadapter_form.ipadapter_model_input.value,
+                clip_vision_model=ipadapter_form.ipadapter_clip_vision_model_input.value,
+                start_at=ipadapter_form.ipadapter_start_at_input.value,
+                end_at=ipadapter_form.ipadapter_end_at_input.value,
+            )
+
         input = ItemInput(
             group_id=self.group.id,
             name=name,
@@ -207,7 +247,7 @@ class ItemsPage:
             lora=lora,
             coordinated_regions=coordinated_regions,
             controlnet_reference_image=controlnet_reference_image,
-            ipadapter_reference_image=ipadapter_reference_image,
+            ipadapter=item_ipadapter_input,
             mask_region_reference_image=mask_region_reference_image,
             thumbnail_image=thumbnail_image,
         )
@@ -250,13 +290,56 @@ class ItemsPage:
                     value=cr,
                 ).props("outlined")
 
-            ipadapter_reference_image_input = None
+            ipadapter_form = None
             if self.group.use_ip_adapter:
+                ipadapter_prv = ItemIPAdapterOutput(
+                    reference_image="",
+                    show_reference_image="",
+                    weight=0.8,
+                    weight_type="original",
+                    start_at=0.0,
+                    end_at=1.0,
+                    clip_vision_model="",
+                    model_name="",
+                )
+                if item["ipadapter"] is not None:
+                    ipadapter_prv = ItemIPAdapterOutput(**item["ipadapter"])
+
+                ipadapter_model_input = ui.input(
+                    "IPAdapter's Model Name", value=ipadapter_prv.model_name
+                ).props("outlined")
+                ipadapter_clip_vision_model_input = ui.input(
+                    "IPAdapter's Clip Vision Model Name",
+                    value=ipadapter_prv.clip_vision_model,
+                ).props("outlined")
+                ipadapter_weight_input = ui.number(
+                    "IPAdapter Start At", value=ipadapter_prv.weight, format="%.2f"
+                ).props("outlined")
+                ipadapter_weight_type_input = ui.input(
+                    "IPAdapter Weight Type", value=ipadapter_prv.weight_type
+                ).props("outlined")
+                ipadapter_start_at_input = ui.number(
+                    "IPAdapter Start At", value=ipadapter_prv.start_at, format="%.2f"
+                ).props("outlined")
+                ipadapter_end_at_input = ui.number(
+                    "IPAdapter End At", value=ipadapter_prv.end_at, format="%.2f"
+                ).props("outlined")
+
+                ipadapter_form = IPAdapterForm(
+                    ipadapter_model_input=ipadapter_model_input,
+                    ipadapter_clip_vision_model_input=ipadapter_clip_vision_model_input,
+                    ipadapter_weight_input=ipadapter_weight_input,
+                    ipadapter_weight_type_input=ipadapter_weight_type_input,
+                    ipadapter_start_at_input=ipadapter_start_at_input,
+                    ipadapter_end_at_input=ipadapter_end_at_input,
+                    ipadapter_reference_image_input=None,
+                )
 
                 async def handle_ipadapter_upload(event: MultiUploadEventArguments):
-                    nonlocal ipadapter_reference_image_input
+                    nonlocal ipadapter_form
                     if event.files:
-                        ipadapter_reference_image_input = event.files[0]
+                        assert ipadapter_form is not None
+                        ipadapter_form.ipadapter_reference_image_input = event.files[0]
 
                 ui.label("Upload IP Adapter image").classes("text-h6")
                 ui.upload(
@@ -327,7 +410,7 @@ class ItemsPage:
                         lora_input,
                         coordinated_regions_input,
                         controlnet_reference_image_input,
-                        ipadapter_reference_image_input,
+                        ipadapter_form,
                         mask_region_reference_image_input,
                         thumbnail_image_input,
                     ),
@@ -346,7 +429,7 @@ class ItemsPage:
         lora_input: Textarea | None,
         coordinated_regions_input: Textarea | None,
         controlnet_reference_image: FileUpload | None,
-        ipadapter_reference_image: FileUpload | None,
+        ipadapter_form: IPAdapterForm | None,
         color_coded_reference_image: FileUpload | None,
         thumbnail_image: FileUpload | None,
     ):
@@ -360,6 +443,21 @@ class ItemsPage:
             if len(coordinated_regions_input.value) > 0:
                 cr = coordinated_regions_input.value
 
+        item_ipadapter_input = None
+        if (
+            ipadapter_form is not None
+            and ipadapter_form.ipadapter_reference_image_input is not None
+        ):
+            item_ipadapter_input = ItemIPAdapterInput(
+                reference_image=ipadapter_form.ipadapter_reference_image_input,
+                weight=ipadapter_form.ipadapter_weight_input.value,
+                weight_type=ipadapter_form.ipadapter_weight_type_input.value,
+                model_name=ipadapter_form.ipadapter_model_input.value,
+                clip_vision_model=ipadapter_form.ipadapter_clip_vision_model_input.value,
+                start_at=ipadapter_form.ipadapter_start_at_input.value,
+                end_at=ipadapter_form.ipadapter_end_at_input.value,
+            )
+
         input = ItemInput(
             group_id=self.group.id,
             name=name,
@@ -369,7 +467,7 @@ class ItemsPage:
             lora=lora,
             coordinated_regions=cr,
             controlnet_reference_image=controlnet_reference_image,
-            ipadapter_reference_image=ipadapter_reference_image,
+            ipadapter=item_ipadapter_input,
             mask_region_reference_image=color_coded_reference_image,
             thumbnail_image=thumbnail_image,
         )
@@ -454,7 +552,7 @@ class ItemsPage:
                 {
                     "name": "show_ipadapter_reference_image",
                     "label": "IPAdapter image",
-                    "field": "show_ipadapter_reference_image",
+                    "field": "ipadapter.show_reference_image",
                     "align": "left",
                 },
                 {

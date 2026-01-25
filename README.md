@@ -43,3 +43,15 @@ The execution of the above command will produce this json
 }```
 
 Then for this json the Bowl-of-Scenes will produce the inputs for the selected workflow and submit them to a queue to produce each image.
+
+
+## ComfyUI Custom Nodes
+( I am not sure which bawl-of-scenes uses, but this is the list of plugins in my comfyui)
+- ComfyUI-Unload-Model
+- A8R8_ComfyUI_nodes
+- ComfyUI_UltimateSDUpscale
+- ComfyUI-Advanced-ControlNet
+- ComfyUI_IPAdapter_plus
+- ComfyUI-Impact-Pack
+- ComfyUI-Inspire-Pack
+- comfyui_controlnet_aux

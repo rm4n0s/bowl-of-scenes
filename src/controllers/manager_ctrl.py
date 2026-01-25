@@ -14,7 +14,8 @@ from src.controllers.ctrl_types import ServerData
 from src.controllers.server_ctrl import StatusEnum
 from src.core.config import Config
 from src.core.utils import LoRAInjector
-from src.core.utils.maskinjector import inject_masks
+from src.core.utils.ipadapter_injector import add_multiple_ipadapters_to_workflow
+from src.core.utils.mask_injector import inject_masks
 from src.db.records import (
     FixerRecord,
     GeneratorRecord,
@@ -211,6 +212,25 @@ async def generate_image(client: YetAnotherComfyClient, job: JobRecord):
             gen.load_image_controlnet_title,
             "image",
             job.reference_controlnet_img,
+        )
+
+    if job.ipadapter_list is not None and len(job.ipadapter_list) > 0:
+        ipas_input = []
+        clip_vision_model = ""
+        for ipadapter in job.ipadapter_list:
+            clip_vision_model = ipadapter["clip_vision_model"]
+            ipas_input.append(
+                {
+                    "model": ipadapter["model_name"],
+                    "path": ipadapter["image_file"],
+                    "weight": ipadapter["weight"],
+                    "weight_type": ipadapter["weight_type"],
+                    "start_at": ipadapter["start_at"],
+                    "end_at": ipadapter["end_at"],
+                }
+            )
+        prompt = add_multiple_ipadapters_to_workflow(
+            prompt, ipas_input, clip_vision_model=clip_vision_model
         )
 
     if job.lora_list is not None and len(job.lora_list) > 0:
