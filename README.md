@@ -56,3 +56,4 @@ Then for this json the Bowl-of-Scenes will produce the inputs for the selected w
 - ComfyUI-Inspire-Pack
 - comfyui_controlnet_aux
 - comfyui-prompt-control
+- ComfyUI-RMBG
