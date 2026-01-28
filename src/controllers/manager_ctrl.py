@@ -250,13 +250,12 @@ async def generate_image(client: YetAnotherComfyClient, job: JobRecord):
             prompt,
             ccps,
         )
-        print("masked workflow", prompt)
 
     res = await client.queue_prompt(prompt)
     job.comfyui_prompt_id = res["prompt_id"]
     job.status = JobStatus.PROCESSING
     await job.save()
-    print("Processing job", job)
+    print("Processing job", job, "with prompt", prompt)
     async for event in client.get_events():
         if event.type == EventType.EXECUTION_SUCCESS:
             break

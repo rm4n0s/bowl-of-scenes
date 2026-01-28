@@ -8,6 +8,7 @@ from nicegui.events import UploadEventArguments
 from src.controllers.ctrl_types import FixerInput
 from src.controllers.fixer_ctrl import add_fixer, delete_fixer, edit_fixer, list_fixers
 from src.core.utils import get_title_from_class_type
+from src.core.utils.utils import get_title_from_class_type_that_contains
 from src.pages.common.nav_menu import common_nav_menu
 
 
@@ -63,8 +64,8 @@ class FixersPage:
                 if len(load_image_titles) == 1:
                     load_image_title_input.value = load_image_titles[0]
 
-                prompt_titles = get_title_from_class_type(
-                    workflow_json, "CLIPTextEncode"
+                prompt_titles = get_title_from_class_type_that_contains(
+                    workflow_json, "TextEncode"
                 )
                 for title in prompt_titles:
                     low_title = title.lower()

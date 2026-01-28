@@ -160,7 +160,7 @@ async def get_region_prompt_comb(
                             loras[item.lora["name"]] = item.lora
 
                         if len(item.positive_prompt) > 0:
-                            prompt_positive += item.positive_prompt + ", "
+                            prompt_positive += item.positive_prompt + " "
 
                     rp = RegionPrompt(
                         keyword=keyword,
@@ -185,7 +185,7 @@ async def get_region_prompt_comb(
                             loras[item.lora["name"]] = item.lora
 
                         if len(item.positive_prompt) > 0:
-                            prompt_positive += item.positive_prompt + ", "
+                            prompt_positive += item.positive_prompt + " "
 
                     rp = RegionPrompt(
                         keyword=crn.keyword,
@@ -262,9 +262,9 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                 }
             )
             if len(item.positive_prompt) > 0:
-                prompt_positive += item.positive_prompt + ", "
+                prompt_positive += item.positive_prompt + " "
             if len(item.negative_prompt) > 0:
-                prompt_negative += item.negative_prompt + ", "
+                prompt_negative += item.negative_prompt + " "
             if item.controlnet_reference_image is not None:
                 reference_controlnet_img = os.path.abspath(
                     item.controlnet_reference_image

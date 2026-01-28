@@ -112,9 +112,9 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
             }
         )
         if len(item.positive_prompt) > 0:
-            prompt_positive += item.positive_prompt + ", "
+            prompt_positive += item.positive_prompt + " "
         if len(item.negative_prompt) > 0:
-            prompt_negative += item.negative_prompt + ", "
+            prompt_negative += item.negative_prompt + " "
         if item.controlnet_reference_image is not None:
             reference_controlnet_img = item.controlnet_reference_image
 

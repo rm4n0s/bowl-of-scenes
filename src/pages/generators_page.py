@@ -13,6 +13,7 @@ from src.controllers.generator_ctrl import (
     list_generators,
 )
 from src.core.utils import get_title_from_class_type
+from src.core.utils.utils import get_title_from_class_type_that_contains
 from src.pages.common.nav_menu import common_nav_menu
 
 
@@ -69,8 +70,8 @@ class GeneratorsPage:
                     if "controlnet" in low_title:
                         load_image_controlnet_title_input.value = title
 
-                prompt_titles = get_title_from_class_type(
-                    workflow_json, "CLIPTextEncode"
+                prompt_titles = get_title_from_class_type_that_contains(
+                    workflow_json, "TextEncode"
                 )
                 for title in prompt_titles:
                     low_title = title.lower()

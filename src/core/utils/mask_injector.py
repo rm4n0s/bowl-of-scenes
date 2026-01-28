@@ -42,7 +42,7 @@ def inject_masks(
             if current_node is None:
                 raise ValueError("Invalid node ID in conditioning chain")
             class_type = current_node.get("class_type")
-            if class_type == "CLIPTextEncode":
+            if "TextEncode" in class_type:
                 return [current_id, current_out], consumer_id, consumer_key
             elif class_type == "ControlNetApplyAdvanced":
                 current_link = current_node["inputs"].get("positive")
@@ -75,7 +75,7 @@ def inject_masks(
 
     # Get the base node and CLIP
     base_node = workflow.get(base_cond_id)
-    if base_node is None or base_node.get("class_type") != "CLIPTextEncode":
+    if base_node is None or "TextEncode" not in base_node.get("class_type"):
         raise ValueError("Base conditioning node is not a CLIPTextEncode")
 
     clip_link = base_node["inputs"].get("clip")
@@ -102,7 +102,7 @@ def inject_masks(
         # Add CLIPTextEncode for the regional prompt
         region_encode_id = get_next_id()
         workflow[region_encode_id] = {
-            "class_type": "CLIPTextEncode",
+            "class_type": base_node.get("class_type"),
             "inputs": {"text": prompt_obj.prompt, "clip": [clip_id, clip_output]},
         }
 
