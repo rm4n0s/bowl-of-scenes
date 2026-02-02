@@ -52,7 +52,7 @@ async def add_group_of_positives_from_text_file(
             code_name=f"{i}",
             positive_prompt=v,
             negative_prompt="",
-            lora=None,
+            lora_list=None,
             controlnet_reference_image=None,
             ipadapter_reference_image=None,
             mask_region_images=None,

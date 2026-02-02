@@ -33,6 +33,13 @@ class IPAdapter:
     model_name: str
 
 
+@dataclass
+class Lora:
+    name: str
+    strength_model: float
+    strength_clip: float
+
+
 class ItemRecord(TimestampMixin, Model):
     id = fields.IntField(primary_key=True)
     group_id = fields.IntField()
@@ -40,7 +47,7 @@ class ItemRecord(TimestampMixin, Model):
     code_name = fields.CharField(max_length=100)
     positive_prompt = fields.TextField()
     negative_prompt = fields.TextField()
-    lora = fields.JSONField(null=True)
+    lora_list = fields.JSONField(null=True)  # list[Lora]
     controlnet_reference_image = fields.TextField(null=True)
     ipadapter = fields.JSONField(null=True)
     mask_region_images = fields.JSONField(null=True)

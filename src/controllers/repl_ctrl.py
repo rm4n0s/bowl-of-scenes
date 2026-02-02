@@ -121,8 +121,8 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
         # if item.ipadapter_reference_image is not None:
         #     reference_ipadapter_img = item.ipadapter_reference_image
 
-        if item.lora is not None:
-            lora_list.append(item.lora)
+        if item.lora_list is not None:
+            lora_list.extend(item.lora_list)
 
     prompt_positive += input.prompt_positive
     prompt_negative += input.prompt_negative

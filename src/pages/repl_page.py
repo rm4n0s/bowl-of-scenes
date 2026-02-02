@@ -9,10 +9,10 @@ from src.controllers.ctrl_types import ReplInput
 from src.controllers.manager_ctrl import Manager
 from src.controllers.repl_ctrl import (
     clear_repl_job,
-    get_previous_job_from_repl,
     run_repl,
 )
 from src.core.config import Config
+from src.core.utils import utils
 from src.pages.common.nav_menu import common_nav_menu
 
 
@@ -37,6 +37,16 @@ class ReplPage:
         controlnet_reference_image: FileUpload | None,
         ipadapter_reference_image: FileUpload | None,
     ):
+        lora_list_dict = utils.parse_lora_tags(prompt_positive)
+        if len(lora_list_dict) > 0:
+            prompt_positive = utils.remove_lora_tags(prompt_positive)
+            if lora_list == "":
+                lora_list = json.dumps(lora_list_dict)
+            else:
+                lora_list_dict_input = json.loads(lora_list)
+                lora_list_dict.extend(lora_list_dict_input)
+                lora_list = json.dumps(lora_list_dict)
+
         input = ReplInput(
             generator_code_name=generator_code_name,
             server_code_name=server_code_name,

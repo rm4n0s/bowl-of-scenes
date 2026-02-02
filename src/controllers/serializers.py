@@ -83,8 +83,8 @@ def serialize_fixer(rec: FixerRecord) -> FixerOutput:
 
 def serialize_item(rec: ItemRecord) -> ItemOutput:
     lora = None
-    if rec.lora is not None:
-        lora = json.dumps(rec.lora)
+    if rec.lora_list is not None:
+        lora = json.dumps(rec.lora_list)
 
     show_controlnet_reference_image = None
     if rec.controlnet_reference_image is not None:

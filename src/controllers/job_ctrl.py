@@ -41,8 +41,8 @@ async def reload_job(manager: Manager, job_id: int):
         if item.ipadapter is not None:
             ipadapters.append(item.ipadapter)
 
-        if item.lora is not None:
-            lora_list.append(item.lora)
+        if item.lora_list is not None:
+            lora_list.append(item.lora_list)
 
     job.prompt_positive = prompt_positive
     job.prompt_negative = prompt_negative

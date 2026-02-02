@@ -89,7 +89,7 @@ async def add_item(conf: Config, input: ItemInput):
         code_name=input.code_name,
         positive_prompt=input.positive_prompt,
         negative_prompt=input.negative_prompt,
-        lora=lora,
+        lora_list=lora,
         controlnet_reference_image=controlnt_ref_path,
         ipadapter=ipadapter,
         mask_region_images=mask_region_images,
@@ -119,7 +119,7 @@ async def edit_item(conf: Config, id: int, ui_input: ItemInput):
     item.negative_prompt = ui_input.negative_prompt
 
     if ui_input.lora is not None and len(ui_input.lora) > 0:
-        item.lora = json.loads(ui_input.lora)
+        item.lora_list = json.loads(ui_input.lora)
 
     if ui_input.thumbnail_image is not None:
         image_filename = str(uuid.uuid4()) + "_" + ui_input.thumbnail_image.name

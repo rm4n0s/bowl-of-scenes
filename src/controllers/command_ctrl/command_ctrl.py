@@ -141,7 +141,7 @@ async def get_region_prompt_comb(
 
     region_items = await ItemRecord.filter(group_id=the_group.id).all()
     region_prompts_per_key: dict[str, list[RegionPrompt]] = {}
-    loras = {}
+    loras = []
     for ri in region_items:
         if ri.mask_region_images is not None:
             mri = MaskRegionImages(**ri.mask_region_images)
@@ -156,8 +156,8 @@ async def get_region_prompt_comb(
                 for items in combined_items:
                     prompt_positive = ""
                     for item in items:
-                        if item.lora is not None:
-                            loras[item.lora["name"]] = item.lora
+                        if item.lora_list is not None:
+                            loras.extend(item.lora_list)
 
                         if len(item.positive_prompt) > 0:
                             prompt_positive += item.positive_prompt + " "
@@ -181,8 +181,8 @@ async def get_region_prompt_comb(
                 for items in combined_items:
                     prompt_positive = ""
                     for item in items:
-                        if item.lora is not None:
-                            loras[item.lora["name"]] = item.lora
+                        if item.lora_list is not None:
+                            loras.extend(item.lora_list)
 
                         if len(item.positive_prompt) > 0:
                             prompt_positive += item.positive_prompt + " "
@@ -207,7 +207,7 @@ async def get_region_prompt_comb(
     return RegionPromptCombOutput(
         region_items=region_items,
         regioned_prompts=regioned_prompts,
-        loras=list(loras.values()),
+        loras=list(set(loras)),
     )
 
 
@@ -273,8 +273,8 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
             if item.ipadapter is not None:
                 ipadapter_list.append(item.ipadapter)
 
-            if item.lora is not None:
-                lora_list.append(item.lora)
+            if item.lora_list is not None:
+                lora_list.extend(item.lora_list)
 
         if ccp_comb is not None:
             if len(ccp_comb.loras) > 0:

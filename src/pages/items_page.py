@@ -1,3 +1,4 @@
+import json
 from dataclasses import asdict, dataclass
 
 from fastapi import HTTPException
@@ -16,6 +17,7 @@ from src.controllers.item_ctrl import (
     list_items,
 )
 from src.core.config import Config
+from src.core.utils import utils
 from src.pages.common.nav_menu import common_nav_menu
 
 
@@ -61,11 +63,11 @@ class ItemsPage:
                 lora_input = ui.textarea(
                     "LoRA in JSON",
                     placeholder="""
-{
-   "name": "style_lora.safetensors",
+[{
+   "name": "style_lora",
    "strength_model": 0.7,
    "strength_clip": 0.7
-}
+}]
                     """,
                 ).props("outlined")
 
@@ -214,9 +216,20 @@ class ItemsPage:
         thumbnail_image: FileUpload | None,
     ):
         lora = None
-        if lora_input is not None:
-            if len(lora_input.value) > 0:
-                lora = lora_input.value
+        if self.group.use_lora:
+            if lora_input is not None:
+                if len(lora_input.value) > 0:
+                    lora = lora_input.value
+
+            lora_list_dict = utils.parse_lora_tags(positive_prompt)
+            if len(lora_list_dict) > 0:
+                positive_prompt = utils.remove_lora_tags(positive_prompt)
+                if lora is None:
+                    lora = json.dumps(lora_list_dict)
+                else:
+                    lora_list_dict_input = json.loads(lora)
+                    lora_list_dict.extend(lora_list_dict_input)
+                    lora = json.dumps(lora_list_dict)
 
         coordinated_regions = None
         if coordinated_regions_input is not None:
@@ -434,9 +447,20 @@ class ItemsPage:
         thumbnail_image: FileUpload | None,
     ):
         lora = None
-        if lora_input is not None:
-            if len(lora_input.value) > 0:
-                lora = lora_input.value
+        if self.group.use_lora:
+            if lora_input is not None:
+                if len(lora_input.value) > 0:
+                    lora = lora_input.value
+
+            lora_list_dict = utils.parse_lora_tags(positive_prompt)
+            if len(lora_list_dict) > 0:
+                positive_prompt = utils.remove_lora_tags(positive_prompt)
+                if lora is None:
+                    lora = json.dumps(lora_list_dict)
+                else:
+                    lora_list_dict_input = json.loads(lora)
+                    lora_list_dict.extend(lora_list_dict_input)
+                    lora = json.dumps(lora_list_dict)
 
         cr = None
         if coordinated_regions_input is not None:

@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 
@@ -39,3 +40,44 @@ def get_title_from_class_type_that_contains(
             res.append(node_title)
 
     return res
+
+
+def parse_lora_tags(text: str) -> list[dict[str, Any]]:
+    """
+    Extract all LoRA tags from a string and convert them to a list of dictionaries.
+
+    Args:
+        text: String containing LoRA tags in format <lora:name:strength_model:strength_clip>
+
+    Returns:
+        List of dictionaries with 'name' (str), 'strength_model' (float), and 'strength_clip' (float)
+    """
+    pattern = r"<lora:([^:>]+):([^:>]+):([^:>]+)>"
+    matches = re.findall(pattern, text)
+
+    lora_list = []
+    for match in matches:
+        name, strength_model, strength_clip = match
+        lora_list.append(
+            {
+                "name": name,
+                "strength_model": float(strength_model),
+                "strength_clip": float(strength_clip),
+            }
+        )
+
+    return lora_list
+
+
+def remove_lora_tags(text: str) -> str:
+    """
+    Remove all LoRA tags from a string.
+
+    Args:
+        text: String containing LoRA tags in format <lora:name:strength_model:strength_clip>
+
+    Returns:
+        String with all LoRA tags removed
+    """
+    pattern = r"<lora:[^:>]+:[^:>]+:[^:>]+>"
+    return re.sub(pattern, "", text)
