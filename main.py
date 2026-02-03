@@ -5,6 +5,7 @@ import argparse
 import os
 
 from nicegui import app, ui
+from ultralytics import settings
 
 from src.controllers.category_ctrl import init_predefined_categories
 from src.controllers.manager_ctrl import Manager
@@ -23,6 +24,9 @@ from src.pages import (
     repl_page,
     servers_page,
 )
+
+# Disable telemetry / analytics / crash reporting
+settings.update({"sync": False})
 
 # Initialize pages
 

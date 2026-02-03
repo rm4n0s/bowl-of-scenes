@@ -20,6 +20,8 @@ class GroupSelection:
     merged_groups: Optional[list[dict]] = None
     is_regioned: bool = False
     region_group_selections: Optional[dict[str, list["GroupSelection"]]] = None
+    is_template: bool = False
+    template_group_selections: Optional[dict[str, list["GroupSelection"]]] = None
 
     def to_dict(self):
         result = {
@@ -36,6 +38,13 @@ class GroupSelection:
             result["region_group_selections"] = {
                 region: [gs.to_dict() for gs in selections]
                 for region, selections in self.region_group_selections.items()
+            }
+        if self.is_template:
+            assert self.template_group_selections
+            result["is_template"] = True
+            result["template_group_selections"] = {
+                template: [gs.to_dict() for gs in selections]
+                for template, selections in self.template_group_selections.items()
             }
         return result
 
@@ -114,29 +123,37 @@ class PromptLanguageParser:
 
     def _parse_groups(self, groups_part: str) -> list[GroupSelection]:
         """Parse the groups portion of the command"""
-        # Handle region groups first (they contain ' * ' inside {})
-        # Split by ' * ' but respect {} boundaries
+        # Handle color-coded groups and templates (they contain ' * ' inside {}/[])
+        # Split by ' * ' but respect {}, [] boundaries
         group_expressions = []
         current = []
-        depth = 0
+        depth_braces = 0
+        depth_brackets = 0
 
         i = 0
         while i < len(groups_part):
             char = groups_part[i]
 
             if char == "{":
-                depth += 1
+                depth_braces += 1
                 current.append(char)
             elif char == "}":
-                depth -= 1
+                depth_braces -= 1
+                current.append(char)
+            elif char == "[":
+                depth_brackets += 1
+                current.append(char)
+            elif char == "]":
+                depth_brackets -= 1
                 current.append(char)
             elif (
                 char == " "
                 and i + 2 < len(groups_part)
                 and groups_part[i : i + 3] == " * "
-                and depth == 0
+                and depth_braces == 0
+                and depth_brackets == 0
             ):
-                # Found ' * ' outside braces
+                # Found ' * ' outside braces/brackets
                 group_expressions.append("".join(current).strip())
                 current = []
                 i += 2  # Skip ' * '
@@ -150,8 +167,18 @@ class PromptLanguageParser:
 
         selections = []
         for expr in group_expressions:
-            # Check if this expression has region groups (contains {)
-            if "{" in expr:
+            # Check if has both () and []
+            has_parens = "(" in expr
+            has_brackets = "[" in expr
+
+            if has_parens and has_brackets:
+                # Has include/exclude AND templates
+                selection = self._parse_group_with_templates(expr)
+            elif has_brackets:
+                # Only templates
+                selection = self._parse_group_with_templates(expr)
+            # Check if this expression has color-coded groups (contains {)
+            elif "{" in expr:
                 selection = self._parse_region_groups(expr)
             # Check if this expression has 'and' (merge groups)
             elif " and " in expr:
@@ -307,4 +334,88 @@ class PromptLanguageParser:
             group_code_name=group_name,
             include_only=include_items,
             exclude=exclude_items if exclude_items else None,
+        )
+
+    def _parse_group_with_templates(self, expr: str) -> GroupSelection:
+        """
+        Parse group with templates like:
+        - group_8(3,4)[person: group_2]
+        - group_9(~2)[animal: group_3]
+        - group_10[template: group_5 x group_6]
+        """
+        # Extract: group_name, (include/exclude), [templates]
+        # Pattern: group_name (optional_parens) [template_content]
+
+        # Find group name (everything before ( or [)
+        base_match = re.match(r"(\w+)", expr)
+        if not base_match:
+            raise ValueError(f"Invalid template group syntax: {expr}")
+
+        group_name = base_match.group(1)
+
+        # Extract include/exclude if present (content in ())
+        include_items = None
+        exclude_items = set()
+
+        paren_match = re.search(r"\(([^)]+)\)", expr)
+        if paren_match:
+            paren_content = paren_match.group(1)
+            items = [item.strip() for item in paren_content.split(",")]
+
+            # Check if exclusion
+            if items and items[0].startswith("~"):
+                exclude_items.update(item.lstrip("~") for item in items)
+            else:
+                include_items = items
+
+        # Extract template mappings [content]
+        bracket_match = re.search(r"\[([^\]]+)\]", expr)
+        if not bracket_match:
+            raise ValueError(f"No template brackets found: {expr}")
+
+        template_content = bracket_match.group(1)
+
+        # Parse template mappings
+        template_selections = {}
+
+        # Split by comma (but respect nested structures)
+        template_parts = []
+        current_part = []
+        depth_parens = 0
+
+        for char in template_content:
+            if char == "," and depth_parens == 0:
+                template_parts.append("".join(current_part).strip())
+                current_part = []
+            else:
+                if char == "(":
+                    depth_parens += 1
+                elif char == ")":
+                    depth_parens -= 1
+                current_part.append(char)
+
+        if current_part:
+            template_parts.append("".join(current_part).strip())
+
+        # Parse each template mapping
+        for template_part in template_parts:
+            if ":" not in template_part:
+                raise ValueError(
+                    f"Invalid template mapping (missing ':'): {template_part}"
+                )
+
+            template_name, groups_str = template_part.split(":", 1)
+            template_name = template_name.strip()
+            groups_str = groups_str.strip()
+
+            # Parse the groups for this template (recursively)
+            template_group_selections = self._parse_groups(groups_str)
+            template_selections[template_name] = template_group_selections
+
+        return GroupSelection(
+            group_code_name=group_name,
+            include_only=include_items,
+            exclude=exclude_items if exclude_items else None,
+            is_template=True,
+            template_group_selections=template_selections,
         )

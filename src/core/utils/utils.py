@@ -81,3 +81,37 @@ def remove_lora_tags(text: str) -> str:
     """
     pattern = r"<lora:[^:>]+:[^:>]+:[^:>]+>"
     return re.sub(pattern, "", text)
+
+
+def replace_template_tags(text: str, template_dict: dict[str, str]) -> str:
+    """
+    Replace all template tags in a string with values from a dictionary.
+
+    Args:
+        text: String containing template tags in format <tmpl:name>
+        template_dict: Dictionary mapping template names to replacement strings
+
+    Returns:
+        String with all template tags replaced by their corresponding values
+    """
+
+    def replacer(match: re.Match[str]) -> str:
+        name = match.group(1)
+        return template_dict.get(name, match.group(0))  # Return original if not found
+
+    pattern = r"<tmpl:([^>]+)>"
+    return re.sub(pattern, replacer, text)
+
+
+def remove_template_tags(text: str) -> str:
+    """
+    Remove all template tags from a string.
+
+    Args:
+        text: String containing template tags in format <tmpl:name>
+
+    Returns:
+        String with all template tags removed
+    """
+    pattern = r"<tmpl:[^>]+>"
+    return re.sub(pattern, "", text)
