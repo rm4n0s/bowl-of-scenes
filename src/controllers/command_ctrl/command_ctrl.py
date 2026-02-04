@@ -188,11 +188,23 @@ async def get_template_prompt_comb(group_sel: GroupSelection) -> list[ItemRecord
             new_item = copy.copy(item)
             for key, val in cart_dict.items():
                 if new_item.lora_list is None:
-                    new_item.lora_list = val["loras"]
+                    new_item.lora_list = []
+                    exists = {}
+                    for lora in val["loras"]:
+                        if lora["name"] not in exists.keys():
+                            new_item.lora_list.append(lora)
+                            exists[lora["name"]] = True
+
                 else:
                     ll = new_item.lora_list
                     ll.extend(val["loras"])
-                    new_item.lora_list = ll
+                    nlist = []
+                    exists = {}
+                    for lora in ll:
+                        if lora["name"] not in exists.keys():
+                            nlist.append(lora)
+                            exists[lora["name"]] = True
+                    new_item.lora_list = nlist
 
                 tmpl_tags = utils.list_template_tags(new_item.positive_prompt)
                 if key in tmpl_tags:
