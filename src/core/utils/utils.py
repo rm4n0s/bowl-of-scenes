@@ -115,3 +115,17 @@ def remove_template_tags(text: str) -> str:
     """
     pattern = r"<tmpl:[^>]+>"
     return re.sub(pattern, "", text)
+
+
+def list_template_tags(text: str) -> list[str]:
+    """
+    Extract all template tag names from a string.
+
+    Args:
+        text: String containing template tags in format <tmpl:name>
+
+    Returns:
+        List of template tag names (without the <tmpl:> wrapper)
+    """
+    pattern = r"<tmpl:([^>]+)>"
+    return re.findall(pattern, text)

@@ -28,6 +28,7 @@ class RegionPrompt:
     mask_file: str | None
     coordinates: CoordinatedRegion | None
     prompt: str
+    loras: list[dict[str, Any]]
 
 
 class JobRecord(TimestampMixin, Model):

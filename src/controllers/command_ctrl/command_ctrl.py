@@ -1,3 +1,4 @@
+import copy
 import os
 from dataclasses import dataclass
 from itertools import product
@@ -14,6 +15,7 @@ from src.controllers.command_ctrl.command_validator import (
 )
 from src.controllers.manager_ctrl import Manager
 from src.core.config import Config
+from src.core.utils import utils
 from src.db.records import (
     CommandRecord,
     GeneratorRecord,
@@ -81,6 +83,10 @@ async def get_items_per_group_without_regioned_prompts(
                 merged_items.extend(items)
 
             items_per_group.append(merged_items)
+
+        elif group_sel.is_template:
+            items = await get_template_prompt_comb(group_sel)
+            items_per_group.append(items)
         else:
             # Handle single group
             group_code = group_sel.group_code_name
@@ -111,10 +117,104 @@ async def get_items_per_group_without_regioned_prompts(
     return items_per_group
 
 
+async def get_template_prompt_comb(group_sel: GroupSelection) -> list[ItemRecord]:
+    if not group_sel.is_template:
+        return []
+
+    assert group_sel.template_group_selections
+
+    group_code = group_sel.group_code_name
+
+    # Check group exists
+    group = await GroupRecord.filter(code_name=group_code).first()
+    if not group:
+        raise ValueError(f"Group '{group_code}' not found")
+
+    items = []
+    if group_sel.exclude is None and group_sel.include_only is None:
+        items = await ItemRecord.filter(group_id=group.id).all()
+
+    elif group_sel.exclude is not None:
+        items = (
+            await ItemRecord.filter(group_id=group.id)
+            .exclude(code_name__in=group_sel.exclude)
+            .all()
+        )
+
+    elif group_sel.include_only is not None:
+        items = await ItemRecord.filter(
+            group_id=group.id, code_name__in=group_sel.include_only
+        ).all()
+
+    combined_per_key = {}
+    for key, gs in group_sel.template_group_selections.items():
+        combined_per_key[key] = []
+        items_per_group = await get_items_per_group_without_regioned_prompts(gs)
+        combined_items = [list(combo) for combo in product(*items_per_group)]
+
+        for cis in combined_items:
+            prompt_positive = ""
+            prompt_negative = ""
+            code_name = ""
+            loras = []
+            for ci in cis:
+                code_name += ci.code_name
+                if ci.lora_list is not None:
+                    loras.extend(ci.lora_list)
+
+                if len(ci.positive_prompt) > 0:
+                    prompt_positive += ci.positive_prompt + " "
+
+                if len(ci.negative_prompt) > 0:
+                    prompt_negative += ci.negative_prompt + " "
+
+            combined_per_key[key].append(
+                {
+                    "code_name": code_name,
+                    "loras": loras,
+                    "positive": prompt_positive,
+                    "negative": prompt_negative,
+                }
+            )
+
+    cartesianed = [
+        dict(zip(combined_per_key.keys(), values))
+        for values in product(*combined_per_key.values())
+    ]
+    res_items = []
+    for cart_dict in cartesianed:
+        for item in items:
+            new_item = copy.copy(item)
+            for key, val in cart_dict.items():
+                if new_item.lora_list is None:
+                    new_item.lora_list = list(set(val["loras"]))
+                else:
+                    ll = new_item.lora_list
+                    ll.extend(val["loras"])
+                    new_item.lora_list = ll
+
+                tmpl_tags = utils.list_template_tags(new_item.positive_prompt)
+                if key in tmpl_tags:
+                    new_item.positive_prompt = utils.replace_template_tags(
+                        new_item.positive_prompt, {key: val["positive"]}
+                    )
+
+                tmpl_tags = utils.list_template_tags(new_item.negative_prompt)
+                if key in tmpl_tags:
+                    new_item.negative_prompt = utils.replace_template_tags(
+                        new_item.negative_prompt, {key: val["negative"]}
+                    )
+
+                new_item.code_name += key + val["code_name"]
+
+            res_items.append(new_item)
+
+    return res_items
+
+
 @dataclass
 class RegionPromptCombOutput:
     region_items: list[ItemRecord]
-    loras: list[dict[str, Any]]  # contains the items with color coded mask file
     regioned_prompts: list[dict[str, RegionPrompt]]
 
 
@@ -141,7 +241,7 @@ async def get_region_prompt_comb(
 
     region_items = await ItemRecord.filter(group_id=the_group.id).all()
     region_prompts_per_key: dict[str, list[RegionPrompt]] = {}
-    loras = []
+
     for ri in region_items:
         if ri.mask_region_images is not None:
             mri = MaskRegionImages(**ri.mask_region_images)
@@ -155,6 +255,7 @@ async def get_region_prompt_comb(
                 region_prompts_per_key[keyword] = []
                 for items in combined_items:
                     prompt_positive = ""
+                    loras = []
                     for item in items:
                         if item.lora_list is not None:
                             loras.extend(item.lora_list)
@@ -167,6 +268,7 @@ async def get_region_prompt_comb(
                         mask_file=os.path.abspath(mask_file),
                         coordinates=None,
                         prompt=prompt_positive,
+                        loras=loras,
                     )
                     region_prompts_per_key[keyword].append(rp)
         elif ri.coordinated_regions is not None:
@@ -180,6 +282,7 @@ async def get_region_prompt_comb(
                 region_prompts_per_key[crn.keyword] = []
                 for items in combined_items:
                     prompt_positive = ""
+                    loras = []
                     for item in items:
                         if item.lora_list is not None:
                             loras.extend(item.lora_list)
@@ -193,6 +296,7 @@ async def get_region_prompt_comb(
                         coordinates=CoordinatedRegion(
                             width=crn.width, height=crn.height, x=crn.x, y=crn.y
                         ),
+                        loras=loras,
                         prompt=prompt_positive,
                     )
                     region_prompts_per_key[crn.keyword].append(rp)
@@ -207,7 +311,6 @@ async def get_region_prompt_comb(
     return RegionPromptCombOutput(
         region_items=region_items,
         regioned_prompts=regioned_prompts,
-        loras=list(set(loras)),
     )
 
 
@@ -276,15 +379,18 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
             if item.lora_list is not None:
                 lora_list.extend(item.lora_list)
 
-        if ccp_comb is not None:
-            if len(ccp_comb.loras) > 0:
-                lora_list.extend(ccp_comb.loras)
+        prompt_positive = utils.remove_template_tags(prompt_positive)
+        prompt_negative = utils.remove_template_tags(prompt_negative)
 
+        if ccp_comb is not None:
             for i, ccp in enumerate(ccp_comb.regioned_prompts):
                 result_img = os.path.join(
                     conf.result_path,
                     result_filename_img + f"_ccp_{i}" + ".png",
                 )
+                for rc in ccp.values():
+                    lora_list.extend(rc.loras)
+
                 job = await JobRecord.create(
                     project_id=command.project_id,
                     command_id=command.id,
