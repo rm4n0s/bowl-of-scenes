@@ -113,6 +113,9 @@ async def validate_group_selections(
         if group_sel.is_regioned:
             continue
 
+        if group_sel.is_template:
+            continue
+
         # Handle merged groups
         if group_sel.is_merged:
             assert group_sel.merged_groups is not None

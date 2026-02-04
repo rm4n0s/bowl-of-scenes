@@ -342,22 +342,30 @@ class PromptLanguageParser:
         - group_8(3,4)[person: group_2]
         - group_9(~2)[animal: group_3]
         - group_10[template: group_5 x group_6]
+        - group_1[red: group_2(3)]
         """
         # Extract: group_name, (include/exclude), [templates]
-        # Pattern: group_name (optional_parens) [template_content]
+        # First find where brackets start to separate main group params from template content
 
-        # Find group name (everything before ( or [)
-        base_match = re.match(r"(\w+)", expr)
+        bracket_start = expr.find("[")
+        if bracket_start == -1:
+            raise ValueError(f"No template brackets found: {expr}")
+
+        # Everything before [ is the main group with optional ()
+        main_part = expr[:bracket_start].strip()
+
+        # Extract group name and include/exclude from main part
+        base_match = re.match(r"(\w+)", main_part)
         if not base_match:
             raise ValueError(f"Invalid template group syntax: {expr}")
 
         group_name = base_match.group(1)
 
-        # Extract include/exclude if present (content in ())
+        # Extract include/exclude if present in main part (content in ())
         include_items = None
         exclude_items = set()
 
-        paren_match = re.search(r"\(([^)]+)\)", expr)
+        paren_match = re.search(r"\(([^)]+)\)", main_part)
         if paren_match:
             paren_content = paren_match.group(1)
             items = [item.strip() for item in paren_content.split(",")]
@@ -368,7 +376,7 @@ class PromptLanguageParser:
             else:
                 include_items = items
 
-        # Extract template mappings [content]
+        # Extract template content from brackets
         bracket_match = re.search(r"\[([^\]]+)\]", expr)
         if not bracket_match:
             raise ValueError(f"No template brackets found: {expr}")
@@ -378,7 +386,7 @@ class PromptLanguageParser:
         # Parse template mappings
         template_selections = {}
 
-        # Split by comma (but respect nested structures)
+        # Split by comma (but respect nested structures like parentheses)
         template_parts = []
         current_part = []
         depth_parens = 0

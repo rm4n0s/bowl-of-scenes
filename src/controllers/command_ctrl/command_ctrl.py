@@ -181,13 +181,14 @@ async def get_template_prompt_comb(group_sel: GroupSelection) -> list[ItemRecord
         dict(zip(combined_per_key.keys(), values))
         for values in product(*combined_per_key.values())
     ]
+
     res_items = []
     for cart_dict in cartesianed:
         for item in items:
             new_item = copy.copy(item)
             for key, val in cart_dict.items():
                 if new_item.lora_list is None:
-                    new_item.lora_list = list(set(val["loras"]))
+                    new_item.lora_list = val["loras"]
                 else:
                     ll = new_item.lora_list
                     ll.extend(val["loras"])
