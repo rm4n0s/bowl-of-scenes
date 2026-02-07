@@ -1,4 +1,6 @@
 import copy
+import hashlib
+import json
 import os
 from dataclasses import dataclass
 from itertools import product
@@ -182,9 +184,9 @@ async def get_template_prompt_comb(group_sel: GroupSelection) -> list[ItemRecord
         for values in product(*combined_per_key.values())
     ]
 
-    res_items = []
-    for cart_dict in cartesianed:
-        for item in items:
+    res_items = {}
+    for cart_index, cart_dict in enumerate(cartesianed):
+        for item_index, item in enumerate(items):
             new_item = copy.copy(item)
             for key, val in cart_dict.items():
                 if new_item.lora_list is None:
@@ -218,11 +220,15 @@ async def get_template_prompt_comb(group_sel: GroupSelection) -> list[ItemRecord
                         new_item.negative_prompt, {key: val["negative"]}
                     )
 
-                new_item.code_name += key + val["code_name"]
+                new_item.code_name += (
+                    str(cart_index) + str(item_index) + key + val["code_name"]
+                )
 
-            res_items.append(new_item)
+            hashinput = new_item.positive_prompt + new_item.negative_prompt
 
-    return res_items
+            res_items[hashlib.sha256(hashinput.encode()).hexdigest()] = new_item
+
+    return list(res_items.values())
 
 
 @dataclass
