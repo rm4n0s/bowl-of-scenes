@@ -87,3 +87,12 @@ def test_color_coded_keyword_parser():
         "item1"
         in cmd.group_selections[0].region_group_selections["red"][1].include_only
     )
+
+
+def test_template_parser():
+    parser = PromptLanguageParser()
+    cmd = parser.parse(
+        "server -$ workflow: group_1[red: group_2(3)] and group_3[blue: group_6]"
+    )
+
+    print(cmd.to_json())

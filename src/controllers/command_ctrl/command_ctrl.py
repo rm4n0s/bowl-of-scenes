@@ -1,6 +1,5 @@
 import copy
 import hashlib
-import json
 import os
 from dataclasses import dataclass
 from itertools import product
@@ -11,6 +10,7 @@ from tortoise.expressions import F
 from src.controllers.command_ctrl.command_parser import (
     GroupSelection,
     PromptLanguageParser,
+    dict_to_group_selection,
 )
 from src.controllers.command_ctrl.command_validator import (
     validate_code_names,
@@ -55,6 +55,7 @@ async def get_items_per_group_without_regioned_prompts(
         if group_sel.is_merged:
             merged_items: list[ItemRecord] = []
             assert group_sel.merged_groups is not None
+
             for merged_group in group_sel.merged_groups:
                 group_code = merged_group["group_code_name"]
 
@@ -82,6 +83,11 @@ async def get_items_per_group_without_regioned_prompts(
                         group_id=group.id, code_name__in=merged_group["include_only"]
                     ).all()
 
+                if "is_template" in merged_group.keys() and merged_group["is_template"]:
+                    mg = dict_to_group_selection(merged_group)
+                    items = await get_template_prompt_comb(mg)
+
+                print(group_code, len(items))
                 merged_items.extend(items)
 
             items_per_group.append(merged_items)
