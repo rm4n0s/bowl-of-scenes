@@ -1,14 +1,12 @@
 import enum
-import os
 from dataclasses import dataclass
 from typing import Any
 
 from nicegui.elements.upload_files import FileUpload
 from yet_another_comfy_client import YetAnotherComfyClient
 
-from src.db.records import FixerRecord, GroupRecord
 from src.db.records.item_rec import MaskRegionImages
-from src.db.records.job_rec import JobRecord, JobStatus, RegionPrompt
+from src.db.records.job_rec import JobStatus, RegionPrompt
 
 
 @dataclass
@@ -137,7 +135,6 @@ class JobOutput:
     comfyui_prompt_id: str | None
     prompt_positive: str
     prompt_negative: str
-    reference_controlnet_img: str | None
     ipadapter_list: list[dict[str, Any]]
     region_prompts: dict[str, RegionPrompt] | None
     lora_list: list[dict[str, Any]]
@@ -194,7 +191,6 @@ class GeneratorInput:
     workflow_json: dict[str, Any]
     positive_prompt_title: str | None
     negative_prompt_title: str | None
-    load_image_controlnet_title: str | None
     save_image_title: str
 
 
@@ -206,7 +202,6 @@ class GeneratorOutput:
     workflow_json: dict[str, Any]
     positive_prompt_title: str | None
     negative_prompt_title: str | None
-    load_image_controlnet_title: str | None
     save_image_title: str
 
 

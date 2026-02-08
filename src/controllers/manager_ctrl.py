@@ -202,18 +202,6 @@ async def generate_image(client: YetAnotherComfyClient, job: JobRecord):
         job.prompt_negative,
     )
 
-    if (
-        job.reference_controlnet_img is not None
-        and gen.load_image_controlnet_title is not None
-        and len(gen.load_image_controlnet_title) > 0
-    ):
-        prompt = edit_prompt(
-            prompt,
-            gen.load_image_controlnet_title,
-            "image",
-            job.reference_controlnet_img,
-        )
-
     if job.ipadapter_list is not None and len(job.ipadapter_list) > 0:
         ipas_input = []
         clip_vision_model = ""

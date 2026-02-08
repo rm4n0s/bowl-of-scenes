@@ -58,7 +58,6 @@ def serialize_job(rec: JobRecord) -> JobOutput:
         prompt_positive=rec.prompt_positive,
         prompt_negative=rec.prompt_negative,
         region_prompts=region_prompts,
-        reference_controlnet_img=rec.reference_controlnet_img,
         ipadapter_list=rec.ipadapter_list,
         lora_list=rec.lora_list,
         result_img=rec.result_img,

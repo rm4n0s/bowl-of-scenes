@@ -49,7 +49,6 @@ class JobRecord(TimestampMixin, Model):
     region_prompts = fields.JSONField(
         null=True, default=None
     )  # dict[str, RegionPrompt]
-    reference_controlnet_img = fields.TextField(null=True)
     ipadapter_list = fields.JSONField(null=True)
     lora_list = fields.JSONField(null=True)
     result_img = fields.TextField()
