@@ -5,8 +5,99 @@ from typing import Any
 from nicegui.elements.upload_files import FileUpload
 from yet_another_comfy_client import YetAnotherComfyClient
 
-from src.db.records.item_rec import MaskRegionImages
-from src.db.records.job_rec import JobStatus, RegionPrompt
+
+class JobStatus(enum.StrEnum):
+    WAITING = "waiting"
+    PROCESSING = "processing"
+    FINISHED = "finished"
+
+
+@dataclass
+class CoordinatedRegion:
+    width: int
+    height: int
+    x: int
+    y: int
+
+
+@dataclass
+class RegionPrompt:
+    keyword: str
+    mask_file: str | None
+    coordinates: CoordinatedRegion | None
+    prompt: str
+    loras: list[dict[str, Any]]
+
+
+@dataclass
+class Lora:
+    name: str
+    strength_model: float
+    strength_clip: float
+
+
+@dataclass
+class CoordinatedRegionKeyword:
+    keyword: str
+    width: int
+    height: int
+    x: int
+    y: int
+
+
+@dataclass
+class IPAdapter:
+    image_file: str
+    weight: float
+    weight_type: str
+    start_at: float
+    end_at: float
+    clip_vision_model: str
+    model_name: str
+
+
+@dataclass
+class MaskRegionImages:
+    reference_path: str
+    folder_path: str
+    mask_files: dict[str, str]
+
+
+class ControlNetType(enum.Enum):
+    OPENPOSE = "openpose"
+    DWPOSE = "dwpose"
+    TILE = "tile"
+    CANNY = "canny"
+    MIDAS = "midas"
+    DEPTH = "depth"
+    LINEART = "lineart"
+    SOFTEDGE = "softedge"
+    SCRIBBLE = "scribble"
+    NORMAL = "normal"
+
+
+@dataclass
+class ControlNetConfig:
+    type_of_controlnet: ControlNetType
+    image_path: str
+    is_reference: bool  # True = preprocess the image, False = use image directly
+    model_pattern: str  # e.g., "control_v11p_sd15_canny.safetensors" or "diffusers_xl_canny_mid.safetensors"
+    strength: float  # ControlNet strength (0.0 to 2.0, typically 0.5-1.5)
+
+
+# Mapping of ControlNet types to their preprocessor class
+CONTROLNET_PREPROCESSORS = {
+    ControlNetType.OPENPOSE: "OpenposePreprocessor",
+    ControlNetType.DWPOSE: "DWPreprocessor",
+    ControlNetType.CANNY: "CannyEdgePreprocessor",
+    ControlNetType.MIDAS: "MidasDepthMapPreprocessor",
+    ControlNetType.DEPTH: "DepthAnythingPreprocessor",
+    ControlNetType.TILE: None,  # Tile usually doesn't need preprocessing
+    ControlNetType.LINEART: "LineArtPreprocessor",
+    ControlNetType.SOFTEDGE: "HEDPreprocessor",
+    ControlNetType.SCRIBBLE: "ScribblePreprocessor",
+    ControlNetType.NORMAL: "BAE-NormalMapPreprocessor",
+}
 
 
 @dataclass
@@ -82,7 +173,6 @@ class ItemInput:
     negative_prompt: str
     lora: str | None
     coordinated_regions: str | None
-    controlnet_reference_image: FileUpload | None
     ipadapter: ItemIPAdapterInput | None
     mask_region_reference_image: FileUpload | None
     thumbnail_image: FileUpload | None
@@ -99,8 +189,6 @@ class ItemOutput:
     lora: str | None
     coordinated_regions: str | None
     coordinated_region_keys: str | None
-    controlnet_reference_image: str | None
-    show_controlnet_reference_image: str | None
     ipadapter: ItemIPAdapterOutput | None
     mask_region_images: MaskRegionImages | None
     mask_region_images_keys: str | None
@@ -115,7 +203,6 @@ class ReplInput:
     prompt_positive: str
     prompt_negative: str
     group_item_code_names: str
-    reference_controlnet_img: FileUpload | None
     reference_ipadapter_img: FileUpload | None
     lora_list: str
 

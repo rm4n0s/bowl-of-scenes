@@ -34,7 +34,6 @@ class ReplPage:
         prompt_positive: str,
         prompt_negative: str,
         lora_list: str,
-        controlnet_reference_image: FileUpload | None,
         ipadapter_reference_image: FileUpload | None,
     ):
         lora_list_dict = utils.parse_lora_tags(prompt_positive)
@@ -53,7 +52,6 @@ class ReplPage:
             prompt_positive=prompt_positive,
             prompt_negative=prompt_negative,
             group_item_code_names=group_item_code_names,
-            reference_controlnet_img=controlnet_reference_image,
             reference_ipadapter_img=ipadapter_reference_image,
             lora_list=lora_list,
         )
@@ -125,20 +123,6 @@ class ReplPage:
             max_files=1,
         ).props('accept="image/jpeg,image/png"')
 
-        controlnet_reference_image_input = None
-
-        async def handle_controlnet_upload(event: MultiUploadEventArguments):
-            nonlocal controlnet_reference_image_input
-            if event.files:
-                controlnet_reference_image_input = event.files[0]
-
-        ui.label("Upload Controlnet image").classes("text-h6")
-        ui.upload(
-            on_multi_upload=lambda e: handle_controlnet_upload(e),
-            auto_upload=True,
-            max_files=1,
-        ).props('accept="image/jpeg,image/png"')
-
         async def handle_clear():
             nonlocal server_input
             nonlocal generator_input
@@ -146,7 +130,6 @@ class ReplPage:
             nonlocal positive_prompt_input
             nonlocal negative_prompt_input
             nonlocal lora_list_input
-            nonlocal controlnet_reference_image_input
             nonlocal ipadapter_reference_image_input
             server_input.value = ""
             generator_input.value = ""
@@ -154,7 +137,6 @@ class ReplPage:
             positive_prompt_input.value = ""
             negative_prompt_input.value = ""
             lora_list_input.value = ""
-            controlnet_reference_image_input = None
             ipadapter_reference_image_input = None
             await clear_repl_job()
             self.main_img.set_source(f"/result_path/repl.png?t={time.time()}")
@@ -168,7 +150,6 @@ class ReplPage:
                 positive_prompt_input.value,
                 negative_prompt_input.value,
                 lora_list_input.value,
-                controlnet_reference_image_input,
                 ipadapter_reference_image_input,
             ),
         )

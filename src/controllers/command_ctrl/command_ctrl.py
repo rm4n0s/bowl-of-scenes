@@ -15,6 +15,7 @@ from src.controllers.command_ctrl.command_parser import (
 from src.controllers.command_ctrl.command_validator import (
     validate_code_names,
 )
+from src.controllers.ctrl_types import CoordinatedRegionKeyword, MaskRegionImages
 from src.controllers.manager_ctrl import Manager
 from src.core.config import Config
 from src.core.utils import utils
@@ -27,7 +28,6 @@ from src.db.records import (
     ServerRecord,
 )
 from src.db.records.fixer_rec import FixerRecord
-from src.db.records.item_rec import CoordinatedRegionKeyword, MaskRegionImages
 from src.db.records.job_rec import CoordinatedRegion, RegionPrompt
 
 
@@ -371,7 +371,6 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
     for items in combined_items:
         prompt_positive = ""
         prompt_negative = ""
-        reference_controlnet_img = None
         lora_list = []
         ipadapter_list = []
         group_item_id_list = []
@@ -393,10 +392,6 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                 prompt_positive += item.positive_prompt + " "
             if len(item.negative_prompt) > 0:
                 prompt_negative += item.negative_prompt + " "
-            if item.controlnet_reference_image is not None:
-                reference_controlnet_img = os.path.abspath(
-                    item.controlnet_reference_image
-                )
 
             if item.ipadapter is not None:
                 ipadapter_list.append(item.ipadapter)
@@ -427,7 +422,6 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                     prompt_positive=prompt_positive,
                     prompt_negative=prompt_negative,
                     region_prompts=ccp,
-                    reference_controlnet_img=reference_controlnet_img,
                     ipadapter_list=ipadapter_list,
                     lora_list=lora_list,
                     result_img=result_img,
@@ -445,7 +439,6 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                 generator_code_name=generator.code_name,
                 prompt_positive=prompt_positive,
                 prompt_negative=prompt_negative,
-                reference_controlnet_img=reference_controlnet_img,
                 ipadapter_list=ipadapter_list,
                 lora_list=lora_list,
                 result_img=result_img,
@@ -474,7 +467,6 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                     generator_code_name=None,
                     prompt_positive="",
                     prompt_negative="",
-                    reference_controlnet_img=None,
                     reference_ipadapter_img=None,
                     lora_list=None,
                     result_img=result_img,

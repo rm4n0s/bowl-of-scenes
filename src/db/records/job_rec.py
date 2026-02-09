@@ -1,34 +1,8 @@
-import enum
-from dataclasses import dataclass
-from typing import Any
-
 from tortoise import fields
 from tortoise.models import Model
 
+from src.controllers.ctrl_types import JobStatus
 from src.db.records.common import TimestampMixin
-
-
-class JobStatus(enum.StrEnum):
-    WAITING = "waiting"
-    PROCESSING = "processing"
-    FINISHED = "finished"
-
-
-@dataclass
-class CoordinatedRegion:
-    width: int
-    height: int
-    x: int
-    y: int
-
-
-@dataclass
-class RegionPrompt:
-    keyword: str
-    mask_file: str | None
-    coordinates: CoordinatedRegion | None
-    prompt: str
-    loras: list[dict[str, Any]]
 
 
 class JobRecord(TimestampMixin, Model):

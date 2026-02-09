@@ -4,12 +4,16 @@ import uuid
 from dataclasses import asdict
 
 from src.controllers.common import delete_item_files
-from src.controllers.ctrl_types import ItemInput, ItemOutput
+from src.controllers.ctrl_types import (
+    IPAdapter,
+    ItemInput,
+    ItemOutput,
+    MaskRegionImages,
+)
 from src.controllers.serializers import serialize_item
 from src.core.config import Config
 from src.core.utils.auto_masking import auto_create_masks
 from src.db.records import ItemRecord
-from src.db.records.item_rec import IPAdapter, MaskRegionImages
 
 
 async def add_item(conf: Config, input: ItemInput):
@@ -46,14 +50,6 @@ async def add_item(conf: Config, input: ItemInput):
             )
         )
 
-    controlnt_ref_path = None
-    if input.controlnet_reference_image is not None:
-        image_filename = str(uuid.uuid4()) + "_" + input.controlnet_reference_image.name
-        controlnt_ref_path = os.path.abspath(
-            os.path.join(conf.controlnet_references_path, image_filename)
-        )
-        await input.controlnet_reference_image.save(controlnt_ref_path)
-
     mask_region_images = None
     if input.mask_region_reference_image is not None:
         photos_id = str(uuid.uuid4())
@@ -89,7 +85,6 @@ async def add_item(conf: Config, input: ItemInput):
         positive_prompt=input.positive_prompt,
         negative_prompt=input.negative_prompt,
         lora_list=lora,
-        controlnet_reference_image=controlnt_ref_path,
         ipadapter=ipadapter,
         mask_region_images=mask_region_images,
         coordinated_regions=coordinated_regions,
@@ -146,20 +141,6 @@ async def edit_item(conf: Config, id: int, ui_input: ItemInput):
                 model_name=ui_input.ipadapter.model_name,
             )
         )
-
-    if ui_input.controlnet_reference_image is not None:
-        image_filename = (
-            str(uuid.uuid4()) + "_" + ui_input.controlnet_reference_image.name
-        )
-
-        image_filename = (
-            str(uuid.uuid4()) + "_" + ui_input.controlnet_reference_image.name
-        )
-        controlnt_ref_path = os.path.join(
-            conf.controlnet_references_path, image_filename
-        )
-        await ui_input.controlnet_reference_image.save(controlnt_ref_path)
-        item.controlnet_reference_image = controlnt_ref_path
 
     if ui_input.mask_region_reference_image is not None:
         photos_id = str(uuid.uuid4())

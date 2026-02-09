@@ -149,21 +149,6 @@ class ItemsPage:
                     max_files=1,
                 ).props('accept="image/jpeg,image/png"')
 
-            controlnet_reference_image_input = None
-            if self.group.use_controlnet:
-
-                async def handle_controlnet_upload(event: MultiUploadEventArguments):
-                    nonlocal controlnet_reference_image_input
-                    if event.files:
-                        controlnet_reference_image_input = event.files[0]
-
-                ui.label("Upload Controlnet image").classes("text-h6")
-                ui.upload(
-                    on_multi_upload=lambda e: handle_controlnet_upload(e),
-                    auto_upload=True,
-                    max_files=1,
-                ).props('accept="image/jpeg,image/png"')
-
             thumbnail_image_input = None
 
             async def handle_thumbnail_upload(event: MultiUploadEventArguments):
@@ -192,7 +177,6 @@ class ItemsPage:
                         negative_prompt_input.value,
                         lora_input,
                         coordinated_regions_input,
-                        controlnet_reference_image_input,
                         ipadapter_form,
                         mask_region_reference_image_input,
                         thumbnail_image_input,
@@ -210,7 +194,6 @@ class ItemsPage:
         negative_prompt: str,
         lora_input: Textarea | None,
         coordinated_regions_input: Textarea | None,
-        controlnet_reference_image: FileUpload | None,
         ipadapter_form: IPAdapterForm | None,
         mask_region_reference_image: FileUpload | None,
         thumbnail_image: FileUpload | None,
@@ -259,7 +242,6 @@ class ItemsPage:
             negative_prompt=negative_prompt,
             lora=lora,
             coordinated_regions=coordinated_regions,
-            controlnet_reference_image=controlnet_reference_image,
             ipadapter=item_ipadapter_input,
             mask_region_reference_image=mask_region_reference_image,
             thumbnail_image=thumbnail_image,
@@ -361,21 +343,6 @@ class ItemsPage:
                     max_files=1,
                 ).props('accept="image/jpeg,image/png"')
 
-            controlnet_reference_image_input = None
-            if self.group.use_controlnet:
-
-                async def handle_controlnet_upload(event: MultiUploadEventArguments):
-                    nonlocal controlnet_reference_image_input
-                    if event.files:
-                        controlnet_reference_image_input = event.files[0]
-
-                ui.label("Upload Controlnet image").classes("text-h6")
-                ui.upload(
-                    on_multi_upload=lambda e: handle_controlnet_upload(e),
-                    auto_upload=True,
-                    max_files=1,
-                ).props('accept="image/jpeg,image/png"')
-
             mask_region_reference_image_input = None
             if self.group.use_mask_region:
 
@@ -422,7 +389,6 @@ class ItemsPage:
                         negative_prompt_input.value,
                         lora_input,
                         coordinated_regions_input,
-                        controlnet_reference_image_input,
                         ipadapter_form,
                         mask_region_reference_image_input,
                         thumbnail_image_input,
@@ -441,7 +407,6 @@ class ItemsPage:
         negative_prompt: str,
         lora_input: Textarea | None,
         coordinated_regions_input: Textarea | None,
-        controlnet_reference_image: FileUpload | None,
         ipadapter_form: IPAdapterForm | None,
         color_coded_reference_image: FileUpload | None,
         thumbnail_image: FileUpload | None,
@@ -490,7 +455,6 @@ class ItemsPage:
             negative_prompt=negative_prompt,
             lora=lora,
             coordinated_regions=cr,
-            controlnet_reference_image=controlnet_reference_image,
             ipadapter=item_ipadapter_input,
             mask_region_reference_image=color_coded_reference_image,
             thumbnail_image=thumbnail_image,
@@ -568,12 +532,6 @@ class ItemsPage:
                     "align": "left",
                 },
                 {
-                    "name": "show_controlnet_reference_image",
-                    "label": "ControlNet image",
-                    "field": "show_controlnet_reference_image",
-                    "align": "left",
-                },
-                {
                     "name": "show_ipadapter_reference_image",
                     "label": "IPAdapter image",
                     "field": "ipadapter.show_reference_image",
@@ -611,19 +569,6 @@ class ItemsPage:
 
             self.table.add_slot(
                 "body-cell-show_ipadapter_reference_image",
-                """
-                <q-td :props="props">
-                                <img
-                                    v-if="props.value"
-                                    :src="props.value"
-                                    style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
-                                >
-                            </q-td>
-                        """,
-            )
-
-            self.table.add_slot(
-                "body-cell-show_controlnet_reference_image",
                 """
                 <q-td :props="props">
                                 <img

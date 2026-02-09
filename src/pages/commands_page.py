@@ -6,7 +6,6 @@ from nicegui.elements.label import Label
 
 from src.controllers.command_ctrl.command_ctrl import (
     CommandInput,
-    CommandOutput,
     add_command,
     delete_command,
     edit_command,
@@ -14,7 +13,6 @@ from src.controllers.command_ctrl.command_ctrl import (
     recreate_command,
     run_command,
 )
-from src.controllers.group_ctrl import edit_group
 from src.controllers.manager_ctrl import Manager
 from src.controllers.project_ctrl import ProjectOutput, get_project
 from src.core.config import Config

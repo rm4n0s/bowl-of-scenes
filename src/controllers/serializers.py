@@ -4,13 +4,14 @@ import os
 from src.controllers.ctrl_types import (
     FixerOutput,
     GroupOutput,
+    IPAdapter,
     ItemIPAdapterOutput,
     ItemOutput,
     JobOutput,
+    MaskRegionImages,
+    RegionPrompt,
 )
 from src.db.records import FixerRecord, GroupRecord, ItemRecord, JobRecord
-from src.db.records.item_rec import IPAdapter, MaskRegionImages
-from src.db.records.job_rec import RegionPrompt
 
 
 def serialize_group(rec: GroupRecord) -> GroupOutput:
@@ -85,10 +86,6 @@ def serialize_item(rec: ItemRecord) -> ItemOutput:
     if rec.lora_list is not None:
         lora = json.dumps(rec.lora_list)
 
-    show_controlnet_reference_image = None
-    if rec.controlnet_reference_image is not None:
-        show_controlnet_reference_image = f"/controlnet_references_path/{os.path.basename(rec.controlnet_reference_image)}"
-
     ipadapter: ItemIPAdapterOutput | None = None
     if rec.ipadapter is not None:
         item_ipadapter = IPAdapter(**rec.ipadapter)
@@ -136,8 +133,6 @@ def serialize_item(rec: ItemRecord) -> ItemOutput:
         lora=lora,
         coordinated_regions=coordinated_regions,
         coordinated_region_keys=coordinated_region_keys,
-        controlnet_reference_image=rec.controlnet_reference_image,
-        show_controlnet_reference_image=show_controlnet_reference_image,
         ipadapter=ipadapter,
         mask_region_images=mask_region_images,
         mask_region_images_keys=mask_region_images_keys,

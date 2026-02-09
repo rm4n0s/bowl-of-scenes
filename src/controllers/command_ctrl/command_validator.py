@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
 from src.controllers.command_ctrl.command_parser import GroupSelection, ParsedCommand
+from src.controllers.ctrl_types import CoordinatedRegionKeyword, MaskRegionImages
 from src.db.records import GeneratorRecord, GroupRecord, ItemRecord, ServerRecord
 from src.db.records.fixer_rec import FixerRecord
-from src.db.records.item_rec import CoordinatedRegionKeyword, MaskRegionImages
 
 
 @dataclass

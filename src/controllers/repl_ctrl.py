@@ -87,7 +87,6 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
     )
     prompt_positive = ""
     prompt_negative = ""
-    reference_controlnet_img = None
     reference_ipadapter_img = None
     lora_list = []
 
@@ -115,8 +114,6 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
             prompt_positive += item.positive_prompt + " "
         if len(item.negative_prompt) > 0:
             prompt_negative += item.negative_prompt + " "
-        if item.controlnet_reference_image is not None:
-            reference_controlnet_img = item.controlnet_reference_image
 
         # if item.ipadapter_reference_image is not None:
         #     reference_ipadapter_img = item.ipadapter_reference_image
@@ -155,7 +152,6 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
         generator_code_name=workflow.code_name,
         prompt_positive=prompt_positive,
         prompt_negative=prompt_negative,
-        reference_controlnet_img=reference_controlnet_img,
         reference_ipadapter_img=reference_ipadapter_img,
         lora_list=lora_list,
         result_img=result_img,
