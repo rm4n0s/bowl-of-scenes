@@ -1,43 +1,10 @@
-from dataclasses import dataclass
-from enum import Enum
 from typing import Any
 
-
-class ControlNetType(Enum):
-    OPENPOSE = "openpose"
-    DWPOSE = "dwpose"
-    TILE = "tile"
-    CANNY = "canny"
-    MIDAS = "midas"
-    DEPTH = "depth"
-    LINEART = "lineart"
-    SOFTEDGE = "softedge"
-    SCRIBBLE = "scribble"
-    NORMAL = "normal"
-
-
-@dataclass
-class ControlNetConfig:
-    type_of_controlnet: ControlNetType
-    image_path: str
-    is_reference: bool  # True = preprocess the image, False = use image directly
-    model_pattern: str  # e.g., "control_v11p_sd15_canny.safetensors" or "diffusers_xl_canny_mid.safetensors"
-    strength: float  # ControlNet strength (0.0 to 2.0, typically 0.5-1.5)
-
-
-# Mapping of ControlNet types to their preprocessor class
-CONTROLNET_PREPROCESSORS = {
-    ControlNetType.OPENPOSE: "OpenposePreprocessor",
-    ControlNetType.DWPOSE: "DWPreprocessor",
-    ControlNetType.CANNY: "CannyEdgePreprocessor",
-    ControlNetType.MIDAS: "MidasDepthMapPreprocessor",
-    ControlNetType.DEPTH: "DepthAnythingPreprocessor",
-    ControlNetType.TILE: None,  # Tile usually doesn't need preprocessing
-    ControlNetType.LINEART: "LineArtPreprocessor",
-    ControlNetType.SOFTEDGE: "HEDPreprocessor",
-    ControlNetType.SCRIBBLE: "ScribblePreprocessor",
-    ControlNetType.NORMAL: "BAE-NormalMapPreprocessor",
-}
+from src.controllers.ctrl_types import (
+    CONTROLNET_PREPROCESSORS,
+    ControlNetConfig,
+    ControlNetType,
+)
 
 
 def inject_controlnet(

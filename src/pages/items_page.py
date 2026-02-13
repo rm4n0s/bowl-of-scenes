@@ -7,7 +7,12 @@ from nicegui.elements.textarea import Textarea
 from nicegui.elements.upload_files import FileUpload
 from nicegui.events import MultiUploadEventArguments
 
-from src.controllers.ctrl_types import ItemIPAdapterInput, ItemIPAdapterOutput
+from src.controllers.ctrl_types import (
+    ControlNetConfigInput,
+    ControlNetType,
+    ItemIPAdapterInput,
+    ItemIPAdapterOutput,
+)
 from src.controllers.group_ctrl import GroupOutput, get_group
 from src.controllers.item_ctrl import (
     ItemInput,
@@ -34,9 +39,11 @@ class IPAdapterForm:
 
 class ItemsPage:
     table: ui.table | None
+    input_controlnets: list[ControlNetConfigInput]
 
     def __init__(self, conf: Config, group: GroupOutput):
         self.items = []
+        self.input_controlnets = []
         self.selected_item = None
         self.table = None
         self.conf = conf
@@ -48,6 +55,70 @@ class ItemsPage:
         if self.table:
             self.table.rows = self.items  # Assign new rows
             self.table.update()
+
+    async def add_controlnet(
+        self,
+        type_of_controlnet: ControlNetType,
+        image_path: FileUpload | None,
+        is_reference: bool,
+        model_pattern: str,
+        strength: float,
+    ):
+        assert image_path
+        self.input_controlnets.append(
+            ControlNetConfigInput(
+                type_of_controlnet=type_of_controlnet,
+                image_path=image_path,
+                is_reference=is_reference,
+                model_pattern=model_pattern,
+                strength=strength,
+            )
+        )
+
+    async def show_controllnet_dialog(self):
+        with ui.dialog() as add_dialog, ui.card().classes("w-80"):
+            ui.label("Add Controlnet").classes("text-lg font-bold mb-4")
+
+            controlnet_type_select = ui.select(
+                label="Controlnet type",
+                options=[p.value for p in ControlNetType],
+                value=ControlNetType.OPENPOSE.value,
+            )
+
+            controlnet_image_input = None
+
+            async def handle_controlnet_upload(event: MultiUploadEventArguments):
+                nonlocal controlnet_image_input
+                if event.files:
+                    controlnet_image_input = event.files[0]
+
+            ui.label("Upload image").classes("text-h6")
+            ui.upload(
+                on_multi_upload=lambda e: handle_controlnet_upload(e),
+                auto_upload=True,
+                max_files=1,
+            ).props('accept="image/jpeg,image/png"')
+
+            is_reference_input = ui.checkbox("Is Reference", value=False)
+            model_pattern_input = ui.input(
+                "Model pattern", placeholder="example_openpose.safetensors"
+            ).classes("w-full")
+            strength_input = ui.number("Strength", value=2.5)
+            with ui.row().classes("w-full gap-2 mt-4"):
+                ui.button("Cancel", on_click=add_dialog.close).classes("flex-1")
+                ui.button(
+                    "Add",
+                    on_click=lambda: self.add_controlnet(
+                        controlnet_type_select.value,  # pyright: ignore[reportArgumentType]
+                        controlnet_image_input,
+                        is_reference_input.value,
+                        model_pattern_input.value,
+                        strength_input.value,
+                    ),
+                    icon="check",
+                ).classes("flex-1")
+
+        add_dialog.open()
 
     async def show_create_dialog(self):
         with ui.dialog() as dialog, ui.card():
@@ -149,6 +220,18 @@ class ItemsPage:
                     max_files=1,
                 ).props('accept="image/jpeg,image/png"')
 
+            controlnets_input: list[ControlNetConfigInput] = []
+            if self.group.use_controlnet:
+                ui.label("My Controlnets").classes("text-xl font-bold mb-4")
+
+                # Container for task list
+                controlnets_container = ui.column().classes("w-full mb-4")
+
+                # Add task button
+                ui.button(
+                    "Add Controlnet", on_click=self.show_controllnet_dialog, icon="add"
+                ).classes("w-full")
+
             thumbnail_image_input = None
 
             async def handle_thumbnail_upload(event: MultiUploadEventArguments):
@@ -179,6 +262,7 @@ class ItemsPage:
                         coordinated_regions_input,
                         ipadapter_form,
                         mask_region_reference_image_input,
+                        controlnets_input,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -196,6 +280,7 @@ class ItemsPage:
         coordinated_regions_input: Textarea | None,
         ipadapter_form: IPAdapterForm | None,
         mask_region_reference_image: FileUpload | None,
+        controlnets_input: list[ControlNetConfigInput],
         thumbnail_image: FileUpload | None,
     ):
         lora = None
@@ -243,6 +328,7 @@ class ItemsPage:
             lora=lora,
             coordinated_regions=coordinated_regions,
             ipadapter=item_ipadapter_input,
+            controlnets=controlnets_input,
             mask_region_reference_image=mask_region_reference_image,
             thumbnail_image=thumbnail_image,
         )

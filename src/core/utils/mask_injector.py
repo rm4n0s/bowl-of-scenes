@@ -1,7 +1,7 @@
 import copy
 from typing import Any
 
-from src.db.records.job_rec import RegionPrompt
+from src.controllers.ctrl_types import RegionPrompt
 
 
 def inject_masks(

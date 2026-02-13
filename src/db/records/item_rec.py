@@ -13,6 +13,7 @@ class ItemRecord(TimestampMixin, Model):
     negative_prompt = fields.TextField()
     lora_list = fields.JSONField(null=True)  # list[Lora]
     ipadapter = fields.JSONField(null=True)  # IPAdapter
+    controlnets = fields.JSONField(null=True)  # list[ControlNetConfig]
     mask_region_images = fields.JSONField(null=True)  # MaskRegionImages
     coordinated_regions = fields.JSONField(null=True)  # list[CoordinatedRegionKeyword]
     thumbnail_image = fields.TextField(null=True)

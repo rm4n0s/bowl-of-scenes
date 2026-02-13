@@ -15,7 +15,12 @@ from src.controllers.command_ctrl.command_parser import (
 from src.controllers.command_ctrl.command_validator import (
     validate_code_names,
 )
-from src.controllers.ctrl_types import CoordinatedRegionKeyword, MaskRegionImages
+from src.controllers.ctrl_types import (
+    CoordinatedRegion,
+    CoordinatedRegionKeyword,
+    MaskRegionImages,
+    RegionPrompt,
+)
 from src.controllers.manager_ctrl import Manager
 from src.core.config import Config
 from src.core.utils import utils
@@ -28,7 +33,6 @@ from src.db.records import (
     ServerRecord,
 )
 from src.db.records.fixer_rec import FixerRecord
-from src.db.records.job_rec import CoordinatedRegion, RegionPrompt
 
 
 @dataclass
