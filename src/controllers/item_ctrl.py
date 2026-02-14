@@ -5,6 +5,7 @@ from dataclasses import asdict
 
 from src.controllers.common import delete_item_files
 from src.controllers.ctrl_types import (
+    ControlNetConfig,
     IPAdapter,
     ItemInput,
     ItemOutput,
@@ -78,6 +79,28 @@ async def add_item(conf: Config, input: ItemInput):
     if input.lora is not None and len(input.lora) > 0:
         lora = json.loads(input.lora)
 
+    controlnets: list[ControlNetConfig] = []
+    for input_cnc in input.controlnets:
+        if input_cnc.image_path is None:
+            continue
+
+        photos_id = str(uuid.uuid4())
+        image_filename = str(photos_id) + "_" + input_cnc.image_path.name
+        cc_ref_path = os.path.abspath(
+            os.path.join(conf.controlnet_references_path, image_filename)
+        )
+        await input_cnc.image_path.save(cc_ref_path)
+
+        controlnets.append(
+            ControlNetConfig(
+                type_of_controlnet=input_cnc.type_of_controlnet,
+                image_path=cc_ref_path,
+                is_reference=input_cnc.is_reference,
+                model_pattern=input_cnc.model_pattern,
+                strength=input_cnc.strength,
+            )
+        )
+
     await ItemRecord.create(
         group_id=input.group_id,
         name=input.name,
@@ -86,6 +109,7 @@ async def add_item(conf: Config, input: ItemInput):
         negative_prompt=input.negative_prompt,
         lora_list=lora,
         ipadapter=ipadapter,
+        controlnets=controlnets,
         mask_region_images=mask_region_images,
         coordinated_regions=coordinated_regions,
         thumbnail_image=thumbnail_path,
@@ -169,6 +193,72 @@ async def edit_item(conf: Config, id: int, ui_input: ItemInput):
         and len(ui_input.coordinated_regions) > 0
     ):
         item.coordinated_regions = json.loads(ui_input.coordinated_regions)
+
+    controlnets: list[ControlNetConfig] = []
+    for v in item.controlnets:
+        controlnets.append(
+            ControlNetConfig(
+                type_of_controlnet=v["type_of_controlnet"],
+                image_path=v["image_path"],
+                is_reference=v["is_reference"],
+                model_pattern=v["model_pattern"],
+                strength=v["strength"],
+            )
+        )
+    if len(ui_input.controlnets) > 0:
+        existing_controlnets = {}
+        for input_cnc in ui_input.controlnets:
+            existing_controlnets[
+                input_cnc.model_pattern
+                + "_"
+                + str(input_cnc.type_of_controlnet)
+                + "_"
+                + str(input_cnc.strength)
+            ] = True
+            if input_cnc.image_path is None:
+                continue
+
+            photos_id = str(uuid.uuid4())
+            image_filename = str(photos_id) + "_" + input_cnc.image_path.name
+            cc_ref_path = os.path.abspath(
+                os.path.join(conf.controlnet_references_path, image_filename)
+            )
+            await input_cnc.image_path.save(cc_ref_path)
+
+            controlnets.append(
+                ControlNetConfig(
+                    type_of_controlnet=input_cnc.type_of_controlnet,
+                    image_path=cc_ref_path,
+                    is_reference=input_cnc.is_reference,
+                    model_pattern=input_cnc.model_pattern,
+                    strength=input_cnc.strength,
+                )
+            )
+
+        # to remove from the list whatever controlnet user deleted
+        cons = []
+        not_cons = []
+        for cn in controlnets:
+            if (
+                cn.model_pattern
+                + "_"
+                + str(cn.type_of_controlnet)
+                + "_"
+                + str(cn.strength)
+                in existing_controlnets
+            ):
+                cons.append(cn)
+            else:
+                not_cons.append(cn)
+
+        item.controlnets = [asdict(cn) for cn in cons]
+
+        for v in not_cons:
+            if os.path.exists(v.image_path):
+                os.remove(v.image_path)
+
+    else:
+        item.controlnets = []
 
     await item.save()
 

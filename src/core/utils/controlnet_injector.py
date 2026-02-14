@@ -8,7 +8,9 @@ from src.controllers.ctrl_types import (
 
 
 def inject_controlnet(
-    workflow: dict[str, Any], controlnet_configs: list[ControlNetConfig]
+    workflow: dict[str, Any],
+    controlnet_configs: list[ControlNetConfig],
+    save_preprocessed: bool = True,
 ) -> dict[str, Any]:
     """
     Injects ControlNet nodes into a ComfyUI workflow.
@@ -16,6 +18,7 @@ def inject_controlnet(
     Args:
         workflow: Original ComfyUI workflow in API format (dict of nodes)
         controlnet_configs: List of ControlNet configurations to inject
+        save_preprocessed: If True, saves preprocessed images to output folder for verification
 
     Returns:
         Modified workflow dict with injected ControlNet nodes
@@ -23,8 +26,19 @@ def inject_controlnet(
     if not controlnet_configs:
         return workflow
 
-    # Find the highest node ID to start adding new nodes
-    max_node_id = max(int(node_id) for node_id in workflow.keys())
+    # Find the highest numeric node ID to start adding new nodes
+    numeric_ids = []
+    for node_id in workflow.keys():
+        try:
+            numeric_ids.append(int(node_id))
+        except ValueError:
+            pass
+
+    if numeric_ids:
+        max_node_id = max(numeric_ids)
+    else:
+        max_node_id = 1000
+
     current_id = max_node_id + 1
 
     # Find KSampler node and get its conditioning inputs
@@ -47,8 +61,15 @@ def inject_controlnet(
     current_negative = negative_source
 
     # Inject each ControlNet
-    for config in controlnet_configs:
+    for idx, config in enumerate(controlnet_configs):
         preprocessor_class = CONTROLNET_PREPROCESSORS.get(config.type_of_controlnet)
+
+        # DEBUG: Print what we found
+        print(f"[DEBUG] ControlNet {idx}:")
+        print(f"  - Type: {config.type_of_controlnet}")
+        print(f"  - Type value: {config.type_of_controlnet.value}")
+        print(f"  - is_reference: {config.is_reference}")
+        print(f"  - Preprocessor class: {preprocessor_class}")
 
         # 1. LoadImage node
         load_image_id = str(current_id)
@@ -63,6 +84,7 @@ def inject_controlnet(
 
         # 2. Preprocessor node (if is_reference is True and preprocessor exists)
         if config.is_reference and preprocessor_class:
+            print(f"  - Creating preprocessor node!")
             preprocessor_id = str(current_id)
             preprocessor_inputs: dict[str, Any] = {"image": [load_image_id, 0]}
 
@@ -92,7 +114,26 @@ def inject_controlnet(
             }
             current_id += 1
             control_image_source = [preprocessor_id, 0]
+
+            # 2a. SaveImage node to save the preprocessed output for verification
+            if save_preprocessed:
+                print(f"  - Creating SaveImage node!")
+                save_preprocessed_id = str(current_id)
+                workflow[save_preprocessed_id] = {
+                    "inputs": {
+                        "images": [preprocessor_id, 0],
+                        "filename_prefix": f"preprocessed_{config.type_of_controlnet.value}_{idx}",
+                    },
+                    "class_type": "SaveImage",
+                    "_meta": {
+                        "title": f"Save Preprocessed {config.type_of_controlnet.value}"
+                    },
+                }
+                current_id += 1
         else:
+            print(
+                f"  - Skipping preprocessor (is_reference={config.is_reference}, preprocessor_class={preprocessor_class})"
+            )
             # Use image directly without preprocessing
             control_image_source = [load_image_id, 0]
 

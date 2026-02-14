@@ -20,6 +20,7 @@ class JobRecord(TimestampMixin, Model):
     comfyui_prompt_id = fields.CharField(max_length=200, null=True, default=None)
     prompt_positive = fields.TextField()
     prompt_negative = fields.TextField()
+    controlnets = fields.JSONField(null=True)  # list[ControlNetConfig]
     region_prompts = fields.JSONField(
         null=True, default=None
     )  # dict[str, RegionPrompt]

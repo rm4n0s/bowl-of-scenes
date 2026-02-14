@@ -376,6 +376,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
         prompt_positive = ""
         prompt_negative = ""
         lora_list = []
+        controlnet_list = []
         ipadapter_list = []
         group_item_id_list = []
 
@@ -403,6 +404,9 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
             if item.lora_list is not None:
                 lora_list.extend(item.lora_list)
 
+            if item.controlnets is not None:
+                controlnet_list.extend(item.controlnets)
+
         prompt_positive = utils.remove_template_tags(prompt_positive)
         prompt_negative = utils.remove_template_tags(prompt_negative)
 
@@ -427,6 +431,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                     prompt_negative=prompt_negative,
                     region_prompts=ccp,
                     ipadapter_list=ipadapter_list,
+                    controlnets=controlnet_list,
                     lora_list=lora_list,
                     result_img=result_img,
                 )
@@ -444,6 +449,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                 prompt_positive=prompt_positive,
                 prompt_negative=prompt_negative,
                 ipadapter_list=ipadapter_list,
+                controlnets=controlnet_list,
                 lora_list=lora_list,
                 result_img=result_img,
             )
@@ -473,6 +479,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                     prompt_negative="",
                     reference_ipadapter_img=None,
                     lora_list=None,
+                    controlnets=None,
                     result_img=result_img,
                 )
                 res.append(job)

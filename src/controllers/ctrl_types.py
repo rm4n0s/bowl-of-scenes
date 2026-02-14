@@ -27,6 +27,11 @@ class ControlNetConfig:
     model_pattern: str  # e.g., "control_v11p_sd15_canny.safetensors" or "diffusers_xl_canny_mid.safetensors"
     strength: float  # ControlNet strength (0.0 to 2.0, typically 0.5-1.5)
 
+    def __post_init__(self):
+        """Automatically convert string to enum if needed"""
+        if isinstance(self.type_of_controlnet, str):
+            self.type_of_controlnet = ControlNetType(self.type_of_controlnet)
+
 
 # Mapping of ControlNet types to their preprocessor class
 CONTROLNET_PREPROCESSORS = {
@@ -167,10 +172,12 @@ class ItemIPAdapterOutput:
 @dataclass
 class ControlNetConfigInput:
     type_of_controlnet: ControlNetType
-    image_path: FileUpload
-    is_reference: bool  # True = preprocess the image, False = use image directly
-    model_pattern: str  # e.g., "control_v11p_sd15_canny.safetensors" or "diffusers_xl_canny_mid.safetensors"
-    strength: float  # ControlNet strength (0.0 to 2.0, typically 0.5-1.5)
+    image_path: (
+        FileUpload | None
+    )  # if None then all controlnet input will not be processed
+    is_reference: bool
+    model_pattern: str
+    strength: float
 
 
 @dataclass
@@ -197,6 +204,7 @@ class ItemOutput:
     positive_prompt: str
     negative_prompt: str
     lora: str | None
+    controlnets: list[ControlNetConfig] | None
     coordinated_regions: str | None
     coordinated_region_keys: str | None
     ipadapter: ItemIPAdapterOutput | None

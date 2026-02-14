@@ -39,11 +39,9 @@ class IPAdapterForm:
 
 class ItemsPage:
     table: ui.table | None
-    input_controlnets: list[ControlNetConfigInput]
 
     def __init__(self, conf: Config, group: GroupOutput):
         self.items = []
-        self.input_controlnets = []
         self.selected_item = None
         self.table = None
         self.conf = conf
@@ -58,6 +56,8 @@ class ItemsPage:
 
     async def add_controlnet(
         self,
+        add_dialog,
+        update_task_list,
         type_of_controlnet: ControlNetType,
         image_path: FileUpload | None,
         is_reference: bool,
@@ -65,7 +65,7 @@ class ItemsPage:
         strength: float,
     ):
         assert image_path
-        self.input_controlnets.append(
+        update_task_list(
             ControlNetConfigInput(
                 type_of_controlnet=type_of_controlnet,
                 image_path=image_path,
@@ -74,8 +74,9 @@ class ItemsPage:
                 strength=strength,
             )
         )
+        add_dialog.close()
 
-    async def show_controllnet_dialog(self):
+    async def show_add_controllnet_dialog(self, update_task_list):
         with ui.dialog() as add_dialog, ui.card().classes("w-80"):
             ui.label("Add Controlnet").classes("text-lg font-bold mb-4")
 
@@ -99,16 +100,18 @@ class ItemsPage:
                 max_files=1,
             ).props('accept="image/jpeg,image/png"')
 
-            is_reference_input = ui.checkbox("Is Reference", value=False)
+            is_reference_input = ui.checkbox("Is Reference", value=True)
             model_pattern_input = ui.input(
                 "Model pattern", placeholder="example_openpose.safetensors"
             ).classes("w-full")
-            strength_input = ui.number("Strength", value=2.5)
+            strength_input = ui.number("Strength", value=0.9)
             with ui.row().classes("w-full gap-2 mt-4"):
                 ui.button("Cancel", on_click=add_dialog.close).classes("flex-1")
                 ui.button(
                     "Add",
                     on_click=lambda: self.add_controlnet(
+                        add_dialog,
+                        update_task_list,
                         controlnet_type_select.value,  # pyright: ignore[reportArgumentType]
                         controlnet_image_input,
                         is_reference_input.value,
@@ -223,13 +226,42 @@ class ItemsPage:
             controlnets_input: list[ControlNetConfigInput] = []
             if self.group.use_controlnet:
                 ui.label("My Controlnets").classes("text-xl font-bold mb-4")
-
                 # Container for task list
                 controlnets_container = ui.column().classes("w-full mb-4")
 
+                def make_remove_handler(index):
+                    def remove():
+                        controlnets_input.pop(index)
+                        update_controlnet_list(None)  # pyright: ignore[reportCallIssue]
+
+                    return remove
+
+                def update_controlnet_list(cn: ControlNetConfigInput | None):
+                    if cn is not None:
+                        controlnets_input.append(cn)
+
+                    """Update the task list display"""
+                    controlnets_container.clear()
+                    with controlnets_container:
+                        if controlnets_input:
+                            for i, cn in enumerate(controlnets_input):
+                                with ui.row().classes("items-center gap-2"):
+                                    ui.label(cn.model_pattern)
+                                    ui.button(
+                                        icon="delete", on_click=make_remove_handler(i)
+                                    ).props("flat dense").classes("text-red")
+                        else:
+                            ui.label(
+                                'No controlnets yet. Click "Add controlnet" to create one!'
+                            ).classes("text-gray-500")
+
                 # Add task button
                 ui.button(
-                    "Add Controlnet", on_click=self.show_controllnet_dialog, icon="add"
+                    "Add Controlnet",
+                    on_click=lambda: self.show_add_controllnet_dialog(
+                        update_controlnet_list
+                    ),
+                    icon="add",
                 ).classes("w-full")
 
             thumbnail_image_input = None
@@ -448,6 +480,64 @@ class ItemsPage:
                     max_files=1,
                 ).props('accept="image/jpeg,image/png"')
 
+            controlnets_input: list[ControlNetConfigInput] = []
+            if (
+                "controlnets" in item.keys()
+                and item["controlnets"] is not None
+                and len(item["controlnets"]) > 0
+            ):
+                for v in item["controlnets"]:
+                    controlnets_input.append(
+                        ControlNetConfigInput(
+                            type_of_controlnet=v["type_of_controlnet"],
+                            image_path=None,
+                            is_reference=v["is_reference"],
+                            model_pattern=v["model_pattern"],
+                            strength=v["strength"],
+                        )
+                    )
+
+            if self.group.use_controlnet:
+                ui.label("My Controlnets").classes("text-xl font-bold mb-4")
+                # Container for task list
+                controlnets_container = ui.column().classes("w-full mb-4")
+
+                def make_remove_handler(index):
+                    def remove():
+                        controlnets_input.pop(index)
+                        update_controlnet_list(None)  # pyright: ignore[reportCallIssue]
+
+                    return remove
+
+                def update_controlnet_list(cn: ControlNetConfigInput | None):
+                    if cn is not None:
+                        controlnets_input.append(cn)
+
+                    """Update the task list display"""
+                    controlnets_container.clear()
+                    with controlnets_container:
+                        if controlnets_input:
+                            for i, cn in enumerate(controlnets_input):
+                                with ui.row().classes("items-center gap-2"):
+                                    ui.label(cn.model_pattern)
+                                    ui.button(
+                                        icon="delete", on_click=make_remove_handler(i)
+                                    ).props("flat dense").classes("text-red")
+                        else:
+                            ui.label(
+                                'No controlnets yet. Click "Add controlnet" to create one!'
+                            ).classes("text-gray-500")
+
+                update_controlnet_list(None)
+                # Add task button
+                ui.button(
+                    "Add Controlnet",
+                    on_click=lambda: self.show_add_controllnet_dialog(
+                        update_controlnet_list
+                    ),
+                    icon="add",
+                ).classes("w-full")
+
             thumbnail_image_input = None
 
             async def handle_thumbnail_upload(event: MultiUploadEventArguments):
@@ -477,6 +567,7 @@ class ItemsPage:
                         coordinated_regions_input,
                         ipadapter_form,
                         mask_region_reference_image_input,
+                        controlnets_input,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -495,6 +586,7 @@ class ItemsPage:
         coordinated_regions_input: Textarea | None,
         ipadapter_form: IPAdapterForm | None,
         color_coded_reference_image: FileUpload | None,
+        controlnets_input: list[ControlNetConfigInput],
         thumbnail_image: FileUpload | None,
     ):
         lora = None
@@ -541,6 +633,7 @@ class ItemsPage:
             negative_prompt=negative_prompt,
             lora=lora,
             coordinated_regions=cr,
+            controlnets=controlnets_input,
             ipadapter=item_ipadapter_input,
             mask_region_reference_image=color_coded_reference_image,
             thumbnail_image=thumbnail_image,

@@ -11,6 +11,7 @@ from yet_another_comfy_client import (
 )
 
 from src.controllers.ctrl_types import (
+    ControlNetConfig,
     CoordinatedRegion,
     JobStatus,
     RegionPrompt,
@@ -19,6 +20,7 @@ from src.controllers.ctrl_types import (
 from src.controllers.server_ctrl import StatusEnum
 from src.core.config import Config
 from src.core.utils import LoRAInjector
+from src.core.utils.controlnet_injector import inject_controlnet
 from src.core.utils.ipadapter_injector import add_multiple_ipadapters_to_workflow
 from src.core.utils.mask_injector import inject_masks
 from src.db.records import (
@@ -229,6 +231,10 @@ async def generate_image(client: YetAnotherComfyClient, job: JobRecord):
         inj = LoRAInjector(prompt)
         inj.add_multiple_loras(job.lora_list)
         prompt = inj.get_workflow()
+
+    if job.controlnets is not None and len(job.controlnets) > 0:
+        cns = [ControlNetConfig(**cn) for cn in job.controlnets]
+        prompt = inject_controlnet(prompt, cns)
 
     if job.region_prompts is not None:
         ccps = []

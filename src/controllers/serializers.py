@@ -2,6 +2,7 @@ import json
 import os
 
 from src.controllers.ctrl_types import (
+    ControlNetConfig,
     FixerOutput,
     GroupOutput,
     IPAdapter,
@@ -123,6 +124,19 @@ def serialize_item(rec: ItemRecord) -> ItemOutput:
             f"{list(map(lambda x: x['keyword'], rec.coordinated_regions))}"
         )
 
+    controlnets = []
+    if rec.controlnets is not None:
+        for v in rec.controlnets:
+            controlnets.append(
+                ControlNetConfig(
+                    type_of_controlnet=v["type_of_controlnet"],
+                    image_path=v["image_path"],
+                    is_reference=v["is_reference"],
+                    model_pattern=v["model_pattern"],
+                    strength=v["strength"],
+                )
+            )
+
     io = ItemOutput(
         id=rec.id,
         group_id=rec.group_id,
@@ -131,6 +145,7 @@ def serialize_item(rec: ItemRecord) -> ItemOutput:
         positive_prompt=rec.positive_prompt,
         negative_prompt=rec.negative_prompt,
         lora=lora,
+        controlnets=controlnets,
         coordinated_regions=coordinated_regions,
         coordinated_region_keys=coordinated_region_keys,
         ipadapter=ipadapter,
