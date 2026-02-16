@@ -9,8 +9,20 @@ async def run_job(manager: Manager, job_id: int):
     if job is None:
         raise ValueError("job doesn't exist")
 
-    if job.status == JobStatus.WAITING:
+    if job.status == JobStatus.IDLE:
+        job.status = JobStatus.QUEUED
+        await job.save()
         await manager.add_job(job.id)
+
+
+async def stop_job(manager: Manager, job_id: int):
+    job = await JobRecord.get_or_none(id=job_id)
+    if job is None:
+        raise ValueError("job doesn't exist")
+
+    if job.status == JobStatus.QUEUED:
+        job.status = JobStatus.IDLE
+        await job.save()
 
 
 async def reload_job(manager: Manager, job_id: int):
@@ -41,7 +53,7 @@ async def reload_job(manager: Manager, job_id: int):
 
     job.prompt_positive = prompt_positive
     job.prompt_negative = prompt_negative
-    job.status = JobStatus.WAITING
+    job.status = JobStatus.IDLE
     job.ipadapter_list = ipadapters
     job.lora_list = lora_list
     await job.save()

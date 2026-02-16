@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from nicegui import ui
 
 from src.controllers.command_ctrl.command_ctrl import CommandOutput, get_command
-from src.controllers.job_ctrl import list_jobs, reload_job, run_job
+from src.controllers.job_ctrl import list_jobs, reload_job, run_job, stop_job
 from src.controllers.manager_ctrl import Manager
 from src.core.config import Config
 from src.pages.common.nav_menu import common_nav_menu
@@ -91,12 +91,14 @@ class JobsPage:
                 """
                 <q-td :props="props">
                     <q-btn flat dense icon="start" class="q-mr-xl"   @click="$parent.$emit('run_job', props.row)" />
+                    <q-btn flat dense icon="stop" class="q-mr-xl"   @click="$parent.$emit('stop_job', props.row)" />
                     <q-btn flat dense icon="autorenew" class="q-mr-xl"   @click="$parent.$emit('reload_job', props.row)" />
                 </q-td>
             """,
             )
             self.table.on("show_image", show_image)
             self.table.on("run_job", lambda e: run_job(self.manager, e.args["id"]))
+            self.table.on("stop_job", lambda e: stop_job(self.manager, e.args["id"]))
             self.table.on(
                 "reload_job", lambda e: reload_job(self.manager, e.args["id"])
             )

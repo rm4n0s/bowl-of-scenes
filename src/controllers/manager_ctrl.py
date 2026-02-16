@@ -125,6 +125,9 @@ class Manager:
                 if job is None:
                     continue
 
+                if job.status != JobStatus.QUEUED:
+                    continue
+
                 if job.server_code_name in self._servers.keys():
                     client = self._servers[job.server_code_name].client
                     if job.generator_code_name is not None:
@@ -139,6 +142,9 @@ class Manager:
             print("Received job", job_id)
             job = await JobRecord.get_or_none(id=job_id)
             if job is None:
+                continue
+
+            if job.status != JobStatus.QUEUED:
                 continue
 
             if job.server_code_name in self._servers.keys():

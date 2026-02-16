@@ -274,7 +274,10 @@ class LoRAInjector:
         current_node = insert_after_node
 
         for lora_config in loras:
-            lora_name = lora_config["name"] + ".safetensors"
+            lora_name = lora_config["name"]
+            if ".safetensors" not in lora_config["name"]:
+                lora_name = lora_config["name"] + ".safetensors"
+
             strength_model = lora_config.get("strength_model", 1.0)
             strength_clip = lora_config.get("strength_clip", 1.0)
 

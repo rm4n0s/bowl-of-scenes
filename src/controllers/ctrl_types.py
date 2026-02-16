@@ -49,7 +49,8 @@ CONTROLNET_PREPROCESSORS = {
 
 
 class JobStatus(enum.StrEnum):
-    WAITING = "waiting"
+    IDLE = "idle"
+    QUEUED = "queued"
     PROCESSING = "processing"
     FINISHED = "finished"
 

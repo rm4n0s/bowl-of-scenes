@@ -13,7 +13,7 @@ class JobRecord(TimestampMixin, Model):
     code_str = fields.TextField()
     server_code_name = fields.CharField(max_length=100)
     server_host = fields.CharField(max_length=100)
-    status = fields.CharEnumField(enum_type=JobStatus, default=JobStatus.WAITING)
+    status = fields.CharEnumField(enum_type=JobStatus, default=JobStatus.IDLE)
     generator_code_name = fields.CharField(max_length=100, null=True)
     fixer_code_name = fields.CharField(max_length=100, null=True)
     fix_job_id = fields.IntField(null=True)

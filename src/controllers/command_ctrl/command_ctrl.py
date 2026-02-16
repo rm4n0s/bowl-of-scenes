@@ -18,6 +18,7 @@ from src.controllers.command_ctrl.command_validator import (
 from src.controllers.ctrl_types import (
     CoordinatedRegion,
     CoordinatedRegionKeyword,
+    JobStatus,
     MaskRegionImages,
     RegionPrompt,
 )
@@ -494,6 +495,22 @@ async def run_command(manager: Manager, command_id: int):
     cmd = await CommandRecord.get_or_none(id=command_id)
     if cmd is None:
         raise ValueError("command doesn't exist")
+
+    await JobRecord.filter(command_id=command_id, status=JobStatus.IDLE).update(
+        status=JobStatus.QUEUED
+    )
+
+    await manager.add_command(cmd.id)
+
+
+async def stop_command(manager: Manager, command_id: int):
+    cmd = await CommandRecord.get_or_none(id=command_id)
+    if cmd is None:
+        raise ValueError("command doesn't exist")
+
+    await JobRecord.filter(command_id=command_id, status=JobStatus.QUEUED).update(
+        status=JobStatus.IDLE
+    )
 
     await manager.add_command(cmd.id)
 

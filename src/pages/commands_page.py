@@ -12,6 +12,7 @@ from src.controllers.command_ctrl.command_ctrl import (
     list_commands,
     recreate_command,
     run_command,
+    stop_command,
 )
 from src.controllers.manager_ctrl import Manager
 from src.controllers.project_ctrl import ProjectOutput, get_project
@@ -183,6 +184,7 @@ class CommandsPage:
                     <q-btn flat dense icon="edit" class="q-mr-sm"  @click="$parent.$emit('edit', props.row)" />
                     <q-btn flat dense icon="delete" class="q-mr-xl"  color="negative" @click="$parent.$emit('delete', props.row)" />
                     <q-btn flat dense icon="start" class="q-mr-xl"   @click="$parent.$emit('run_command', props.row)" />
+                    <q-btn flat dense icon="stop" class="q-mr-xl"   @click="$parent.$emit('stop_command', props.row)" />
                     <q-btn flat dense icon="autorenew" class="q-mr-xl"   @click="$parent.$emit('recreate_command', props.row)" />
                     <q-btn flat dense icon="table"   @click="$parent.$emit('show_jobs', props.row)" />
                 </q-td>
@@ -194,6 +196,9 @@ class CommandsPage:
             self.table.on("show_jobs", lambda e: self.redirect_to_jobs(e.args))
             self.table.on(
                 "run_command", lambda e: run_command(self.manager, e.args["id"])
+            )
+            self.table.on(
+                "stop_command", lambda e: stop_command(self.manager, e.args["id"])
             )
             self.table.on(
                 "recreate_command",
