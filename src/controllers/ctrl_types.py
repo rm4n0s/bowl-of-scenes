@@ -298,6 +298,7 @@ class GeneratorInput:
     positive_prompt_title: str | None
     negative_prompt_title: str | None
     save_image_title: str
+    has_random_seed: bool
 
 
 @dataclass
@@ -309,6 +310,7 @@ class GeneratorOutput:
     positive_prompt_title: str | None
     negative_prompt_title: str | None
     save_image_title: str
+    has_random_seed: bool
 
 
 @dataclass

@@ -11,4 +11,5 @@ class GeneratorRecord(TimestampMixin, Model):
     positive_prompt_title = fields.TextField(null=True)
     negative_prompt_title = fields.TextField(null=True)
     save_image_title = fields.TextField()
+    has_random_seed = fields.BooleanField(default=False)
     workflow_json = fields.JSONField()

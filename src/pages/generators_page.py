@@ -74,6 +74,8 @@ class GeneratorsPage:
                 'accept=".json"'
             )
 
+            has_random_seed_input = ui.checkbox("Enable random seed").props("outlined")
+
             with ui.row():
                 ui.button("Cancel", on_click=dialog.close)
                 ui.button(
@@ -86,6 +88,7 @@ class GeneratorsPage:
                         positive_prompt_title_input.value,
                         negative_prompt_title_input.value,
                         save_image_title_input.value,
+                        has_random_seed_input.value,
                     ),
                 ).props("color=primary")
 
@@ -100,6 +103,7 @@ class GeneratorsPage:
         positive_prompt_title: str,
         negative_prompt_title: str,
         save_image_title: str,
+        has_random_seed: bool,
     ):
         input = GeneratorInput(
             name=name,
@@ -108,6 +112,7 @@ class GeneratorsPage:
             positive_prompt_title=positive_prompt_title,
             negative_prompt_title=negative_prompt_title,
             save_image_title=save_image_title,
+            has_random_seed=has_random_seed,
         )
 
         await add_generator(input)
@@ -142,6 +147,10 @@ class GeneratorsPage:
                 "SaveImage title", value=item["save_image_title"]
             ).props("outlined")
 
+            has_random_seed_input = ui.checkbox(
+                "Enable random seed", value=item["has_random_seed"]
+            ).props("outlined")
+
             with ui.row():
                 ui.button("Cancel", on_click=dialog.close)
                 ui.button(
@@ -155,6 +164,7 @@ class GeneratorsPage:
                         positive_prompt_title_input.value,
                         negative_prompt_title_input.value,
                         save_image_title_input.value,
+                        has_random_seed_input.value,
                     ),
                 ).props("color=primary")
 
@@ -170,6 +180,7 @@ class GeneratorsPage:
         positive_prompt_title: str,
         negative_prompt_title: str,
         save_image_title: str,
+        has_random_seed: bool,
     ):
         workflow_json = json.loads(workflow_json_str)
         input = GeneratorInput(
@@ -179,6 +190,7 @@ class GeneratorsPage:
             positive_prompt_title=positive_prompt_title,
             negative_prompt_title=negative_prompt_title,
             save_image_title=save_image_title,
+            has_random_seed=has_random_seed,
         )
 
         await edit_generator(workflow_id, input)

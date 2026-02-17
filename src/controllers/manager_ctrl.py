@@ -1,6 +1,7 @@
 import asyncio
 import io
 import os
+import secrets
 
 from PIL import Image
 from yet_another_comfy_client import (
@@ -19,7 +20,7 @@ from src.controllers.ctrl_types import (
 )
 from src.controllers.server_ctrl import StatusEnum
 from src.core.config import Config
-from src.core.utils import LoRAInjector
+from src.core.utils import LoRAInjector, get_title_from_class_type
 from src.core.utils.controlnet_injector import inject_controlnet
 from src.core.utils.ipadapter_injector import add_multiple_ipadapters_to_workflow
 from src.core.utils.mask_injector import inject_masks
@@ -208,11 +209,21 @@ async def generate_image(client: YetAnotherComfyClient, job: JobRecord):
         job.prompt_positive,
     )
     prompt = edit_prompt(
-        gen.workflow_json,
+        prompt,
         gen.negative_prompt_title,
         "text",
         job.prompt_negative,
     )
+
+    if gen.has_random_seed:
+        ksampler_titles = get_title_from_class_type(prompt, "KSampler")
+        for title in ksampler_titles:
+            prompt = edit_prompt(
+                prompt,
+                title,
+                "seed",
+                secrets.randbelow(2**64),
+            )
 
     if job.ipadapter_list is not None and len(job.ipadapter_list) > 0:
         ipas_input = []

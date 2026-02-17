@@ -10,6 +10,7 @@ async def add_generator(input: GeneratorInput):
         negative_prompt_title=input.negative_prompt_title,
         save_image_title=input.save_image_title,
         workflow_json=input.workflow_json,
+        has_random_seed=input.has_random_seed,
     )
 
 
@@ -26,6 +27,7 @@ async def edit_generator(id: int, input: GeneratorInput):
     if input.negative_prompt_title is not None:
         gen.negative_prompt_title = input.negative_prompt_title
 
+    gen.has_random_seed = input.has_random_seed
     gen.save_image_title = input.save_image_title
     gen.workflow_json = input.workflow_json
 
@@ -44,6 +46,7 @@ async def list_generators() -> list[GeneratorOutput]:
             positive_prompt_title=gen.positive_prompt_title,
             negative_prompt_title=gen.negative_prompt_title,
             save_image_title=gen.save_image_title,
+            has_random_seed=gen.has_random_seed,
         )
         gen_outs.append(gout)
     return gen_outs
