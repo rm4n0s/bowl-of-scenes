@@ -27,3 +27,5 @@ class JobRecord(TimestampMixin, Model):
     ipadapter_list = fields.JSONField(null=True)
     lora_list = fields.JSONField(null=True)
     result_img = fields.TextField()
+    error = fields.TextField(null=True, default=None)
+    traceback = fields.TextField(null=True, default=None)

@@ -503,7 +503,7 @@ async def run_command(manager: Manager, command_id: int):
     await manager.add_command(cmd.id)
 
 
-async def stop_command(manager: Manager, command_id: int):
+async def stop_command(command_id: int):
     cmd = await CommandRecord.get_or_none(id=command_id)
     if cmd is None:
         raise ValueError("command doesn't exist")
@@ -511,8 +511,6 @@ async def stop_command(manager: Manager, command_id: int):
     await JobRecord.filter(command_id=command_id, status=JobStatus.QUEUED).update(
         status=JobStatus.IDLE
     )
-
-    await manager.add_command(cmd.id)
 
 
 async def recreate_command(conf: Config, command_id: int):

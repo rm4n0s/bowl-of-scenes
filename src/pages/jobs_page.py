@@ -5,27 +5,63 @@ from fastapi import HTTPException
 from nicegui import ui
 
 from src.controllers.command_ctrl.command_ctrl import CommandOutput, get_command
+from src.controllers.ctrl_types import Notification
 from src.controllers.job_ctrl import list_jobs, reload_job, run_job, stop_job
 from src.controllers.manager_ctrl import Manager
+from src.controllers.notification_ctrl import NotificationCtrl
 from src.core.config import Config
 from src.pages.common.nav_menu import common_nav_menu
 
 
 class JobsPage:
-    def __init__(self, conf: Config, manager: Manager, command: CommandOutput):
+    _prev_notif_job_id: int | None
+
+    def __init__(
+        self,
+        conf: Config,
+        manager: Manager,
+        command: CommandOutput,
+        notifctrl: NotificationCtrl,
+    ):
         self.items = []
         self.selected_item = None
         self.table = None
         self.conf = conf
         self.manager = manager
         self.command = command
+        self.notifctrl = notifctrl
+        self._prev_notif_job_id = None
 
     async def load_items(self):
-        cmds = await list_jobs(self.command.id)
-        self.items = [asdict(cmd) for cmd in cmds]
+        jobs = await list_jobs(self.command.id)
+        self.items = [asdict(job) for job in jobs]
         if self.table:
             self.table.rows = self.items  # Assign new rows
             self.table.update()
+            print("updated notif")
+
+    async def check_notif_and_update(self):
+        notif = self.notifctrl.get_notification()
+        if notif is None:
+            return
+
+        if (
+            self._prev_notif_job_id is not None
+            and self._prev_notif_job_id == notif.job_id
+        ):
+            return
+
+        if len(self.items) > 1:
+            first_id = self.items[0]["id"]
+            last_id = self.items[len(self.items) - 1]["id"]
+            if first_id <= notif.job_id and last_id >= notif.job_id:
+                await self.load_items()
+                self._prev_notif_job_id = notif.job_id
+
+        elif len(self.items) == 1:
+            if self.items[0]["id"] == notif.job_id:
+                await self.load_items()
+                self._prev_notif_job_id = notif.job_id
 
     async def render(self):
         """Render the CRUD page"""
@@ -103,10 +139,11 @@ class JobsPage:
                 "reload_job", lambda e: reload_job(self.manager, e.args["id"])
             )
 
+        ui.timer(0.1, lambda: self.check_notif_and_update())
         await table()
 
 
-def init(conf: Config, manager: Manager | None):
+def init(conf: Config, manager: Manager | None, notifctrl: NotificationCtrl):
     @ui.page("/commands/{command_id}/jobs")
     async def page(command_id: int):
         ui.dark_mode().auto()
@@ -115,7 +152,7 @@ def init(conf: Config, manager: Manager | None):
             raise HTTPException(status_code=404, detail="Command not found")
 
         assert manager is not None
-        page = JobsPage(conf, manager, project)
+        page = JobsPage(conf, manager, project, notifctrl)
         await common_nav_menu()
         await page.render()
         await page.load_items()

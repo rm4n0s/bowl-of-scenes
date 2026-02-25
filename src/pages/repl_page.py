@@ -1,5 +1,6 @@
 import json
 import time
+from datetime import datetime
 
 from nicegui import ui
 from nicegui.elements.upload_files import FileUpload
@@ -7,6 +8,7 @@ from nicegui.events import MultiUploadEventArguments
 
 from src.controllers.ctrl_types import ReplInput
 from src.controllers.manager_ctrl import Manager
+from src.controllers.notification_ctrl import NotificationCtrl
 from src.controllers.repl_ctrl import (
     clear_repl_job,
     run_repl,
@@ -18,13 +20,16 @@ from src.pages.common.nav_menu import common_nav_menu
 
 class ReplPage:
     main_img: ui.image
+    _prev_notif_date: datetime | None
 
-    def __init__(self, conf: Config, manager: Manager):
+    def __init__(self, conf: Config, manager: Manager, notifctrl: NotificationCtrl):
         self.items = []
         self.selected_item = None
         self.table = None
         self.conf = conf
         self.manager = manager
+        self.notifctrl = notifctrl
+        self._prev_notif_date = None
 
     async def handle_run(
         self,
@@ -56,6 +61,28 @@ class ReplPage:
             lora_list=lora_list,
         )
         await run_repl(self.conf, self.manager, input)
+
+    def refresh_image(self):
+        if self.main_img is not None:
+            self.main_img.set_source(f"/result_path/repl.png?t={time.time()}")
+
+    async def check_notif_and_update(self):
+        notif = self.notifctrl.get_notification()
+        if notif is None:
+            if self._prev_notif_date is not None:
+                self.refresh_image()
+                self._prev_notif_date = None
+
+            return
+
+        if notif.project_id == -1:
+            if self._prev_notif_date is not None:
+                if self._prev_notif_date != notif.created_at:
+                    self.refresh_image()
+                    self._prev_notif_date = notif.created_at
+            else:
+                self.refresh_image()
+                self._prev_notif_date = notif.created_at
 
     async def form(self):
         job_dict = {
@@ -174,22 +201,21 @@ class ReplPage:
                     f"/result_path/repl.png?t={time.time()}"
                 ).classes("rounded-lg shadow-lg max-w-full max-h-full object-contain")
 
-                def refresh_image():
-                    self.main_img.set_source(f"/result_path/repl.png?t={time.time()}")
-
-                ui.button("Refresh Image", on_click=refresh_image).style("""
+                ui.button("Refresh Image", on_click=self.refresh_image).style("""
                             position: absolute;
                             top: 20px;
                             right: 20px;
                             z-index: 10;
                         """)
 
+            ui.timer(0.1, lambda: self.check_notif_and_update())
 
-def init(conf: Config, manager: Manager | None):
+
+def init(conf: Config, manager: Manager | None, notifctrl: NotificationCtrl):
     @ui.page("/repl")
     async def page():
         ui.dark_mode().auto()
         assert manager is not None
-        page = ReplPage(conf, manager)
+        page = ReplPage(conf, manager, notifctrl)
         await common_nav_menu()
         await page.render()

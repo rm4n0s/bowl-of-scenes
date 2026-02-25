@@ -197,9 +197,7 @@ class CommandsPage:
             self.table.on(
                 "run_command", lambda e: run_command(self.manager, e.args["id"])
             )
-            self.table.on(
-                "stop_command", lambda e: stop_command(self.manager, e.args["id"])
-            )
+            self.table.on("stop_command", lambda e: stop_command(e.args["id"]))
             self.table.on(
                 "recreate_command",
                 lambda e: recreate_command(self.conf, e.args["id"]),

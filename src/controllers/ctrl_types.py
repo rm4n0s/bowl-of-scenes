@@ -1,9 +1,25 @@
 import enum
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from nicegui.elements.upload_files import FileUpload
 from yet_another_comfy_client import YetAnotherComfyClient
+
+
+class NotificationType(enum.Enum):
+    FINISHED = "finished"
+    ERROR = "error"
+    PROCESSING = "processing"
+
+
+@dataclass
+class Notification:
+    type_of_notification: NotificationType
+    job_id: int
+    cmd_id: int
+    project_id: int
+    created_at: datetime
 
 
 class ControlNetType(enum.Enum):
@@ -52,6 +68,7 @@ class JobStatus(enum.StrEnum):
     IDLE = "idle"
     QUEUED = "queued"
     PROCESSING = "processing"
+    ERROR = "error"
     FINISHED = "finished"
 
 

@@ -2,7 +2,7 @@ import json
 import os
 import re
 
-from src.controllers.ctrl_types import JobOutput, ReplInput
+from src.controllers.ctrl_types import JobOutput, JobStatus, ReplInput
 from src.controllers.manager_ctrl import Manager
 from src.controllers.serializers import serialize_job
 from src.core.config import Config
@@ -149,6 +149,7 @@ async def run_repl(conf: Config, manager: Manager, input: ReplInput):
         code_str=input.group_item_code_names,
         server_code_name=server.code_name,
         server_host=server.host,
+        status=JobStatus.QUEUED,
         generator_code_name=workflow.code_name,
         prompt_positive=prompt_positive,
         prompt_negative=prompt_negative,
