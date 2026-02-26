@@ -196,7 +196,7 @@ class PromptLanguageParser:
 
         selections = []
         for expr in group_expressions:
-            if " and " in expr:
+            if " && " in expr:
                 selection = self._parse_merged_groups(expr)
             elif "[" in expr:
                 selection = self._parse_group_with_templates(expr)
@@ -225,13 +225,13 @@ class PromptLanguageParser:
                 current_part.append(char)
             elif (
                 char == " "
-                and i + 5 <= len(expr)
-                and expr[i : i + 5] == " and "
+                and i + 4 <= len(expr)
+                and expr[i : i + 4] == " && "
                 and depth_brackets == 0
             ):
                 group_parts.append("".join(current_part).strip())
                 current_part = []
-                i += 4
+                i += 3
             else:
                 current_part.append(char)
 
