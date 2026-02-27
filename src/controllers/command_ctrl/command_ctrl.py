@@ -62,7 +62,7 @@ async def get_items_per_group_without_regioned_prompts(
             assert group_sel.merged_groups is not None
 
             for merged_group in group_sel.merged_groups:
-                group_code = merged_group["group_code_name"]
+                group_code = merged_group.group_code_name
 
                 # Check group exists
                 group = await GroupRecord.filter(code_name=group_code).first()
@@ -70,27 +70,23 @@ async def get_items_per_group_without_regioned_prompts(
                     raise ValueError(f"Group '{group_code}' not found")
 
                 items = []
-                if (
-                    merged_group["exclude"] is None
-                    and merged_group["include_only"] is None
-                ):
+                if merged_group.exclude is None and merged_group.include_only is None:
                     items = await ItemRecord.filter(group_id=group.id).all()
 
-                elif merged_group["exclude"] is not None:
+                elif merged_group.exclude is not None:
                     items = (
                         await ItemRecord.filter(group_id=group.id)
-                        .exclude(code_name__in=merged_group["exclude"])
+                        .exclude(code_name__in=merged_group.exclude)
                         .all()
                     )
 
-                elif merged_group["include_only"] is not None:
+                elif merged_group.include_only is not None:
                     items = await ItemRecord.filter(
-                        group_id=group.id, code_name__in=merged_group["include_only"]
+                        group_id=group.id, code_name__in=merged_group.include_only
                     ).all()
 
-                if "is_template" in merged_group.keys() and merged_group["is_template"]:
-                    mg = dict_to_group_selection(merged_group)
-                    items = await get_template_prompt_comb(mg)
+                if merged_group.is_template:
+                    items = await get_template_prompt_comb(merged_group)
 
                 print(group_code, len(items))
                 merged_items.extend(items)

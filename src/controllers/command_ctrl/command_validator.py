@@ -120,7 +120,7 @@ async def validate_group_selections(
         if group_sel.is_merged:
             assert group_sel.merged_groups is not None
             for merged_group in group_sel.merged_groups:
-                group_code = merged_group["group_code_name"]
+                group_code = merged_group.group_code_name
 
                 # Check group exists
                 group = await GroupRecord.filter(code_name=group_code).first()
@@ -129,8 +129,8 @@ async def validate_group_selections(
                     continue
 
                 # Check included items
-                if merged_group["include_only"]:
-                    for item_code in merged_group["include_only"]:
+                if merged_group.include_only:
+                    for item_code in merged_group.include_only:
                         item_exists = await ItemRecord.filter(
                             group_id=group.id, code_name=item_code
                         ).exists()
@@ -140,8 +140,8 @@ async def validate_group_selections(
                             )
 
                 # Check excluded items
-                if merged_group["exclude"]:
-                    for item_code in merged_group["exclude"]:
+                if merged_group.exclude:
+                    for item_code in merged_group.exclude:
                         item_exists = await ItemRecord.filter(
                             group_id=group.id, code_name=item_code
                         ).exists()

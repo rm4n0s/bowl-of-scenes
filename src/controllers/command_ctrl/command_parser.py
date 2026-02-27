@@ -17,7 +17,9 @@ class GroupSelection:
     include_only: Optional[list[str]] = None
     exclude: Optional[Set[str]] = None
     is_merged: bool = False
-    merged_groups: Optional[list[dict]] = None
+    merged_groups: Optional[list["GroupSelection"]] = None
+    is_zipped: bool = False
+    zipped_groups: Optional[list["GroupSelection"]] = None
     is_regioned: bool = False
     region_group_selections: Optional[dict[str, list["GroupSelection"]]] = None
     is_template: bool = False
@@ -31,7 +33,12 @@ class GroupSelection:
         }
         if self.is_merged:
             result["is_merged"] = True
-            result["merged_groups"] = self.merged_groups
+            assert self.merged_groups
+            result["merged_groups"] = [gs.to_dict() for gs in self.merged_groups]
+        if self.is_zipped:
+            result["is_zipped"] = True
+            assert self.zipped_groups
+            result["zipped_groups"] = [gs.to_dict() for gs in self.zipped_groups]
         if self.is_regioned:
             assert self.region_group_selections
             result["is_regioned"] = True
@@ -49,11 +56,16 @@ class GroupSelection:
         return result
 
 
-def dict_to_group_selection(data: dict) -> GroupSelection:
+def dict_to_group_selection(data: dict) -> "GroupSelection":
     """Convert dictionary to GroupSelection dataclass"""
 
-    # Handle merged_groups - stays as list of dicts
-    merged_groups = data.get("merged_groups")
+    merged_groups = None
+    if data.get("is_merged") and data.get("merged_groups"):
+        merged_groups = [dict_to_group_selection(s) for s in data["merged_groups"]]
+
+    zipped_groups = None
+    if data.get("is_zipped") and data.get("zipped_groups"):
+        zipped_groups = [dict_to_group_selection(s) for s in data["zipped_groups"]]
 
     # Handle region_group_selections - recursive conversion
     color_coded = None
@@ -75,6 +87,8 @@ def dict_to_group_selection(data: dict) -> GroupSelection:
         exclude=set(data["exclude"]) if data.get("exclude") else None,
         is_merged=data.get("is_merged", False),
         merged_groups=merged_groups,
+        is_zipped=data.get("is_zipped", False),
+        zipped_groups=zipped_groups,
         is_regioned=data.get("is_regioned", False),
         region_group_selections=color_coded,
         is_template=data.get("is_template", False),
@@ -154,6 +168,26 @@ class PromptLanguageParser:
             fixers=fixers,
         )
 
+    def _contains_at_top_level(self, expr: str, token: str) -> bool:
+        """Check if token exists in expr outside of any braces or brackets"""
+        depth_braces = 0
+        depth_brackets = 0
+        i = 0
+        while i < len(expr):
+            if expr[i] == "{":
+                depth_braces += 1
+            elif expr[i] == "}":
+                depth_braces -= 1
+            elif expr[i] == "[":
+                depth_brackets += 1
+            elif expr[i] == "]":
+                depth_brackets -= 1
+            elif depth_braces == 0 and depth_brackets == 0:
+                if expr[i : i + len(token)] == token:
+                    return True
+            i += 1
+        return False
+
     def _parse_groups(self, groups_part: str) -> list[GroupSelection]:
         group_expressions = []
         current = []
@@ -196,8 +230,10 @@ class PromptLanguageParser:
 
         selections = []
         for expr in group_expressions:
-            if " && " in expr:
+            if self._contains_at_top_level(expr, " && "):
                 selection = self._parse_merged_groups(expr)
+            elif self._contains_at_top_level(expr, " || "):
+                selection = self._parse_zipped_groups(expr)
             elif "[" in expr:
                 selection = self._parse_group_with_templates(expr)
             elif "{" in expr:
@@ -212,6 +248,7 @@ class PromptLanguageParser:
         group_parts = []
         current_part = []
         depth_brackets = 0
+        depth_braces = 0
 
         i = 0
         while i < len(expr):
@@ -223,11 +260,18 @@ class PromptLanguageParser:
             elif char == "]":
                 depth_brackets -= 1
                 current_part.append(char)
+            elif char == "{":
+                depth_braces += 1
+                current_part.append(char)
+            elif char == "}":
+                depth_braces -= 1
+                current_part.append(char)
             elif (
                 char == " "
                 and i + 4 <= len(expr)
                 and expr[i : i + 4] == " && "
                 and depth_brackets == 0
+                and depth_braces == 0
             ):
                 group_parts.append("".join(current_part).strip())
                 current_part = []
@@ -240,55 +284,18 @@ class PromptLanguageParser:
         if current_part:
             group_parts.append("".join(current_part).strip())
 
-        merged_groups = []
+        merged_groups: list[GroupSelection] = []
         all_group_names = []
 
         for part in group_parts:
             if "[" in part:
-                template_selection = self._parse_group_with_templates(part)
-                assert template_selection.template_group_selections
-                merged_groups.append(
-                    {
-                        "group_code_name": template_selection.group_code_name,
-                        "include_only": template_selection.include_only,
-                        "exclude": list(template_selection.exclude)
-                        if template_selection.exclude
-                        else None,
-                        "is_template": True,
-                        "template_group_selections": {
-                            k: [gs.to_dict() for gs in v]
-                            for k, v in template_selection.template_group_selections.items()
-                        },
-                    }
-                )
-                all_group_names.append(template_selection.group_code_name)
+                selection = self._parse_group_with_templates(part)
+            elif "{" in part:
+                selection = self._parse_region_groups(part)
             else:
-                group_name = None
-                include_items = None
-                exclude_items = set()
-
-                parts = part.split("(", 1)
-                group_name = parts[0].strip()
-                all_group_names.append(group_name)
-
-                if len(parts) > 1:
-                    paren_groups = re.findall(r"\(([^)]+)\)", part)
-
-                    for paren_group in paren_groups:
-                        items = [item.strip() for item in paren_group.split(",")]
-
-                        if items and items[0].startswith("~"):
-                            exclude_items.update(item.lstrip("~") for item in items)
-                        else:
-                            include_items = items
-
-                merged_groups.append(
-                    {
-                        "group_code_name": group_name,
-                        "include_only": include_items,
-                        "exclude": list(exclude_items) if exclude_items else None,
-                    }
-                )
+                selection = self._parse_group_expression(part)
+            merged_groups.append(selection)
+            all_group_names.append(selection.group_code_name)
 
         return GroupSelection(
             group_code_name="+".join(all_group_names),
@@ -298,10 +305,71 @@ class PromptLanguageParser:
             merged_groups=merged_groups,
         )
 
+    def _parse_zipped_groups(self, expr: str) -> GroupSelection:
+        group_parts = []
+        current_part = []
+        depth_brackets = 0
+        depth_braces = 0
+
+        i = 0
+        while i < len(expr):
+            char = expr[i]
+
+            if char == "[":
+                depth_brackets += 1
+                current_part.append(char)
+            elif char == "]":
+                depth_brackets -= 1
+                current_part.append(char)
+            elif char == "{":
+                depth_braces += 1
+                current_part.append(char)
+            elif char == "}":
+                depth_braces -= 1
+                current_part.append(char)
+            elif (
+                char == " "
+                and i + 4 <= len(expr)
+                and expr[i : i + 4] == " || "
+                and depth_brackets == 0
+                and depth_braces == 0
+            ):
+                group_parts.append("".join(current_part).strip())
+                current_part = []
+                i += 3
+            else:
+                current_part.append(char)
+
+            i += 1
+
+        if current_part:
+            group_parts.append("".join(current_part).strip())
+
+        zipped_groups: list[GroupSelection] = []
+        all_group_names = []
+
+        for part in group_parts:
+            if "[" in part:
+                selection = self._parse_group_with_templates(part)
+            elif "{" in part:
+                selection = self._parse_region_groups(part)
+            else:
+                selection = self._parse_group_expression(part)
+            zipped_groups.append(selection)
+            all_group_names.append(selection.group_code_name)
+
+        return GroupSelection(
+            group_code_name="|".join(all_group_names),
+            include_only=None,
+            exclude=None,
+            is_zipped=True,
+            zipped_groups=zipped_groups,
+        )
+
     def _parse_region_groups(self, expr: str) -> GroupSelection:
         """
         Parse region groups expression like:
-        - group_1{red: group_2 x group_3, blue: group_4}
+        - group_1{red: group_2 * group_3, blue: group_4}
         """
         # Extract group name and the content inside {}
         match = re.match(r"(\w+)\s*\{(.+)\}", expr)
@@ -311,7 +379,7 @@ class PromptLanguageParser:
         main_group_name = match.group(1)
         color_content = match.group(2)
 
-        # Parse color mappings: "red: group_2 x group_3, blue: group_4"
+        # Parse color mappings: "red: group_2 * group_3, blue: group_4"
         color_coded_selections = {}
 
         # Split by comma to get each color mapping
@@ -361,7 +429,6 @@ class PromptLanguageParser:
         - character_group (alice, bob)
         - emotion_group (~sad, ~sob)
         """
-        group_name = None
         include_items = None
         exclude_items = set()
 
@@ -423,7 +490,7 @@ class PromptLanguageParser:
         template_selections = {}
 
         # Find all template mappings by looking for pattern: word:
-        # This handles "red: group_2(3) and group_7, blue: group_6"
+        # This handles "red: group_2(3) && group_7, blue: group_6"
         template_pattern = r"(\w+):\s*"
         matches = list(re.finditer(template_pattern, template_content))
 
