@@ -10,7 +10,6 @@ from tortoise.expressions import F
 from src.controllers.command_ctrl.command_parser import (
     GroupSelection,
     PromptLanguageParser,
-    dict_to_group_selection,
 )
 from src.controllers.command_ctrl.command_validator import (
     validate_code_names,
@@ -51,6 +50,118 @@ class CommandOutput:
     command_json: dict[str, Any]
 
 
+async def get_items_by_merged_groups(group_sel: GroupSelection) -> list[ItemRecord]:
+    merged_items: list[ItemRecord] = []
+    assert group_sel.merged_groups is not None
+
+    for merged_group in group_sel.merged_groups:
+        group_code = merged_group.group_code_name
+
+        # Check group exists
+        group = await GroupRecord.filter(code_name=group_code).first()
+        if not group:
+            raise ValueError(f"Group '{group_code}' not found")
+
+        items = []
+        if merged_group.exclude is None and merged_group.include_only is None:
+            items = await ItemRecord.filter(group_id=group.id).all()
+
+        elif merged_group.exclude is not None:
+            items = (
+                await ItemRecord.filter(group_id=group.id)
+                .exclude(code_name__in=merged_group.exclude)
+                .all()
+            )
+
+        elif merged_group.include_only is not None:
+            items = await ItemRecord.filter(
+                group_id=group.id, code_name__in=merged_group.include_only
+            ).all()
+
+        if merged_group.is_template:
+            items = await get_template_prompt_comb(merged_group)
+
+        merged_items.extend(items)
+
+    return merged_items
+
+
+async def get_items_by_zipped_groups(group_sel: GroupSelection) -> list[ItemRecord]:
+    assert group_sel.zipped_groups is not None
+
+    group_iteps_per_list: list[list[ItemRecord]] = []
+    for zipped_group in group_sel.zipped_groups:
+        group_code = zipped_group.group_code_name
+
+        # Check group exists
+        group = await GroupRecord.filter(code_name=group_code).first()
+        if not group:
+            raise ValueError(f"Group '{group_code}' not found")
+
+        items: list[ItemRecord] = []
+        if zipped_group.exclude is None and zipped_group.include_only is None:
+            items = await ItemRecord.filter(group_id=group.id).all()
+
+        elif zipped_group.exclude is not None:
+            items = (
+                await ItemRecord.filter(group_id=group.id)
+                .exclude(code_name__in=zipped_group.exclude)
+                .all()
+            )
+
+        elif zipped_group.include_only is not None:
+            items = await ItemRecord.filter(
+                group_id=group.id, code_name__in=zipped_group.include_only
+            ).all()
+
+        if zipped_group.is_template:
+            items = await get_template_prompt_comb(zipped_group)
+
+        group_iteps_per_list.append(items)
+
+    combo_items_per_zip = [combo for combo in zip(*group_iteps_per_list)]
+    zipped_items: list[ItemRecord] = []
+    for combo in combo_items_per_zip:
+        group_code_name = ""
+        prompt_positive = ""
+        prompt_negative = ""
+        lora_list = []
+        controlnet_list = []
+        ipadapter = None
+
+        for item in combo:
+            group_code_name += item.code_name + "lalla"
+            if item.lora_list is not None:
+                if len(item.lora_list) > 0:
+                    lora_list.extend(item.lora_list)
+
+            if item.controlnets is not None:
+                if len(item.controlnets) > 0:
+                    controlnet_list.extend(item.controlnet_list)
+
+            if len(item.positive_prompt) > 0:
+                prompt_positive += item.positive_prompt + " "
+
+            if len(item.negative_prompt) > 0:
+                prompt_negative += item.negative_prompt + " "
+
+            if item.ipadapter is not None:
+                ipadapter = item.ipadapter
+
+        zipped_items.append(
+            ItemRecord(
+                code_name=group_code_name,
+                positive_prompt=prompt_positive,
+                negative_prompt=prompt_negative,
+                lora_list=lora_list,
+                ipadapter=ipadapter,
+                controlnets=controlnet_list,
+            )
+        )
+
+    return zipped_items
+
+
 async def get_items_per_group_without_regioned_prompts(
     group_selections: list[GroupSelection],
 ) -> list[list[ItemRecord]]:
@@ -58,40 +169,14 @@ async def get_items_per_group_without_regioned_prompts(
     for group_sel in group_selections:
         # Handle merged groups
         if group_sel.is_merged:
-            merged_items: list[ItemRecord] = []
             assert group_sel.merged_groups is not None
-
-            for merged_group in group_sel.merged_groups:
-                group_code = merged_group.group_code_name
-
-                # Check group exists
-                group = await GroupRecord.filter(code_name=group_code).first()
-                if not group:
-                    raise ValueError(f"Group '{group_code}' not found")
-
-                items = []
-                if merged_group.exclude is None and merged_group.include_only is None:
-                    items = await ItemRecord.filter(group_id=group.id).all()
-
-                elif merged_group.exclude is not None:
-                    items = (
-                        await ItemRecord.filter(group_id=group.id)
-                        .exclude(code_name__in=merged_group.exclude)
-                        .all()
-                    )
-
-                elif merged_group.include_only is not None:
-                    items = await ItemRecord.filter(
-                        group_id=group.id, code_name__in=merged_group.include_only
-                    ).all()
-
-                if merged_group.is_template:
-                    items = await get_template_prompt_comb(merged_group)
-
-                print(group_code, len(items))
-                merged_items.extend(items)
-
+            merged_items: list[ItemRecord] = await get_items_by_merged_groups(group_sel)
             items_per_group.append(merged_items)
+
+        if group_sel.is_zipped:
+            assert group_sel.zipped_groups is not None
+            zipped_items = await get_items_by_zipped_groups(group_sel)
+            items_per_group.append(zipped_items)
 
         elif group_sel.is_template:
             items = await get_template_prompt_comb(group_sel)

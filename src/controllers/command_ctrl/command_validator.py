@@ -149,6 +149,39 @@ async def validate_group_selections(
                             errors.append(
                                 f"Item '{item_code}' not found in group '{group_code}'"
                             )
+        # handle zipped group
+        if group_sel.is_zipped:
+            assert group_sel.zipped_groups is not None
+            for zipped_groups in group_sel.zipped_groups:
+                group_code = zipped_groups.group_code_name
+
+                # Check group exists
+                group = await GroupRecord.filter(code_name=group_code).first()
+                if not group:
+                    errors.append(f"Group '{group_code}' not found")
+                    continue
+
+                # Check included items
+                if zipped_groups.include_only:
+                    for item_code in zipped_groups.include_only:
+                        item_exists = await ItemRecord.filter(
+                            group_id=group.id, code_name=item_code
+                        ).exists()
+                        if not item_exists:
+                            errors.append(
+                                f"Item '{item_code}' not found in group '{group_code}'"
+                            )
+
+                # Check excluded items
+                if zipped_groups.exclude:
+                    for item_code in zipped_groups.exclude:
+                        item_exists = await ItemRecord.filter(
+                            group_id=group.id, code_name=item_code
+                        ).exists()
+                        if not item_exists:
+                            errors.append(
+                                f"Item '{item_code}' not found in group '{group_code}'"
+                            )
         else:
             # Handle single group
             group_code = group_sel.group_code_name
