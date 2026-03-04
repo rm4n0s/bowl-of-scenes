@@ -43,6 +43,9 @@ class JobsPage:
     async def check_notif_and_update(self):
         notif = self.notifctrl.get_notification()
         if notif is None:
+            if self._prev_notif_job_id is not None:
+                await self.load_items()
+                self._prev_notif_job_id = None
             return
 
         if (

@@ -130,7 +130,7 @@ async def get_items_by_zipped_groups(group_sel: GroupSelection) -> list[ItemReco
         ipadapter = None
 
         for item in combo:
-            group_code_name += item.code_name + "lalla"
+            group_code_name += item.code_name + ""
             if item.lora_list is not None:
                 if len(item.lora_list) > 0:
                     lora_list.extend(item.lora_list)
@@ -173,7 +173,7 @@ async def get_items_per_group_without_regioned_prompts(
             merged_items: list[ItemRecord] = await get_items_by_merged_groups(group_sel)
             items_per_group.append(merged_items)
 
-        if group_sel.is_zipped:
+        elif group_sel.is_zipped:
             assert group_sel.zipped_groups is not None
             zipped_items = await get_items_by_zipped_groups(group_sel)
             items_per_group.append(zipped_items)
@@ -181,6 +181,7 @@ async def get_items_per_group_without_regioned_prompts(
         elif group_sel.is_template:
             items = await get_template_prompt_comb(group_sel)
             items_per_group.append(items)
+
         else:
             # Handle single group
             group_code = group_sel.group_code_name

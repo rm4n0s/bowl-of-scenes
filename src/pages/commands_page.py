@@ -15,19 +15,58 @@ from src.controllers.command_ctrl.command_ctrl import (
     stop_command,
 )
 from src.controllers.manager_ctrl import Manager
+from src.controllers.notification_ctrl import NotificationCtrl
 from src.controllers.project_ctrl import ProjectOutput, get_project
 from src.core.config import Config
 from src.pages.common.nav_menu import common_nav_menu
 
 
 class CommandsPage:
-    def __init__(self, conf: Config, manager: Manager, project: ProjectOutput):
+    def __init__(
+        self,
+        conf: Config,
+        manager: Manager,
+        notifctrl: NotificationCtrl,
+        project: ProjectOutput,
+    ):
         self.items = []
         self.selected_item = None
         self.table = None
         self.conf = conf
         self.manager = manager
         self.project = project
+        self.notifctrl = notifctrl
+        self.running_cmd_ids = {}
+
+    async def check_notif_and_update(self):
+        notif = self.notifctrl.get_notification()
+        if notif is None:
+            if len(self.running_cmd_ids) > 0:
+                for idx, cmd in enumerate(self.items):
+                    if "is_running" in self.items[idx].keys():
+                        self.items[idx]["is_running"] = False
+                self.running_cmd_ids = {}
+                await self.load_items()
+            return
+
+        if notif.project_id == self.project.id:
+            has_changed = False
+            for idx, cmd in enumerate(self.items):
+                if notif.cmd_id == cmd["id"]:
+                    if "is_running" not in self.items[idx].keys():
+                        self.items[idx]["is_running"] = True
+                        self.running_cmd_ids[notif.cmd_id] = True
+                        has_changed = True
+                    else:
+                        if not self.items[idx]["is_running"]:
+                            self.items[idx]["is_running"] = True
+                            self.running_cmd_ids[notif.cmd_id] = True
+                            has_changed = True
+                    break
+
+            if self.table and has_changed:
+                self.table.rows = self.items  # Assign new rows
+                self.table.update()
 
     async def load_items(self):
         cmds = await list_commands(self.project.id)
@@ -183,9 +222,9 @@ class CommandsPage:
                 <q-td :props="props">
                     <q-btn flat dense icon="edit" class="q-mr-sm"  @click="$parent.$emit('edit', props.row)" />
                     <q-btn flat dense icon="delete" class="q-mr-xl"  color="negative" @click="$parent.$emit('delete', props.row)" />
-                    <q-btn flat dense icon="start" class="q-mr-xl"   @click="$parent.$emit('run_command', props.row)" />
-                    <q-btn flat dense icon="stop" class="q-mr-xl"   @click="$parent.$emit('stop_command', props.row)" />
-                    <q-btn flat dense icon="autorenew" class="q-mr-xl"   @click="$parent.$emit('recreate_command', props.row)" />
+                    <q-btn v-if="!props.row['is_running']" flat dense icon="start" class="q-mr-xl" @click="$parent.$emit('run_command', props.row)" />
+                    <q-btn v-if="props.row['is_running']" flat dense icon="stop" class="q-mr-xl" @click="$parent.$emit('stop_command', props.row)" />
+                    <q-btn v-if="!props.row['is_running']" flat dense icon="autorenew" class="q-mr-xl" @click="$parent.$emit('recreate_command', props.row)" />
                     <q-btn flat dense icon="table"   @click="$parent.$emit('show_jobs', props.row)" />
                 </q-td>
             """,
@@ -203,10 +242,11 @@ class CommandsPage:
                 lambda e: recreate_command(self.conf, e.args["id"]),
             )
 
+        ui.timer(0.1, lambda: self.check_notif_and_update())
         await table()
 
 
-def init(conf: Config, manager: Manager | None):
+def init(conf: Config, manager: Manager, notifctrl: NotificationCtrl):
     @ui.page("/projects/{project_id}/commands")
     async def page(project_id: int):
         ui.dark_mode().auto()
@@ -214,8 +254,7 @@ def init(conf: Config, manager: Manager | None):
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        assert manager is not None
-        page = CommandsPage(conf, manager, project)
+        page = CommandsPage(conf, manager, notifctrl, project)
         await common_nav_menu()
         await page.render()
         await page.load_items()

@@ -89,7 +89,7 @@ def main():
     categories_page.init()
     projects_page.init()
     fixers_page.init()
-    commands_page.init(GLOBAL_CONF, GLOBAL_MANAGER)
+    commands_page.init(GLOBAL_CONF, GLOBAL_MANAGER, GLOBAL_NOTIFICATION)
     jobs_page.init(GLOBAL_CONF, GLOBAL_MANAGER, GLOBAL_NOTIFICATION)
     groups_page.init(GLOBAL_CONF)
     items_page.init(GLOBAL_CONF)
