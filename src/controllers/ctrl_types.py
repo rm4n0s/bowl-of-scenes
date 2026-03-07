@@ -97,6 +97,13 @@ class Lora:
 
 
 @dataclass
+class CivitaiLora:
+    model_id: int
+    strength_model: float
+    strength_clip: float
+
+
+@dataclass
 class CoordinatedRegionKeyword:
     keyword: str
     width: int

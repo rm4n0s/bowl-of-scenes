@@ -14,6 +14,8 @@ class Config(DataClassYAMLMixin):
     ipadapter_references_path: str
     colored_region_path: str
     thumbnails_path: str
+    civitai_lora_path: str | None
+    civitai_api_token: str | None
 
 
 def read_config(filepath: str) -> Config:

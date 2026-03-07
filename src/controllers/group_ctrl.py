@@ -1,21 +1,34 @@
+import json
 import os
 import uuid
+from dataclasses import asdict
+
+import aiohttp
 
 from src.controllers.common import delete_item_files
-from src.controllers.ctrl_types import GroupInput, GroupOutput
+from src.controllers.ctrl_types import (
+    CivitaiLora,
+    GroupInput,
+    GroupOutput,
+    ItemInput,
+    Lora,
+    ServerOutput,
+)
+from src.controllers.item_ctrl import add_item
 from src.controllers.serializers import serialize_group
 from src.core.config import Config
+from src.core.utils import lora_downloader
 from src.db.records import GroupRecord, ItemRecord
 
 
-async def add_group(conf: Config, input: GroupInput):
+async def add_group(conf: Config, input: GroupInput) -> GroupOutput:
     thumbnail_path = None
     if input.thumbnail_image is not None:
         image_filename = str(uuid.uuid4()) + "_" + input.thumbnail_image.name
         thumbnail_path = os.path.join(conf.thumbnails_path, image_filename)
         await input.thumbnail_image.save(thumbnail_path)
 
-    await GroupRecord.create(
+    group = await GroupRecord.create(
         name=input.name,
         description=input.description,
         code_name=input.code_name,
@@ -27,6 +40,8 @@ async def add_group(conf: Config, input: GroupInput):
         use_coordinates_region=input.use_coordinates_region,
         thumbnail_image=thumbnail_path,
     )
+
+    return serialize_group(group)
 
 
 async def add_group_of_positives_from_text_file(
@@ -117,3 +132,55 @@ async def delete_group(id: int):
         await item.delete()
 
     await rec.delete()
+
+
+async def add_group_of_loras_civitai(
+    cfg: Config, models: list[CivitaiLora], input: GroupInput, server: ServerOutput
+):
+    if cfg.civitai_api_token is None:
+        raise Exception(
+            "can't create group of LoRAs from Civitai if 'civitai_api_token' is missing from configurations"
+        )
+
+    if cfg.civitai_lora_path is None:
+        raise Exception(
+            "can't create group of LoRAs from Civitai if 'civitai_lora_path' is missing from configurations"
+        )
+
+    group = await add_group(cfg, input)
+
+    for model in models:
+        civitai_metadata = await lora_downloader.download_lora_from_civitai(
+            model.model_id, cfg.civitai_lora_path, cfg.civitai_api_token
+        )
+
+        file_name = str(model.model_id) + ".safetensors"
+        model_path = os.path.abspath(os.path.join(cfg.civitai_lora_path, file_name))
+        async with aiohttp.ClientSession() as session:
+            await lora_downloader.upload_single_lora_comfyui(
+                session, model_path, server.host
+            )
+
+        lora_dict = asdict(
+            Lora(
+                name=file_name,
+                strength_clip=model.strength_clip,
+                strength_model=model.strength_model,
+            )
+        )
+        lora_ls = [lora_dict]
+        lora_str = json.dumps(lora_ls)
+        item_input = ItemInput(
+            group_id=group.id,
+            name=str(model.model_id),
+            code_name=str(model.model_id),
+            positive_prompt=civitai_metadata["trigger_words"],
+            negative_prompt="",
+            lora=lora_str,
+            controlnets=[],
+            coordinated_regions=None,
+            ipadapter=None,
+            mask_region_reference_image=None,
+            thumbnail_image=None,
+        )
+        item = await add_item(cfg, item_input)
