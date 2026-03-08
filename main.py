@@ -4,6 +4,8 @@
 import argparse
 import os
 
+os.environ["YOLO_OFFLINE"] = "1"
+os.environ["ULTRALYTICS_OFFLINE"] = "1"
 from nicegui import app, ui
 from ultralytics import settings
 

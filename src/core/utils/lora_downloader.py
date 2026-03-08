@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import shutil
 from pathlib import Path
 
 import aiofiles
@@ -14,36 +15,31 @@ async def list_loras_from_comfyui(host="http://localhost:8188"):
             return await response.json()
 
 
-async def upload_multiple_loras_from_comfyui(folder_path, host="http://localhost:8188"):
-    lora_files = [
-        f for f in os.listdir(folder_path) if f.endswith((".safetensors", ".pt"))
-    ]
-    results = []
+def copy_lora_to_comfyui(file_path: str, comfyui_path: str, subfolder: str = "") -> str:
+    """
+    Copy a LoRA model file to ComfyUI's loras folder.
 
-    async with aiohttp.ClientSession() as session:
-        tasks = [
-            upload_single_lora_comfyui(session, os.path.join(folder_path, f), host)
-            for f in lora_files
-        ]
-        results = await asyncio.gather(*tasks)
+    Args:
+        file_path: Path to the source .safetensors or .pt file
+        comfyui_path: Root path of your ComfyUI installation
+        subfolder: Optional subfolder inside loras/ (e.g. "characters")
 
-    return results
+    Returns:
+        Destination path where the file was copied
+    """
+    loras_dir = os.path.join(comfyui_path, "models", "loras", subfolder)
+    os.makedirs(loras_dir, exist_ok=True)
 
-
-async def upload_single_lora_comfyui(session, file_path, host="http://localhost:8188"):
     file_name = os.path.basename(file_path)
-    print(f"Uploading {file_name}...")
+    dest_path = os.path.join(loras_dir, file_name)
 
-    with open(file_path, "rb") as f:
-        form = aiohttp.FormData()
-        form.add_field("file", f, filename=file_name)
-        form.add_field("type", "loras")
-        form.add_field("overwrite", "true")
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Source file not found: {file_path}")
 
-        async with session.post(f"{host}/upload/model", data=form) as response:
-            result = await response.json()
-            print(f"  ✓ Done: {file_name} - {response.status}")
-            return {"file": file_name, "status": response.status, "response": result}
+    shutil.copy2(file_path, dest_path)
+    print(f"✓ Copied {file_name} -> {dest_path}")
+
+    return dest_path
 
 
 async def download_lora_from_civitai(
@@ -150,35 +146,35 @@ async def download_lora_from_civitai(
             download_url += f"?token={api_token}"
 
         safetensor_path = output_path / f"{model_id}.safetensors"
+        if not os.path.exists(safetensor_path):
+            print(f"Downloading model from {download_url} …")
 
-        print(f"Downloading model from {download_url} …")
+            async with session.get(
+                download_url,
+                timeout=aiohttp.ClientTimeout(total=3600),  # 1h cap for large models
+                allow_redirects=True,
+            ) as resp:
+                if resp.status == 401:
+                    raise RuntimeError(
+                        "Download requires authentication. "
+                        "Please provide a valid api_token."
+                    )
+                resp.raise_for_status()
 
-        async with session.get(
-            download_url,
-            timeout=aiohttp.ClientTimeout(total=3600),  # 1h cap for large models
-            allow_redirects=True,
-        ) as resp:
-            if resp.status == 401:
-                raise RuntimeError(
-                    "Download requires authentication. "
-                    "Please provide a valid api_token."
-                )
-            resp.raise_for_status()
+                total = int(resp.headers.get("Content-Length", 0))
+                downloaded = 0
+                chunk_size = 1024 * 1024  # 1 MB
 
-            total = int(resp.headers.get("Content-Length", 0))
-            downloaded = 0
-            chunk_size = 1024 * 1024  # 1 MB
-
-            async with aiofiles.open(safetensor_path, "wb") as f:
-                async for chunk in resp.content.iter_chunked(chunk_size):
-                    await f.write(chunk)
-                    downloaded += len(chunk)
-                    if total:
-                        pct = downloaded / total * 100
-                        print(
-                            f"  {pct:5.1f}%  ({downloaded:,} / {total:,} bytes)",
-                            end="\r",
-                        )
+                async with aiofiles.open(safetensor_path, "wb") as f:
+                    async for chunk in resp.content.iter_chunked(chunk_size):
+                        await f.write(chunk)
+                        downloaded += len(chunk)
+                        if total:
+                            pct = downloaded / total * 100
+                            print(
+                                f"  {pct:5.1f}%  ({downloaded:,} / {total:,} bytes)",
+                                end="\r",
+                            )
 
         print(f"\nModel saved    → {safetensor_path}")
 

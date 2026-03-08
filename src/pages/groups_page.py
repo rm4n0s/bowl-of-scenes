@@ -15,6 +15,7 @@ from src.controllers.group_ctrl import (
 )
 from src.core.config import Config
 from src.pages.common.nav_menu import common_nav_menu
+from src.pages.group_lora_civitai_dialog import show_create_group_civitai_loras
 
 
 class GroupsPage:
@@ -65,13 +66,15 @@ class GroupsPage:
                 ui.button("Cancel", on_click=dialog.close)
                 ui.button(
                     "Create",
-                    on_click=lambda: self.handle_create_group_of_positives_from_text_file(
-                        dialog,
-                        name_input.value,
-                        description_input.value,
-                        code_name_input.value,
-                        category_id_input.value,  # pyright: ignore[reportArgumentType]
-                        text_content,
+                    on_click=lambda: (
+                        self.handle_create_group_of_positives_from_text_file(
+                            dialog,
+                            name_input.value,
+                            description_input.value,
+                            code_name_input.value,
+                            category_id_input.value,  # pyright: ignore[reportArgumentType]
+                            text_content,
+                        )
                     ),
                 ).props("color=primary")
 
@@ -318,6 +321,13 @@ class GroupsPage:
                 icon="add",
                 on_click=self.show_create_group_of_positives_from_text_file,
             ).props("color=primary")
+            if self.conf.civitai_api_token and self.conf.civitai_lora_path:
+                ui.button(
+                    "Add group of LoRAs from Civitai",
+                    icon="add",
+                    on_click=lambda: show_create_group_civitai_loras(self.conf),
+                ).props("color=primary")
+
             ui.button("Refresh", icon="refresh", on_click=self.load_items)
 
         @ui.refreshable

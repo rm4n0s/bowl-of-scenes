@@ -99,8 +99,8 @@ class Lora:
 @dataclass
 class CivitaiLora:
     model_id: int
-    strength_model: float
-    strength_clip: float
+    model_strength: float
+    model_clip: float
 
 
 @dataclass

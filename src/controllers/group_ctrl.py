@@ -135,7 +135,11 @@ async def delete_group(id: int):
 
 
 async def add_group_of_loras_civitai(
-    cfg: Config, models: list[CivitaiLora], input: GroupInput, server: ServerOutput
+    cfg: Config,
+    models: list[CivitaiLora],
+    input: GroupInput,
+    comfyui_path: str,
+    comfyui_lora_subfolder_name: str,
 ):
     if cfg.civitai_api_token is None:
         raise Exception(
@@ -153,28 +157,34 @@ async def add_group_of_loras_civitai(
         civitai_metadata = await lora_downloader.download_lora_from_civitai(
             model.model_id, cfg.civitai_lora_path, cfg.civitai_api_token
         )
-
+        print("civitai metadata", civitai_metadata)
         file_name = str(model.model_id) + ".safetensors"
         model_path = os.path.abspath(os.path.join(cfg.civitai_lora_path, file_name))
-        async with aiohttp.ClientSession() as session:
-            await lora_downloader.upload_single_lora_comfyui(
-                session, model_path, server.host
-            )
+
+        lora_downloader.copy_lora_to_comfyui(
+            model_path, comfyui_path, comfyui_lora_subfolder_name
+        )
 
         lora_dict = asdict(
             Lora(
-                name=file_name,
-                strength_clip=model.strength_clip,
-                strength_model=model.strength_model,
+                name=os.path.join(comfyui_lora_subfolder_name, file_name),
+                strength_clip=model.model_clip,
+                strength_model=model.model_strength,
             )
         )
         lora_ls = [lora_dict]
         lora_str = json.dumps(lora_ls)
+
+        positive_prompt = ""
+        if "trigger_words" in civitai_metadata.keys():
+            for v in civitai_metadata["trigger_words"]:
+                positive_prompt += v + "\n\n"
+
         item_input = ItemInput(
             group_id=group.id,
             name=str(model.model_id),
             code_name=str(model.model_id),
-            positive_prompt=civitai_metadata["trigger_words"],
+            positive_prompt=positive_prompt,
             negative_prompt="",
             lora=lora_str,
             controlnets=[],
@@ -183,4 +193,4 @@ async def add_group_of_loras_civitai(
             mask_region_reference_image=None,
             thumbnail_image=None,
         )
-        item = await add_item(cfg, item_input)
+        await add_item(cfg, item_input)
