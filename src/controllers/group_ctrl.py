@@ -1,5 +1,7 @@
+import asyncio
 import json
 import os
+import time
 import uuid
 from dataclasses import asdict
 
@@ -182,7 +184,7 @@ async def add_group_of_loras_civitai(
 
         item_input = ItemInput(
             group_id=group.id,
-            name=str(model.model_id),
+            name=civitai_metadata["model_name"],
             code_name=str(model.model_id),
             positive_prompt=positive_prompt,
             negative_prompt="",
@@ -194,3 +196,4 @@ async def add_group_of_loras_civitai(
             thumbnail_image=None,
         )
         await add_item(cfg, item_input)
+        await asyncio.sleep(15)
