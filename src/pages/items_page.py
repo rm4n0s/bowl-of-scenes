@@ -1,5 +1,6 @@
 import json
 from dataclasses import asdict, dataclass
+from datetime import datetime
 
 from fastapi import HTTPException
 from nicegui import ui
@@ -8,6 +9,7 @@ from nicegui.elements.upload_files import FileUpload
 from nicegui.events import MultiUploadEventArguments
 
 from src.controllers.ctrl_types import (
+    CivitaiLora,
     ControlNetConfigInput,
     ControlNetType,
     ItemIPAdapterInput,
@@ -16,6 +18,7 @@ from src.controllers.ctrl_types import (
 from src.controllers.group_ctrl import GroupOutput, get_group
 from src.controllers.item_ctrl import (
     ItemInput,
+    add_civitai_lora_as_item,
     add_item,
     delete_item,
     edit_item,
@@ -75,6 +78,89 @@ class ItemsPage:
             )
         )
         add_dialog.close()
+
+    async def show_add_civitai_lora_as_item_dialog(self):
+        """Opens a nested dialog to add a new model item."""
+        with ui.dialog() as add_dialog, ui.card().classes("w-96 p-6 gap-4"):
+            ui.label("Add Model Item").classes("text-lg font-semibold text-gray-700")
+            ui.separator()
+
+            model_id_input = ui.input(
+                label="Model ID", placeholder="e.g. stable-diffusion-v1"
+            ).classes("w-full")
+
+            model_strength_input = ui.number(
+                label="Model Strength",
+                placeholder="0.0 – 1.0",
+                min=0.0,
+                max=1.0,
+                step=0.01,
+                format="%.2f",
+            ).classes("w-full")
+
+            model_clip_input = ui.number(
+                label="Model Clip", placeholder="e.g. 1.0", step=0.01, format="%.2f"
+            ).classes("w-full")
+
+            comfyui_path_input = ui.input(
+                label="Comfyui's folder path", placeholder="/ComfyUI"
+            ).classes("w-full")
+
+            comfyui_lora_subfolder_name = ui.input(
+                label="Comfyui's lora subfolder name",
+                value=datetime.now().strftime("%Y_%m_%d"),
+            ).classes("w-full")
+
+            error_label = ui.label("").classes("text-red-500 text-sm hidden")
+
+            async def confirm_add():
+                # Validate
+                if not model_id_input.value:
+                    error_label.set_text("Model ID is required.")
+                    error_label.classes(remove="hidden")
+                    return
+                if model_strength_input.value is None:
+                    error_label.set_text("Model Strength is required.")
+                    error_label.classes(remove="hidden")
+                    return
+                if model_clip_input.value is None:
+                    error_label.set_text("Model Clip is required.")
+                    error_label.classes(remove="hidden")
+                    return
+
+                if comfyui_path_input.value is None:
+                    error_label.set_text("Comfyui's folder path is required.")
+                    error_label.classes(remove="hidden")
+                    return
+
+                if comfyui_lora_subfolder_name.value is None:
+                    error_label.set_text("Comfyui's lora subfolder name is required.")
+                    error_label.classes(remove="hidden")
+                    return
+
+                lora = CivitaiLora(
+                    model_id=int(model_id_input.value),
+                    model_strength=float(model_strength_input.value),
+                    model_clip=float(model_clip_input.value),
+                )
+
+                await add_civitai_lora_as_item(
+                    self.conf,
+                    lora,
+                    self.group.id,
+                    comfyui_path_input.value,
+                    comfyui_lora_subfolder_name.value,
+                )
+                await self.load_items()
+                add_dialog.close()
+
+            with ui.row().classes("w-full justify-end gap-2 pt-2"):
+                ui.button("Cancel", on_click=add_dialog.close).props("flat").classes(
+                    "text-gray-500"
+                )
+                ui.button("Add", on_click=confirm_add).classes("bg-blue-600 text-white")
+
+        add_dialog.open()
 
     async def show_add_controllnet_dialog(self, update_task_list):
         with ui.dialog() as add_dialog, ui.card().classes("w-80"):
@@ -672,6 +758,14 @@ class ItemsPage:
             ui.button("Add item", icon="add", on_click=self.show_create_dialog).props(
                 "color=primary"
             )
+
+            if self.group.use_lora:
+                ui.button(
+                    "Add LoRA from Civitai",
+                    icon="add",
+                    on_click=self.show_add_civitai_lora_as_item_dialog,
+                ).props("color=primary")
+
             ui.button("Refresh", icon="refresh", on_click=self.load_items)
 
         @ui.refreshable

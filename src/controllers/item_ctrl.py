@@ -5,14 +5,17 @@ from dataclasses import asdict
 
 from src.controllers.common import delete_item_files
 from src.controllers.ctrl_types import (
+    CivitaiLora,
     ControlNetConfig,
     IPAdapter,
     ItemInput,
     ItemOutput,
+    Lora,
     MaskRegionImages,
 )
 from src.controllers.serializers import serialize_item
 from src.core.config import Config
+from src.core.utils import lora_downloader
 from src.core.utils.auto_masking import auto_create_masks
 from src.db.records import ItemRecord
 
@@ -270,3 +273,62 @@ async def list_items(group_id: int) -> list[ItemOutput]:
         io = serialize_item(rec)
         outs.append(io)
     return outs
+
+
+async def add_civitai_lora_as_item(
+    cfg: Config,
+    model: CivitaiLora,
+    group_id: int,
+    comfyui_path: str,
+    comfyui_lora_subfolder_name: str,
+):
+    if cfg.civitai_api_token is None:
+        raise Exception(
+            "can't create group of LoRAs from Civitai if 'civitai_api_token' is missing from configurations"
+        )
+
+    if cfg.civitai_lora_path is None:
+        raise Exception(
+            "can't create group of LoRAs from Civitai if 'civitai_lora_path' is missing from configurations"
+        )
+
+    civitai_metadata = await lora_downloader.download_lora_from_civitai(
+        model.model_id, cfg.civitai_lora_path, cfg.civitai_api_token
+    )
+    print("civitai metadata", civitai_metadata)
+    file_name = str(model.model_id) + ".safetensors"
+    model_path = os.path.abspath(os.path.join(cfg.civitai_lora_path, file_name))
+
+    lora_downloader.copy_lora_to_comfyui(
+        model_path, comfyui_path, comfyui_lora_subfolder_name
+    )
+
+    lora_dict = asdict(
+        Lora(
+            name=os.path.join(comfyui_lora_subfolder_name, file_name),
+            strength_clip=model.model_clip,
+            strength_model=model.model_strength,
+        )
+    )
+    lora_ls = [lora_dict]
+    lora_str = json.dumps(lora_ls)
+
+    positive_prompt = ""
+    if "trigger_words" in civitai_metadata.keys():
+        for v in civitai_metadata["trigger_words"]:
+            positive_prompt += v + "\n\n"
+
+    item_input = ItemInput(
+        group_id=group_id,
+        name=civitai_metadata["model_name"],
+        code_name=str(model.model_id),
+        positive_prompt=positive_prompt,
+        negative_prompt="",
+        lora=lora_str,
+        controlnets=[],
+        coordinated_regions=None,
+        ipadapter=None,
+        mask_region_reference_image=None,
+        thumbnail_image=None,
+    )
+    await add_item(cfg, item_input)
