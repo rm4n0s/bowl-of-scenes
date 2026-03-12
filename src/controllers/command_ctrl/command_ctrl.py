@@ -3,7 +3,6 @@ import hashlib
 import os
 from dataclasses import dataclass
 from itertools import product
-from typing import Any
 
 from tortoise.expressions import F
 
@@ -15,6 +14,8 @@ from src.controllers.command_ctrl.command_validator import (
     validate_code_names,
 )
 from src.controllers.ctrl_types import (
+    CommandInput,
+    CommandOutput,
     CoordinatedRegion,
     CoordinatedRegionKeyword,
     JobStatus,
@@ -33,21 +34,6 @@ from src.db.records import (
     ServerRecord,
 )
 from src.db.records.fixer_rec import FixerRecord
-
-
-@dataclass
-class CommandInput:
-    project_id: int
-    code: str
-
-
-@dataclass
-class CommandOutput:
-    id: int
-    project_id: int
-    order: int
-    command_code: str
-    command_json: dict[str, Any]
 
 
 async def get_items_by_merged_groups(group_sel: GroupSelection) -> list[ItemRecord]:
@@ -610,12 +596,19 @@ async def get_command(command_id: int) -> CommandOutput:
     if cmd is None:
         raise ValueError("command doesn't exist")
 
+    total_jobs = await JobRecord.filter(command_id=cmd.id).count()
+    finished_jobs = await JobRecord.filter(
+        command_id=cmd.id, status=JobStatus.FINISHED
+    ).count()
+
     return CommandOutput(
         id=cmd.id,
         project_id=cmd.project_id,
         order=cmd.order,
         command_code=cmd.command_code,
         command_json=cmd.command_json,
+        total_jobs=total_jobs,
+        finished_jobs=finished_jobs,
     )
 
 
@@ -791,6 +784,10 @@ async def list_commands(project_id: int) -> list[CommandOutput]:
     commands = await query.all()
     out = []
     for cmd in commands:
+        total_jobs = await JobRecord.filter(command_id=cmd.id).count()
+        finished_jobs = await JobRecord.filter(
+            command_id=cmd.id, status=JobStatus.FINISHED
+        ).count()
         out.append(
             CommandOutput(
                 id=cmd.id,
@@ -798,6 +795,8 @@ async def list_commands(project_id: int) -> list[CommandOutput]:
                 order=cmd.order,
                 command_code=cmd.command_code,
                 command_json=cmd.command_json,
+                total_jobs=total_jobs,
+                finished_jobs=finished_jobs,
             )
         )
     return out

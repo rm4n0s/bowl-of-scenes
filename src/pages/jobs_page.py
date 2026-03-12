@@ -4,8 +4,8 @@ from dataclasses import asdict
 from fastapi import HTTPException
 from nicegui import ui
 
-from src.controllers.command_ctrl.command_ctrl import CommandOutput, get_command
-from src.controllers.ctrl_types import Notification
+from src.controllers.command_ctrl.command_ctrl import get_command
+from src.controllers.ctrl_types import CommandOutput
 from src.controllers.job_ctrl import list_jobs, reload_job, run_job, stop_job
 from src.controllers.manager_ctrl import Manager
 from src.controllers.notification_ctrl import NotificationCtrl

@@ -7,6 +7,23 @@ from nicegui.elements.upload_files import FileUpload
 from yet_another_comfy_client import YetAnotherComfyClient
 
 
+@dataclass
+class CommandInput:
+    project_id: int
+    code: str
+
+
+@dataclass
+class CommandOutput:
+    id: int
+    project_id: int
+    order: int
+    command_code: str
+    command_json: dict[str, Any]
+    finished_jobs: int = 0
+    total_jobs: int = 0
+
+
 class NotificationType(enum.Enum):
     FINISHED = "finished"
     ERROR = "error"

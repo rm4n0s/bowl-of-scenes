@@ -5,7 +5,6 @@ from nicegui import ui
 from nicegui.elements.label import Label
 
 from src.controllers.command_ctrl.command_ctrl import (
-    CommandInput,
     add_command,
     delete_command,
     edit_command,
@@ -14,6 +13,7 @@ from src.controllers.command_ctrl.command_ctrl import (
     run_command,
     stop_command,
 )
+from src.controllers.ctrl_types import CommandInput
 from src.controllers.manager_ctrl import Manager
 from src.controllers.notification_ctrl import NotificationCtrl
 from src.controllers.project_ctrl import ProjectOutput, get_project
@@ -202,6 +202,18 @@ class CommandsPage:
                     "name": "command_code",
                     "label": "Code",
                     "field": "command_code",
+                    "align": "left",
+                },
+                {
+                    "name": "finished_jobs",
+                    "label": "Finished jobs",
+                    "field": "finished_jobs",
+                    "align": "left",
+                },
+                {
+                    "name": "total_jobs",
+                    "label": "Total jobs",
+                    "field": "total_jobs",
                     "align": "left",
                 },
                 {
