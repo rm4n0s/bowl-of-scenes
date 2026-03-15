@@ -8,6 +8,42 @@ from yet_another_comfy_client import YetAnotherComfyClient
 
 
 @dataclass
+class ImageAttributes:
+    width: int | None = None
+    height: int | None = None
+    file_type: str | None = None
+    batch_size: int | None = None
+    steps: int | None = None
+    cfg: float | None = None
+    sampler_name: str | None = None
+    scheduler: str | None = None
+    denoise: float | None = None
+    seed: int | None = None
+
+
+@dataclass
+class VideoAttributes:
+    width: int | None = None
+    height: int | None = None
+    file_type: str | None = None
+    fps: int | float | None = None
+    num_frames: int | None = None
+    duration_seconds: float | None = None
+
+
+@dataclass
+class ThreeDAttributes:
+    file_type: str | None = None
+
+
+class GeneratorOutputType(enum.Enum):
+    IMAGE = "image"
+    VIDEO = "video"
+    THREE_D = "3d"
+    UNKNOWN = "unknown"
+
+
+@dataclass
 class CommandInput:
     project_id: int
     code: str
