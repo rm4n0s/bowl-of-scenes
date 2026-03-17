@@ -197,18 +197,18 @@ async def edit_item(conf: Config, id: int, ui_input: ItemInput):
     ):
         item.coordinated_regions = json.loads(ui_input.coordinated_regions)
 
-    controlnets: list[ControlNetConfig] = []
-    for v in item.controlnets:
-        controlnets.append(
-            ControlNetConfig(
-                type_of_controlnet=v["type_of_controlnet"],
-                image_path=v["image_path"],
-                is_reference=v["is_reference"],
-                model_pattern=v["model_pattern"],
-                strength=v["strength"],
-            )
-        )
     if len(ui_input.controlnets) > 0:
+        controlnets: list[ControlNetConfig] = []
+        for v in item.controlnets:
+            controlnets.append(
+                ControlNetConfig(
+                    type_of_controlnet=v["type_of_controlnet"],
+                    image_path=v["image_path"],
+                    is_reference=v["is_reference"],
+                    model_pattern=v["model_pattern"],
+                    strength=v["strength"],
+                )
+            )
         existing_controlnets = {}
         for input_cnc in ui_input.controlnets:
             existing_controlnets[

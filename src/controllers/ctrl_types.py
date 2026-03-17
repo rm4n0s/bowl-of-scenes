@@ -374,7 +374,10 @@ class GeneratorInput:
     workflow_json: dict[str, Any]
     positive_prompt_title: str | None
     negative_prompt_title: str | None
-    save_image_title: str
+    output_type: GeneratorOutputType
+    output_attributes: ImageAttributes | VideoAttributes | ThreeDAttributes | None
+    output_node_class_type: str
+    output_node_title: str
     has_random_seed: bool
 
 
@@ -386,7 +389,10 @@ class GeneratorOutput:
     workflow_json: dict[str, Any]
     positive_prompt_title: str | None
     negative_prompt_title: str | None
-    save_image_title: str
+    output_type: GeneratorOutputType
+    output_attributes: ImageAttributes | VideoAttributes | ThreeDAttributes | None
+    output_node_class_type: str
+    output_node_title: str
     has_random_seed: bool
 
 
