@@ -188,7 +188,7 @@ def get_generator_output_type(workflow: dict) -> GeneratorOutputAnalysis:
         node_class_type = node.get("class_type", "")
         if node_class_type in OUTPUT_NODES:
             info = OUTPUT_NODES[node_class_type]
-            generator_output_type = info["generator_output_type"]
+            generator_output_type = GeneratorOutputType(info["generator_output_type"])
             static_ftype = info["file_type"]
             output_inputs = node.get("inputs", {})
             node_title = node.get("_meta", {}).get("title", "").strip()
@@ -214,3 +214,63 @@ def get_generator_output_type(workflow: dict) -> GeneratorOutputAnalysis:
         node_class_type=node_class_type,
         node_title=node_title,
     )
+
+
+def update_workflow_ksampler(workflow: dict, attributes: ImageAttributes) -> dict:
+    """
+    Updates the KSampler and latent image nodes in a ComfyUI API workflow
+    with values from ImageAttributes.
+    Only updates fields that are not None in the attributes.
+
+    Args:
+        workflow:   ComfyUI API format workflow dict
+        attributes: ImageAttributes dataclass with values to apply
+
+    Returns:
+        Updated workflow dict (mutates in place and returns it)
+
+    Raises:
+        ValueError: If no KSampler node is found in the workflow
+    """
+    KSAMPLER_FIELD_MAP = {
+        "steps": "steps",
+        "cfg": "cfg",
+        "sampler_name": "sampler_name",
+        "scheduler": "scheduler",
+        "denoise": "denoise",
+        "seed": "seed",
+    }
+
+    # Latent image nodes that hold width/height
+    LATENT_IMAGE_NODES = (
+        "EmptyLatentImage",
+        "EmptySD3LatentImage",
+        "EmptyLatentImageSD3",
+    )
+
+    ksampler_found = False
+
+    for node in workflow.values():
+        class_type = node.get("class_type", "")
+
+        # ── KSampler ──────────────────────────────────────────────────────────
+        if class_type in ("KSampler", "KSamplerAdvanced"):
+            ksampler_found = True
+            inputs = node["inputs"]
+            for attr_field, ksampler_key in KSAMPLER_FIELD_MAP.items():
+                value = getattr(attributes, attr_field, None)
+                if value is not None:
+                    inputs[ksampler_key] = value
+
+        # ── Latent image (width/height) ───────────────────────────────────────
+        if class_type in LATENT_IMAGE_NODES:
+            inputs = node["inputs"]
+            if attributes.width is not None:
+                inputs["width"] = attributes.width
+            if attributes.height is not None:
+                inputs["height"] = attributes.height
+
+    if not ksampler_found:
+        raise ValueError("No KSampler or KSamplerAdvanced node found in workflow.")
+
+    return workflow

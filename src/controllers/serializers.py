@@ -33,6 +33,7 @@ def serialize_group(rec: GroupRecord) -> GroupOutput:
         use_ip_adapter=rec.use_ip_adapter,
         use_mask_region=rec.use_mask_region,
         use_coordinates_region=rec.use_coordinates_region,
+        use_type_attributes=rec.use_type_attributes,
         thumbnail_image=rec.thumbnail_image,
         show_thumbnail_image=show_thumbnail_image,
     )
@@ -55,6 +56,8 @@ def serialize_job(rec: JobRecord) -> JobOutput:
         server_host=rec.server_host,
         status=rec.status,
         generator_code_name=rec.generator_code_name,
+        generator_output_type=rec.generator_output_type,
+        generator_output_attributes=rec.generator_output_attributes,
         fixer_code_name=rec.fixer_code_name,
         comfyui_prompt_id=rec.comfyui_prompt_id,
         prompt_positive=rec.prompt_positive,

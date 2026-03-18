@@ -1,7 +1,7 @@
 from tortoise import fields
 from tortoise.models import Model
 
-from src.controllers.ctrl_types import JobStatus
+from src.controllers.ctrl_types import GeneratorOutputType, JobStatus
 from src.db.records.common import TimestampMixin
 
 
@@ -15,6 +15,10 @@ class JobRecord(TimestampMixin, Model):
     server_host = fields.CharField(max_length=100)
     status = fields.CharEnumField(enum_type=JobStatus, default=JobStatus.IDLE)
     generator_code_name = fields.CharField(max_length=100, null=True)
+    generator_output_type = fields.CharEnumField(
+        enum_type=GeneratorOutputType, null=True
+    )
+    generator_output_attributes = fields.JSONField(null=True)
     fixer_code_name = fields.CharField(max_length=100, null=True)
     fix_job_id = fields.IntField(null=True)
     comfyui_prompt_id = fields.CharField(max_length=200, null=True, default=None)

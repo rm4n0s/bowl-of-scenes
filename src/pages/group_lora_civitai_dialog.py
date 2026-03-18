@@ -179,6 +179,7 @@ async def show_create_group_civitai_loras(cfg: Config):
                 use_controlnet=False,
                 use_ip_adapter=False,
                 use_mask_region=False,
+                use_type_attributes=False,
                 use_coordinates_region=False,
                 thumbnail_image=None,
             )

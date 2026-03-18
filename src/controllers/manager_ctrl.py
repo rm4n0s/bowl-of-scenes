@@ -15,6 +15,8 @@ from yet_another_comfy_client import (
 from src.controllers.ctrl_types import (
     ControlNetConfig,
     CoordinatedRegion,
+    GeneratorOutputType,
+    ImageAttributes,
     JobStatus,
     NotificationType,
     RegionPrompt,
@@ -25,6 +27,7 @@ from src.controllers.server_ctrl import StatusEnum
 from src.core.config import Config
 from src.core.utils import LoRAInjector, get_title_from_class_type
 from src.core.utils.controlnet_injector import inject_controlnet
+from src.core.utils.generator_type_util import update_workflow_ksampler
 from src.core.utils.ipadapter_injector import add_multiple_ipadapters_to_workflow
 from src.core.utils.mask_injector import inject_masks
 from src.db.records import (
@@ -219,6 +222,10 @@ class Manager:
             "text",
             job.prompt_negative,
         )
+
+        if job.generator_output_type == GeneratorOutputType.IMAGE:
+            attrs = ImageAttributes(**job.generator_output_attributes)
+            prompt = update_workflow_ksampler(prompt, attrs)
 
         if gen.has_random_seed:
             ksampler_titles = get_title_from_class_type(prompt, "KSampler")

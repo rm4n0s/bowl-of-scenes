@@ -35,6 +35,7 @@ async def add_group(conf: Config, input: GroupInput) -> GroupOutput:
         use_controlnet=input.use_controlnet,
         use_ip_adapter=input.use_ip_adapter,
         use_mask_region=input.use_mask_region,
+        use_type_attributes=input.use_type_attributes,
         use_coordinates_region=input.use_coordinates_region,
         thumbnail_image=thumbnail_path,
     )
@@ -55,6 +56,7 @@ async def add_group_of_positives_from_text_file(
         use_ip_adapter=False,
         use_mask_region=False,
         use_coordinates_region=False,
+        use_type_attributes=False,
         thumbnail_image=None,
     )
 
@@ -65,10 +67,6 @@ async def add_group_of_positives_from_text_file(
             code_name=f"{i}",
             positive_prompt=v,
             negative_prompt="",
-            lora_list=None,
-            ipadapter_reference_image=None,
-            mask_region_images=None,
-            thumbnail_image=None,
         )
 
 
@@ -86,6 +84,7 @@ async def edit_group(conf: Config, id: int, input: GroupInput):
     group.use_controlnet = input.use_controlnet
     group.use_mask_region = input.use_mask_region
     group.use_coordinates_region = input.use_coordinates_region
+    group.use_type_attributes = input.use_type_attributes
 
     if input.thumbnail_image is not None:
         if group.thumbnail_image is not None:

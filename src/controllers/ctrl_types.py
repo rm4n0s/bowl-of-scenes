@@ -205,6 +205,7 @@ class GroupInput:
     use_ip_adapter: bool
     use_mask_region: bool
     use_coordinates_region: bool
+    use_type_attributes: bool
     thumbnail_image: FileUpload | None
 
 
@@ -220,6 +221,7 @@ class GroupOutput:
     use_ip_adapter: bool
     use_mask_region: bool
     use_coordinates_region: bool
+    use_type_attributes: bool
     thumbnail_image: str | None
     show_thumbnail_image: str | None
 
@@ -314,6 +316,8 @@ class JobOutput:
     server_host: str
     status: JobStatus
     generator_code_name: str | None
+    generator_output_type: GeneratorOutputType
+    generator_output_attributes: dict[str, Any]
     fixer_code_name: str | None
     comfyui_prompt_id: str | None
     prompt_positive: str

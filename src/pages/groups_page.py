@@ -115,6 +115,9 @@ class GroupsPage:
             use_controlnet_input = ui.checkbox("Use ControlNet").props("outlined")
             use_ip_adapter_input = ui.checkbox("Use IPAdapter").props("outlined")
             use_mask_region_input = ui.checkbox("Use Mask Region").props("outlined")
+            use_type_attributes_input = ui.checkbox("Use type attributes").props(
+                "outlined"
+            )
 
             use_coordinates_region = ui.checkbox("Use Coordinates Region").props(
                 "outlined"
@@ -150,6 +153,7 @@ class GroupsPage:
                         use_ip_adapter_input.value,
                         use_mask_region_input.value,
                         use_coordinates_region.value,
+                        use_type_attributes_input.value,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -168,6 +172,7 @@ class GroupsPage:
         use_ip_adapter: bool,
         use_mask_region: bool,
         use_coordinates_region: bool,
+        use_type_attributes: bool,
         thumbnail_image: FileUpload | None,
     ):
         input = GroupInput(
@@ -180,6 +185,7 @@ class GroupsPage:
             use_ip_adapter=use_ip_adapter,
             use_mask_region=use_mask_region,
             use_coordinates_region=use_coordinates_region,
+            use_type_attributes=use_type_attributes,
             thumbnail_image=thumbnail_image,
         )
 
@@ -219,6 +225,11 @@ class GroupsPage:
             use_coordinates_region_input = ui.checkbox(
                 "Use Coordinates Region", value=item["use_coordinates_region"]
             ).props("outlined")
+
+            use_type_attributes_input = ui.checkbox(
+                "Use type attributes", value=item["use_type_attributes"]
+            ).props("outlined")
+
             thumbnail_image_input = None
 
             async def handle_upload(event: UploadEventArguments):
@@ -245,6 +256,7 @@ class GroupsPage:
                         use_controlnet_input.value,
                         use_ip_adapter_input.value,
                         use_mask_region_input.value,
+                        use_type_attributes_input.value,
                         use_coordinates_region_input.value,
                         thumbnail_image_input,
                     ),
@@ -264,6 +276,7 @@ class GroupsPage:
         use_controlnet: bool,
         use_ip_adapter: bool,
         use_mask_region: bool,
+        use_type_attributes: bool,
         use_coordinates_region: bool,
         thumbnail_image: FileUpload | None,
     ):
@@ -277,6 +290,7 @@ class GroupsPage:
             use_ip_adapter=use_ip_adapter,
             use_mask_region=use_mask_region,
             use_coordinates_region=use_coordinates_region,
+            use_type_attributes=use_type_attributes,
             thumbnail_image=thumbnail_image,
         )
 

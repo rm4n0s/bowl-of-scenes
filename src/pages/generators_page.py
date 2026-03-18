@@ -13,6 +13,7 @@ from src.controllers.generator_ctrl import (
     list_generators,
 )
 from src.core.utils import get_title_from_class_type
+from src.core.utils.generator_type_util import get_generator_output_type
 from src.core.utils.utils import get_title_from_class_type_that_contains
 from src.pages.common.nav_menu import common_nav_menu
 
@@ -45,19 +46,10 @@ class GeneratorsPage:
             negative_prompt_title_input = ui.input("Negative Prompt's title").props(
                 "outlined"
             )
-            save_image_title_input = ui.input("SaveImage's title").props("outlined")
 
             async def handle_upload(event: UploadEventArguments):
                 nonlocal workflow_json
                 workflow_json = await event.file.json()
-                save_image_titles = get_title_from_class_type(
-                    workflow_json, "SaveImage"
-                )
-                if len(save_image_titles) > 0:
-                    save_image_title_input.value = save_image_titles[
-                        len(save_image_titles) - 1
-                    ]
-
                 prompt_titles = get_title_from_class_type_that_contains(
                     workflow_json, "TextEncode"
                 )
@@ -87,7 +79,6 @@ class GeneratorsPage:
                         workflow_json,
                         positive_prompt_title_input.value,
                         negative_prompt_title_input.value,
-                        save_image_title_input.value,
                         has_random_seed_input.value,
                     ),
                 ).props("color=primary")
@@ -102,16 +93,21 @@ class GeneratorsPage:
         workflow_json: dict[str, Any],
         positive_prompt_title: str,
         negative_prompt_title: str,
-        save_image_title: str,
         has_random_seed: bool,
     ):
+
+        goy = get_generator_output_type(workflow_json)
+
         input = GeneratorInput(
             name=name,
             code_name=code_name,
             workflow_json=workflow_json,
             positive_prompt_title=positive_prompt_title,
             negative_prompt_title=negative_prompt_title,
-            save_image_title=save_image_title,
+            output_type=goy.generator_output_type,
+            output_attributes=goy.attributes,
+            output_node_class_type=goy.node_class_type,
+            output_node_title=goy.node_title,
             has_random_seed=has_random_seed,
         )
 
@@ -143,10 +139,6 @@ class GeneratorsPage:
                 "Negative Prompt's title", value=item["negative_prompt_title"]
             ).props("outlined")
 
-            save_image_title_input = ui.input(
-                "SaveImage title", value=item["save_image_title"]
-            ).props("outlined")
-
             has_random_seed_input = ui.checkbox(
                 "Enable random seed", value=item["has_random_seed"]
             ).props("outlined")
@@ -163,7 +155,6 @@ class GeneratorsPage:
                         workflow_json_str.value,
                         positive_prompt_title_input.value,
                         negative_prompt_title_input.value,
-                        save_image_title_input.value,
                         has_random_seed_input.value,
                     ),
                 ).props("color=primary")
@@ -179,17 +170,20 @@ class GeneratorsPage:
         workflow_json_str: str,
         positive_prompt_title: str,
         negative_prompt_title: str,
-        save_image_title: str,
         has_random_seed: bool,
     ):
         workflow_json = json.loads(workflow_json_str)
+        goy = get_generator_output_type(workflow_json)
         input = GeneratorInput(
             name=name,
             code_name=code_name,
             workflow_json=workflow_json,
             positive_prompt_title=positive_prompt_title,
             negative_prompt_title=negative_prompt_title,
-            save_image_title=save_image_title,
+            output_type=goy.generator_output_type,
+            output_attributes=goy.attributes,
+            output_node_class_type=goy.node_class_type,
+            output_node_title=goy.node_title,
             has_random_seed=has_random_seed,
         )
 
