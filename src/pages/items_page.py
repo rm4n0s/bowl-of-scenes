@@ -4,6 +4,7 @@ from datetime import datetime
 
 from fastapi import HTTPException
 from nicegui import ui
+from nicegui.elements.select import Select
 from nicegui.elements.textarea import Textarea
 from nicegui.elements.upload_files import FileUpload
 from nicegui.events import MultiUploadEventArguments
@@ -12,6 +13,7 @@ from src.controllers.ctrl_types import (
     CivitaiLora,
     ControlNetConfigInput,
     ControlNetType,
+    GeneratorOutputType,
     ItemIPAdapterInput,
     ItemIPAdapterOutput,
 )
@@ -246,6 +248,35 @@ class ItemsPage:
                                 """,
                 ).props("outlined")
 
+            generator_type_input: Select | None = None
+            generator_attributes_input: Textarea | None = None
+            if self.group.use_type_attributes:
+                options = {e: e.value for e in GeneratorOutputType}
+
+                generator_type_input = ui.select(
+                    options=options,
+                    value=GeneratorOutputType.IMAGE,
+                    label="Generator Output Type",
+                ).props("outlined")
+
+                generator_attributes_input = ui.textarea(
+                    "Generator Output Attributes in JSON",
+                    placeholder="""
+                    {
+                      "width": 1024,
+                      "height": 1024,
+                      "file_type": "png",
+                      "batch_size": 1,
+                      "steps": 28,
+                      "cfg": 6,
+                      "sampler_name": "euler_ancestral",
+                      "scheduler": "normal",
+                      "denoise": 1,
+                      "seed": 41754494229476
+                    }
+                                """,
+                ).props("outlined")
+
             ipadapter_form = None
             if self.group.use_ip_adapter:
                 ipadapter_model_input = ui.input("IPAdapter's Model Name").props(
@@ -381,6 +412,8 @@ class ItemsPage:
                         ipadapter_form,
                         mask_region_reference_image_input,
                         controlnets_input,
+                        generator_type_input,
+                        generator_attributes_input,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -399,6 +432,8 @@ class ItemsPage:
         ipadapter_form: IPAdapterForm | None,
         mask_region_reference_image: FileUpload | None,
         controlnets_input: list[ControlNetConfigInput],
+        generator_type_input: Select | None,
+        generator_attr_input: Textarea | None,
         thumbnail_image: FileUpload | None,
     ):
         lora = None
@@ -437,6 +472,13 @@ class ItemsPage:
                 end_at=ipadapter_form.ipadapter_end_at_input.value,
             )
 
+        generator_output_type = None
+        generator_output_attr = None
+        if generator_type_input is not None and generator_attr_input is not None:
+            if len(generator_attr_input.value) > 0:
+                generator_output_attr = generator_attr_input.value
+                generator_output_type = GeneratorOutputType(generator_type_input.value)
+
         input = ItemInput(
             group_id=self.group.id,
             name=name,
@@ -448,6 +490,8 @@ class ItemsPage:
             ipadapter=item_ipadapter_input,
             controlnets=controlnets_input,
             mask_region_reference_image=mask_region_reference_image,
+            generator_output_type=generator_output_type,
+            generator_output_attributes=generator_output_attr,
             thumbnail_image=thumbnail_image,
         )
 
@@ -487,6 +531,22 @@ class ItemsPage:
                 coordinated_regions_input = ui.textarea(
                     "Coordinated Regions in JSON",
                     value=cr,
+                ).props("outlined")
+
+            generator_type_input: Select | None = None
+            generator_attributes_input: Textarea | None = None
+            if self.group.use_type_attributes:
+                options = {e: e.value for e in GeneratorOutputType}
+
+                generator_type_input = ui.select(
+                    options=options,
+                    value=item["generator_output_type"],
+                    label="Generator Output Type",
+                ).props("outlined")
+
+                generator_attributes_input = ui.textarea(
+                    "Generator Output Attributes in JSON",
+                    value=item["generator_output_attributes"],
                 ).props("outlined")
 
             ipadapter_form = None
@@ -654,6 +714,8 @@ class ItemsPage:
                         ipadapter_form,
                         mask_region_reference_image_input,
                         controlnets_input,
+                        generator_type_input,
+                        generator_attributes_input,
                         thumbnail_image_input,
                     ),
                 ).props("color=primary")
@@ -673,6 +735,8 @@ class ItemsPage:
         ipadapter_form: IPAdapterForm | None,
         color_coded_reference_image: FileUpload | None,
         controlnets_input: list[ControlNetConfigInput],
+        generator_type_input: Select | None,
+        generator_attr_input: Textarea | None,
         thumbnail_image: FileUpload | None,
     ):
         lora = None
@@ -711,6 +775,13 @@ class ItemsPage:
                 end_at=ipadapter_form.ipadapter_end_at_input.value,
             )
 
+        generator_output_type = None
+        generator_output_attr = None
+        if generator_type_input is not None and generator_attr_input is not None:
+            if len(generator_attr_input.value) > 0:
+                generator_output_attr = generator_attr_input.value
+                generator_output_type = GeneratorOutputType(generator_type_input.value)
+
         input = ItemInput(
             group_id=self.group.id,
             name=name,
@@ -722,6 +793,8 @@ class ItemsPage:
             controlnets=controlnets_input,
             ipadapter=item_ipadapter_input,
             mask_region_reference_image=color_coded_reference_image,
+            generator_output_type=generator_output_type,
+            generator_output_attributes=generator_output_attr,
             thumbnail_image=thumbnail_image,
         )
 
@@ -773,6 +846,12 @@ class ItemsPage:
             await self.load_items()
             columns = [
                 {"name": "id", "label": "ID", "field": "id", "align": "left"},
+                {
+                    "name": "actions",
+                    "label": "Actions",
+                    "field": "actions",
+                    "align": "right",
+                },
                 {"name": "name", "label": "Name", "field": "name", "align": "left"},
                 {
                     "name": "code_name",
@@ -815,12 +894,6 @@ class ItemsPage:
                     "label": "Thumbnail image",
                     "field": "show_thumbnail_image",
                     "align": "left",
-                },
-                {
-                    "name": "actions",
-                    "label": "Actions",
-                    "field": "actions",
-                    "align": "right",
                 },
             ]
             self.table = ui.table(

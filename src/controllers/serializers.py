@@ -140,6 +140,12 @@ def serialize_item(rec: ItemRecord) -> ItemOutput:
                 )
             )
 
+    generator_output_type = None
+    generator_output_attributes = None
+    if rec.output_type is not None and rec.output_type_attributes is not None:
+        generator_output_type = rec.output_type
+        generator_output_attributes = json.dumps(rec.output_type_attributes)
+
     io = ItemOutput(
         id=rec.id,
         group_id=rec.group_id,
@@ -154,6 +160,8 @@ def serialize_item(rec: ItemRecord) -> ItemOutput:
         ipadapter=ipadapter,
         mask_region_images=mask_region_images,
         mask_region_images_keys=mask_region_images_keys,
+        generator_output_type=generator_output_type,
+        generator_output_attributes=generator_output_attributes,
         thumbnail_image=rec.thumbnail_image,
         show_thumbnail_image=show_thumbnail_image,
     )

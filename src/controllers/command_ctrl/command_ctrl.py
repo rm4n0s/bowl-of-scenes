@@ -441,6 +441,8 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
 
     print(f"Will run {len(combined_items)}")
     res: list[JobRecord] = []
+    output_type = generator.output_type
+    output_type_attributes = generator.output_attributes
     for items in combined_items:
         prompt_positive = ""
         prompt_negative = ""
@@ -476,6 +478,10 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
             if item.controlnets is not None:
                 controlnet_list.extend(item.controlnets)
 
+            if item.output_type is not None and item.output_type_attributes is not None:
+                output_type = item.output_type
+                output_type_attributes = item.output_type_attributes
+
         prompt_positive = utils.remove_template_tags(prompt_positive)
         prompt_negative = utils.remove_template_tags(prompt_negative)
 
@@ -496,8 +502,8 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                     server_code_name=server.code_name,
                     server_host=server.host,
                     generator_code_name=generator.code_name,
-                    generator_output_type=generator.output_type,
-                    generator_output_attributes=generator.output_attributes,
+                    generator_output_type=output_type,
+                    generator_output_attributes=output_type_attributes,
                     prompt_positive=prompt_positive,
                     prompt_negative=prompt_negative,
                     region_prompts=ccp,
@@ -517,8 +523,8 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                 server_code_name=server.code_name,
                 server_host=server.host,
                 generator_code_name=generator.code_name,
-                generator_output_type=generator.output_type,
-                generator_output_attributes=generator.output_attributes,
+                generator_output_type=output_type,
+                generator_output_attributes=output_type_attributes,
                 prompt_positive=prompt_positive,
                 prompt_negative=prompt_negative,
                 ipadapter_list=ipadapter_list,

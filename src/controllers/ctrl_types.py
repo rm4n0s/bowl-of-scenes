@@ -272,7 +272,9 @@ class ItemInput:
     coordinated_regions: str | None
     ipadapter: ItemIPAdapterInput | None
     mask_region_reference_image: FileUpload | None
-    thumbnail_image: FileUpload | None
+    generator_output_type: GeneratorOutputType | None
+    generator_output_attributes: str | None
+    thumbnail_image: FileUpload | None = None
 
 
 @dataclass
@@ -290,8 +292,10 @@ class ItemOutput:
     ipadapter: ItemIPAdapterOutput | None
     mask_region_images: MaskRegionImages | None
     mask_region_images_keys: str | None
-    thumbnail_image: str | None
-    show_thumbnail_image: str | None
+    generator_output_type: GeneratorOutputType | None
+    generator_output_attributes: str | None
+    thumbnail_image: str | None = None
+    show_thumbnail_image: str | None = None
 
 
 @dataclass

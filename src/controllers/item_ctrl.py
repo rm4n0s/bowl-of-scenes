@@ -82,6 +82,15 @@ async def add_item(conf: Config, input: ItemInput):
     if input.lora is not None and len(input.lora) > 0:
         lora = json.loads(input.lora)
 
+    output_type = None
+    output_type_attributes = None
+    if (
+        input.generator_output_type is not None
+        and input.generator_output_attributes is not None
+    ):
+        output_type = input.generator_output_type
+        output_type_attributes = json.loads(input.generator_output_attributes)
+
     controlnets: list[ControlNetConfig] = []
     for input_cnc in input.controlnets:
         if input_cnc.image_path is None:
@@ -115,6 +124,8 @@ async def add_item(conf: Config, input: ItemInput):
         controlnets=controlnets,
         mask_region_images=mask_region_images,
         coordinated_regions=coordinated_regions,
+        output_type=output_type,
+        output_type_attributes=output_type_attributes,
         thumbnail_image=thumbnail_path,
     )
 
@@ -329,6 +340,8 @@ async def add_civitai_lora_as_item(
         coordinated_regions=None,
         ipadapter=None,
         mask_region_reference_image=None,
+        generator_output_type=None,
+        generator_output_attributes=None,
         thumbnail_image=None,
     )
     await add_item(cfg, item_input)
