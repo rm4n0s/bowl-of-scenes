@@ -484,12 +484,15 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
 
         prompt_positive = utils.remove_template_tags(prompt_positive)
         prompt_negative = utils.remove_template_tags(prompt_negative)
+        file_type = ""
+        if "file_type" in output_type_attributes.keys():
+            file_type = output_type_attributes["file_type"]
 
         if ccp_comb is not None:
             for i, ccp in enumerate(ccp_comb.regioned_prompts):
                 result_img = os.path.join(
                     conf.result_path,
-                    result_filename_img + f"_ccp_{i}" + ".png",
+                    result_filename_img + f"_ccp_{i}." + file_type,
                 )
                 for rc in ccp.values():
                     lora_list.extend(rc.loras)
@@ -514,7 +517,9 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                 )
                 res.append(job)
         else:
-            result_img = os.path.join(conf.result_path, result_filename_img + ".png")
+            result_img = os.path.join(
+                conf.result_path, result_filename_img + "." + file_type
+            )
             job = await JobRecord.create(
                 project_id=command.project_id,
                 command_id=command.id,

@@ -5,7 +5,11 @@ from fastapi import HTTPException
 from nicegui import ui
 
 from src.controllers.command_ctrl.command_ctrl import get_command
-from src.controllers.ctrl_types import CommandOutput
+from src.controllers.ctrl_types import (
+    CommandOutput,
+    GeneratorOutputType,
+    ImageAttributes,
+)
 from src.controllers.job_ctrl import list_jobs, reload_job, run_job, stop_job
 from src.controllers.manager_ctrl import Manager
 from src.controllers.notification_ctrl import NotificationCtrl
@@ -80,8 +84,15 @@ class JobsPage:
         def show_image(e):
             nonlocal preview_image
             """Show the clicked image in a dialog"""
+            if e.args["generator_output_type"] != GeneratorOutputType.IMAGE.value:
+                return
+
             image_url = e.args["show_result_img"]
+            attrs = ImageAttributes(**e.args["generator_output_attributes"])
             preview_image.set_source(f"{image_url}?t={time.time()}")
+            preview_image.style(
+                f"max-width: {attrs.width}px; max-height: {attrs.height}px;"
+            )
             image_dialog.open()
 
         @ui.refreshable
