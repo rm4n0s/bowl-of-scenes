@@ -8,7 +8,9 @@ from src.controllers.server_ctrl import (
     delete_server,
     edit_server,
     list_servers,
+    list_servers_paginated,
 )
+from src.core.utils.paginator import Paginator
 from src.pages.common.nav_menu import common_nav_menu
 
 
@@ -19,6 +21,21 @@ class ServersPage:
         self.servers = []
         self.selected_server = None
         self.table = None
+        self.paginator = Paginator(
+            fetch_fn=lambda page, page_size: list_servers_paginated(
+                page=page, page_size=page_size
+            ),
+            on_change=self._update_table,
+        )
+
+    async def _update_table(self, items: list):
+        rows = [asdict(item) for item in items]
+        if self.table:
+            self.table.rows = rows
+            self.table.update()
+
+    async def load_items(self):
+        await self.paginator.load()
 
     async def load_servers(self):
         """Load servers from database"""
@@ -204,6 +221,7 @@ class ServersPage:
             self.table.on("edit", lambda e: self.show_edit_dialog(e.args))
             self.table.on("delete", lambda e: self.show_delete_dialog(e.args))
 
+        self.paginator.render_controls()
         await server_table()
 
 

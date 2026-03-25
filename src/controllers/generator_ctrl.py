@@ -8,6 +8,8 @@ from src.controllers.ctrl_types import (
     ThreeDAttributes,
     VideoAttributes,
 )
+from src.controllers.serializers import serialize_generator
+from src.core.utils.paginator import PaginatedOutput
 from src.db.records import GeneratorRecord
 
 
@@ -59,30 +61,27 @@ async def list_generators() -> list[GeneratorOutput]:
     gen_recs = await GeneratorRecord.all()
     gen_outs = []
     for gen in gen_recs:
-        attrs = None
-        match gen.output_type:
-            case GeneratorOutputType.IMAGE:
-                attrs = ImageAttributes(**gen.output_attributes)
-            case GeneratorOutputType.VIDEO:
-                attrs = VideoAttributes(**gen.output_attributes)
-            case GeneratorOutputType.THREE_D:
-                attrs = ThreeDAttributes(**gen.output_attributes)
-
-        gout = GeneratorOutput(
-            id=gen.id,
-            name=gen.name,
-            code_name=gen.code_name,
-            workflow_json=gen.workflow_json,
-            positive_prompt_title=gen.positive_prompt_title,
-            negative_prompt_title=gen.negative_prompt_title,
-            output_type=gen.output_type,
-            output_attributes=attrs,
-            output_node_class_type=gen.output_node_class_type,
-            output_node_title=gen.output_node_title,
-            has_random_seed=gen.has_random_seed,
-        )
+        gout = serialize_generator(gen)
         gen_outs.append(gout)
     return gen_outs
+
+
+async def list_generators_paginated(
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedOutput:
+    offset = (page - 1) * page_size
+
+    total = await GeneratorRecord.all().count()
+    items = await GeneratorRecord.all().offset(offset).limit(page_size)
+
+    return PaginatedOutput(
+        items=[serialize_generator(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=(total + page_size - 1) // page_size,
+    )
 
 
 async def delete_generator(id: int):

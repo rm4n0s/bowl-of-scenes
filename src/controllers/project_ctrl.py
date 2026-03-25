@@ -1,6 +1,8 @@
 import os
 
 from src.controllers.ctrl_types import ProjectInput, ProjectOutput
+from src.controllers.serializers import serialize_project
+from src.core.utils.paginator import PaginatedOutput
 from src.db.records import JobRecord, ProjectRecord
 from src.db.records.command_rec import CommandRecord
 
@@ -44,13 +46,28 @@ async def list_projects() -> list[ProjectOutput]:
     cat_recs = await ProjectRecord.all()
     cat_outs = []
     for ct in cat_recs:
-        co = ProjectOutput(
-            id=ct.id,
-            name=ct.name,
-        )
+        co = serialize_project(ct)
         cat_outs.append(co)
 
     return cat_outs
+
+
+async def list_projects_paginated(
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedOutput:
+    offset = (page - 1) * page_size
+
+    total = await ProjectRecord.all().count()
+    items = await ProjectRecord.all().offset(offset).limit(page_size)
+
+    return PaginatedOutput(
+        items=[serialize_project(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=(total + page_size - 1) // page_size,
+    )
 
 
 async def get_project(id: int) -> ProjectOutput | None:

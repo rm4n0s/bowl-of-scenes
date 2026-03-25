@@ -23,8 +23,10 @@ from src.controllers.ctrl_types import (
     RegionPrompt,
 )
 from src.controllers.manager_ctrl import Manager
+from src.controllers.serializers import serialize_command
 from src.core.config import Config
 from src.core.utils import utils
+from src.core.utils.paginator import PaginatedOutput
 from src.db.records import (
     CommandRecord,
     GeneratorRecord,
@@ -801,19 +803,25 @@ async def list_commands(project_id: int) -> list[CommandOutput]:
     commands = await query.all()
     out = []
     for cmd in commands:
-        total_jobs = await JobRecord.filter(command_id=cmd.id).count()
-        finished_jobs = await JobRecord.filter(
-            command_id=cmd.id, status=JobStatus.FINISHED
-        ).count()
-        out.append(
-            CommandOutput(
-                id=cmd.id,
-                project_id=cmd.project_id,
-                order=cmd.order,
-                command_code=cmd.command_code,
-                command_json=cmd.command_json,
-                total_jobs=total_jobs,
-                finished_jobs=finished_jobs,
-            )
-        )
+        cout = await serialize_command(cmd)
+        out.append(cout)
     return out
+
+
+async def list_commands_paginated(
+    project_id: int,
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedOutput:
+    offset = (page - 1) * page_size
+    query = CommandRecord.filter(project_id=project_id).order_by("order")
+    total = await query.count()
+    items = await query.offset(offset).limit(page_size).all()
+
+    return PaginatedOutput(
+        items=[await serialize_command(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=(total + page_size - 1) // page_size,
+    )

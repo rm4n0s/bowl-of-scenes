@@ -10,10 +10,17 @@ from src.controllers.ctrl_types import (
     GeneratorOutputType,
     ImageAttributes,
 )
-from src.controllers.job_ctrl import list_jobs, reload_job, run_job, stop_job
+from src.controllers.job_ctrl import (
+    list_jobs,
+    list_jobs_paginated,
+    reload_job,
+    run_job,
+    stop_job,
+)
 from src.controllers.manager_ctrl import Manager
 from src.controllers.notification_ctrl import NotificationCtrl
 from src.core.config import Config
+from src.core.utils.paginator import Paginator
 from src.pages.common.nav_menu import common_nav_menu
 
 
@@ -36,39 +43,45 @@ class JobsPage:
         self.notifctrl = notifctrl
         self._prev_notif_job_id = None
 
-    async def load_items(self):
-        jobs = await list_jobs(self.command.id)
-        self.items = [asdict(job) for job in jobs]
+        self.paginator = Paginator(
+            fetch_fn=lambda page, page_size: list_jobs_paginated(
+                self.command.id, page=page, page_size=page_size
+            ),
+            on_change=self._update_table,
+        )
+
+    async def _update_table(self, items: list):
+        rows = [asdict(job) for job in items]
         if self.table:
-            self.table.rows = self.items  # Assign new rows
+            self.table.rows = rows
             self.table.update()
-            print("updated notif")
+
+    async def load_items(self):
+        await self.paginator.load()
 
     async def check_notif_and_update(self):
         notif = self.notifctrl.get_notification()
+        items = self.paginator.items
+
         if notif is None:
             if self._prev_notif_job_id is not None:
-                await self.load_items()
+                await self.paginator.load()
                 self._prev_notif_job_id = None
             return
 
-        if (
-            self._prev_notif_job_id is not None
-            and self._prev_notif_job_id == notif.job_id
-        ):
+        if self._prev_notif_job_id == notif.job_id:
             return
 
-        if len(self.items) > 1:
-            first_id = self.items[0]["id"]
-            last_id = self.items[len(self.items) - 1]["id"]
-            if first_id <= notif.job_id and last_id >= notif.job_id:
-                await self.load_items()
+        if len(items) > 1:
+            first_id = items[0].id
+            last_id = items[-1].id
+            if first_id <= notif.job_id <= last_id:
+                await self.paginator.load()
                 self._prev_notif_job_id = notif.job_id
 
-        elif len(self.items) == 1:
-            if self.items[0]["id"] == notif.job_id:
-                await self.load_items()
-                self._prev_notif_job_id = notif.job_id
+        elif len(items) == 1 and items[0].id == notif.job_id:
+            await self.paginator.load()
+            self._prev_notif_job_id = notif.job_id
 
     async def render(self):
         """Render the CRUD page"""
@@ -152,6 +165,8 @@ class JobsPage:
             self.table.on(
                 "reload_job", lambda e: reload_job(self.manager, e.args["id"])
             )
+
+        self.paginator.render_controls()
 
         ui.timer(0.1, lambda: self.check_notif_and_update())
         await table()

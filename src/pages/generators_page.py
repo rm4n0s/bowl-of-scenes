@@ -10,10 +10,10 @@ from src.controllers.generator_ctrl import (
     add_generator,
     delete_generator,
     edit_generator,
-    list_generators,
+    list_generators_paginated,
 )
-from src.core.utils import get_title_from_class_type
 from src.core.utils.generator_type_util import get_generator_output_type
+from src.core.utils.paginator import Paginator
 from src.core.utils.utils import get_title_from_class_type_that_contains
 from src.pages.common.nav_menu import common_nav_menu
 
@@ -25,13 +25,21 @@ class GeneratorsPage:
         self.items = []
         self.selected_item = None
         self.table = None
+        self.paginator = Paginator(
+            fetch_fn=lambda page, page_size: list_generators_paginated(
+                page=page, page_size=page_size
+            ),
+            on_change=self._update_table,
+        )
+
+    async def _update_table(self, items: list):
+        rows = [asdict(item) for item in items]
+        if self.table:
+            self.table.rows = rows
+            self.table.update()
 
     async def load_items(self):
-        gens = await list_generators()
-        self.items = [asdict(gen) for gen in gens]
-        if self.table:
-            self.table.rows = self.items  # Assign new rows
-            self.table.update()
+        await self.paginator.load()
 
     def show_create_dialog(self):
         with ui.dialog() as dialog, ui.card():
@@ -259,6 +267,7 @@ class GeneratorsPage:
             self.table.on("edit", lambda e: self.show_edit_dialog(e.args))
             self.table.on("delete", lambda e: self.show_delete_dialog(e.args))
 
+        self.paginator.render_controls()
         await table()
 
 

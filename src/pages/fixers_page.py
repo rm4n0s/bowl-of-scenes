@@ -6,8 +6,14 @@ from nicegui import ui
 from nicegui.events import UploadEventArguments
 
 from src.controllers.ctrl_types import FixerInput
-from src.controllers.fixer_ctrl import add_fixer, delete_fixer, edit_fixer, list_fixers
+from src.controllers.fixer_ctrl import (
+    add_fixer,
+    delete_fixer,
+    edit_fixer,
+    list_fixers_paginated,
+)
 from src.core.utils import get_title_from_class_type
+from src.core.utils.paginator import Paginator
 from src.core.utils.utils import get_title_from_class_type_that_contains
 from src.pages.common.nav_menu import common_nav_menu
 
@@ -19,13 +25,21 @@ class FixersPage:
         self.items = []
         self.selected_item = None
         self.table = None
+        self.paginator = Paginator(
+            fetch_fn=lambda page, page_size: list_fixers_paginated(
+                page=page, page_size=page_size
+            ),
+            on_change=self._update_table,
+        )
+
+    async def _update_table(self, items: list):
+        rows = [asdict(item) for item in items]
+        if self.table:
+            self.table.rows = rows
+            self.table.update()
 
     async def load_items(self):
-        fs = await list_fixers()
-        self.items = [asdict(f) for f in fs]
-        if self.table:
-            self.table.rows = self.items  # Assign new rows
-            self.table.update()
+        await self.paginator.load()
 
     def show_create_dialog(self):
         with ui.dialog() as dialog, ui.card():
@@ -285,6 +299,7 @@ class FixersPage:
             self.table.on("edit", lambda e: self.show_edit_dialog(e.args))
             self.table.on("delete", lambda e: self.show_delete_dialog(e.args))
 
+        self.paginator.render_controls()
         await table()
 
 

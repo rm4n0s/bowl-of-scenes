@@ -8,7 +8,9 @@ from src.controllers.project_ctrl import (
     delete_project,
     edit_project,
     list_projects,
+    list_projects_paginated,
 )
+from src.core.utils.paginator import Paginator
 from src.pages.common.nav_menu import common_nav_menu
 
 
@@ -19,13 +21,21 @@ class ProjectsPage:
         self.items = []
         self.selected_item = None
         self.table = None
+        self.paginator = Paginator(
+            fetch_fn=lambda page, page_size: list_projects_paginated(
+                page=page, page_size=page_size
+            ),
+            on_change=self._update_table,
+        )
+
+    async def _update_table(self, items: list):
+        rows = [asdict(item) for item in items]
+        if self.table:
+            self.table.rows = rows
+            self.table.update()
 
     async def load_items(self):
-        prs = await list_projects()
-        self.items = [asdict(pr) for pr in prs]
-        if self.table:
-            self.table.rows = self.items  # Assign new rows
-            self.table.update()
+        await self.paginator.load()
 
     def show_create_dialog(self):
         with ui.dialog() as dialog, ui.card():
@@ -157,6 +167,7 @@ class ProjectsPage:
             self.table.on("delete", lambda e: self.show_delete_dialog(e.args))
             self.table.on("show_commands", lambda e: self.redirect_to_commands(e.args))
 
+        self.paginator.render_controls()
         await table()
 
 

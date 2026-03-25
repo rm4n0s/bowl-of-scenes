@@ -1,4 +1,6 @@
 from src.controllers.ctrl_types import CategoryInput, CategoryOutput
+from src.controllers.serializers import serialize_category
+from src.core.utils.paginator import PaginatedOutput
 from src.db.records import CategoryRecord
 
 
@@ -22,13 +24,28 @@ async def list_categories() -> list[CategoryOutput]:
     cat_recs = await CategoryRecord.all()
     cat_outs = []
     for ct in cat_recs:
-        co = CategoryOutput(
-            id=ct.id,
-            name=ct.name,
-        )
+        co = serialize_category(ct)
         cat_outs.append(co)
 
     return cat_outs
+
+
+async def list_categories_paginated(
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedOutput:
+    offset = (page - 1) * page_size
+
+    total = await CategoryRecord.all().count()
+    items = await CategoryRecord.all().offset(offset).limit(page_size)
+
+    return PaginatedOutput(
+        items=[serialize_category(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=(total + page_size - 1) // page_size,
+    )
 
 
 async def init_predefined_categories():

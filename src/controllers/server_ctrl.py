@@ -3,6 +3,8 @@ from yet_another_comfy_client import (
 )
 
 from src.controllers.ctrl_types import ServerInput, ServerOutput, StatusEnum
+from src.controllers.serializers import serialize_server
+from src.core.utils.paginator import PaginatedOutput
 from src.db.records import ServerRecord
 
 
@@ -39,20 +41,24 @@ async def list_servers() -> list[ServerOutput]:
     server_recs = await ServerRecord.all()
     server_outs = []
     for sr in server_recs:
-        client = YetAnotherComfyClient(sr.host)
-        status = StatusEnum.ONLINE
-        try:
-            await client.get_history()
-        except Exception:
-            status = StatusEnum.OFFLINE
-
-        sout = ServerOutput(
-            id=sr.id,
-            name=sr.name,
-            host=sr.host,
-            is_local=sr.is_local,
-            code_name=sr.code_name,
-            status=status,
-        )
+        sout = await serialize_server(sr)
         server_outs.append(sout)
     return server_outs
+
+
+async def list_servers_paginated(
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedOutput:
+    offset = (page - 1) * page_size
+
+    total = await ServerRecord.all().count()
+    items = await ServerRecord.all().offset(offset).limit(page_size)
+
+    return PaginatedOutput(
+        items=[await serialize_server(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=(total + page_size - 1) // page_size,
+    )

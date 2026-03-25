@@ -9,6 +9,7 @@ from src.controllers.command_ctrl.command_ctrl import (
     delete_command,
     edit_command,
     list_commands,
+    list_commands_paginated,
     recreate_command,
     run_command,
     stop_command,
@@ -18,6 +19,7 @@ from src.controllers.manager_ctrl import Manager
 from src.controllers.notification_ctrl import NotificationCtrl
 from src.controllers.project_ctrl import ProjectOutput, get_project
 from src.core.config import Config
+from src.core.utils.paginator import Paginator
 from src.pages.common.nav_menu import common_nav_menu
 
 
@@ -29,7 +31,6 @@ class CommandsPage:
         notifctrl: NotificationCtrl,
         project: ProjectOutput,
     ):
-        self.items = []
         self.selected_item = None
         self.table = None
         self.conf = conf
@@ -37,43 +38,51 @@ class CommandsPage:
         self.project = project
         self.notifctrl = notifctrl
         self.running_cmd_ids = {}
+        self.paginator = Paginator(
+            fetch_fn=lambda page, page_size: list_commands_paginated(
+                self.project.id, page=page, page_size=page_size
+            ),
+            on_change=self._update_table,
+        )
+
+    @property
+    def items(self):
+        return [asdict(cmd) for cmd in self.paginator.items]
+
+    async def _update_table(self, items):
+        rows = [asdict(cmd) for cmd in items]
+        if self.table:
+            self.table.rows = rows
+            self.table.update()
+
+    async def load_items(self):
+        await self.paginator.load()
 
     async def check_notif_and_update(self):
         notif = self.notifctrl.get_notification()
         if notif is None:
             if len(self.running_cmd_ids) > 0:
-                for idx, cmd in enumerate(self.items):
-                    if "is_running" in self.items[idx].keys():
-                        self.items[idx]["is_running"] = False
+                for item in self.paginator.items:
+                    item_dict = asdict(item)
+                    item_dict["is_running"] = False
                 self.running_cmd_ids = {}
-                await self.load_items()
+                await self.paginator.load()
             return
 
         if notif.project_id == self.project.id:
             has_changed = False
-            for idx, cmd in enumerate(self.items):
+            rows = self.table.rows if self.table else []
+            for idx, cmd in enumerate(rows):
                 if notif.cmd_id == cmd["id"]:
-                    if "is_running" not in self.items[idx].keys():
-                        self.items[idx]["is_running"] = True
+                    if not cmd.get("is_running"):
+                        rows[idx]["is_running"] = True
                         self.running_cmd_ids[notif.cmd_id] = True
                         has_changed = True
-                    else:
-                        if not self.items[idx]["is_running"]:
-                            self.items[idx]["is_running"] = True
-                            self.running_cmd_ids[notif.cmd_id] = True
-                            has_changed = True
                     break
 
             if self.table and has_changed:
-                self.table.rows = self.items  # Assign new rows
+                self.table.rows = rows
                 self.table.update()
-
-    async def load_items(self):
-        cmds = await list_commands(self.project.id)
-        self.items = [asdict(cmd) for cmd in cmds]
-        if self.table:
-            self.table.rows = self.items  # Assign new rows
-            self.table.update()
 
     async def show_create_dialog(self):
         with ui.dialog() as dialog, ui.card():
@@ -254,6 +263,7 @@ class CommandsPage:
                 lambda e: recreate_command(self.conf, e.args["id"]),
             )
 
+        self.paginator.render_controls()
         ui.timer(0.1, lambda: self.check_notif_and_update())
         await table()
 

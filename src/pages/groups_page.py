@@ -12,8 +12,10 @@ from src.controllers.group_ctrl import (
     delete_group,
     edit_group,
     list_groups,
+    list_groups_paginated,
 )
 from src.core.config import Config
+from src.core.utils.paginator import Paginator
 from src.pages.common.nav_menu import common_nav_menu
 from src.pages.group_lora_civitai_dialog import show_create_group_civitai_loras
 
@@ -26,13 +28,21 @@ class GroupsPage:
         self.selected_item = None
         self.table = None
         self.conf = conf
+        self.paginator = Paginator(
+            fetch_fn=lambda page, page_size: list_groups_paginated(
+                page=page, page_size=page_size
+            ),
+            on_change=self._update_table,
+        )
+
+    async def _update_table(self, items: list):
+        rows = [asdict(item) for item in items]
+        if self.table:
+            self.table.rows = rows
+            self.table.update()
 
     async def load_items(self):
-        gps = await list_groups()
-        self.items = [asdict(gp) for gp in gps]
-        if self.table:
-            self.table.rows = self.items  # Assign new rows
-            self.table.update()
+        await self.paginator.load()
 
     async def show_create_group_of_positives_from_text_file(self):
         with ui.dialog() as dialog, ui.card():
@@ -438,6 +448,7 @@ class GroupsPage:
             self.table.on("delete", lambda e: self.show_delete_dialog(e.args))
             self.table.on("show_items", lambda e: self.redirect_to_items(e.args))
 
+        self.paginator.render_controls()
         await table()
 
 

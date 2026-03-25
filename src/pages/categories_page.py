@@ -6,8 +6,9 @@ from src.controllers.category_ctrl import (
     CategoryInput,
     add_category,
     edit_category,
-    list_categories,
+    list_categories_paginated,
 )
+from src.core.utils.paginator import Paginator
 from src.pages.common.nav_menu import common_nav_menu
 
 
@@ -18,13 +19,21 @@ class CategoriesPage:
         self.items = []
         self.selected_item = None
         self.table = None
+        self.paginator = Paginator(
+            fetch_fn=lambda page, page_size: list_categories_paginated(
+                page=page, page_size=page_size
+            ),
+            on_change=self._update_table,
+        )
+
+    async def _update_table(self, items: list):
+        rows = [asdict(item) for item in items]
+        if self.table:
+            self.table.rows = rows
+            self.table.update()
 
     async def load_items(self):
-        cats = await list_categories()
-        self.items = [asdict(cat) for cat in cats]
-        if self.table:
-            self.table.rows = self.items  # Assign new rows
-            self.table.update()
+        await self.paginator.load()
 
     def show_create_dialog(self):
         with ui.dialog() as dialog, ui.card():
@@ -152,6 +161,7 @@ class CategoriesPage:
             self.table.on("edit", lambda e: self.show_edit_dialog(e.args))
             self.table.on("delete", lambda e: self.show_delete_dialog(e.args))
 
+        self.paginator.render_controls()
         await table()
 
 

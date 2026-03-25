@@ -1,18 +1,41 @@
 import json
 import os
 
+from yet_another_comfy_client import YetAnotherComfyClient
+
 from src.controllers.ctrl_types import (
+    CategoryOutput,
+    CommandOutput,
     ControlNetConfig,
     FixerOutput,
+    GeneratorOutput,
+    GeneratorOutputType,
     GroupOutput,
+    ImageAttributes,
     IPAdapter,
     ItemIPAdapterOutput,
     ItemOutput,
     JobOutput,
+    JobStatus,
     MaskRegionImages,
+    ProjectOutput,
     RegionPrompt,
+    ServerOutput,
+    StatusEnum,
+    ThreeDAttributes,
+    VideoAttributes,
 )
-from src.db.records import FixerRecord, GroupRecord, ItemRecord, JobRecord
+from src.db.records import (
+    CategoryRecord,
+    CommandRecord,
+    FixerRecord,
+    GeneratorRecord,
+    GroupRecord,
+    ItemRecord,
+    JobRecord,
+    ProjectRecord,
+)
+from src.db.records.server_rec import ServerRecord
 
 
 def serialize_group(rec: GroupRecord) -> GroupOutput:
@@ -36,6 +59,80 @@ def serialize_group(rec: GroupRecord) -> GroupOutput:
         use_type_attributes=rec.use_type_attributes,
         thumbnail_image=rec.thumbnail_image,
         show_thumbnail_image=show_thumbnail_image,
+    )
+
+
+def serialize_category(rec: CategoryRecord) -> CategoryOutput:
+    return CategoryOutput(
+        id=rec.id,
+        name=rec.name,
+    )
+
+
+def serialize_project(rec: ProjectRecord) -> ProjectOutput:
+    return ProjectOutput(
+        id=rec.id,
+        name=rec.name,
+    )
+
+
+async def serialize_command(rec: CommandRecord) -> CommandOutput:
+    total_jobs = await JobRecord.filter(command_id=rec.id).count()
+    finished_jobs = await JobRecord.filter(
+        command_id=rec.id, status=JobStatus.FINISHED
+    ).count()
+
+    return CommandOutput(
+        id=rec.id,
+        project_id=rec.project_id,
+        order=rec.order,
+        command_code=rec.command_code,
+        command_json=rec.command_json,
+        total_jobs=total_jobs,
+        finished_jobs=finished_jobs,
+    )
+
+
+async def serialize_server(rec: ServerRecord) -> ServerOutput:
+    client = YetAnotherComfyClient(rec.host)
+    status = StatusEnum.ONLINE
+    try:
+        await client.get_history()
+    except Exception:
+        status = StatusEnum.OFFLINE
+
+    return ServerOutput(
+        id=rec.id,
+        name=rec.name,
+        host=rec.host,
+        is_local=rec.is_local,
+        code_name=rec.code_name,
+        status=status,
+    )
+
+
+def serialize_generator(gen: GeneratorRecord) -> GeneratorOutput:
+    attrs = None
+    match gen.output_type:
+        case GeneratorOutputType.IMAGE:
+            attrs = ImageAttributes(**gen.output_attributes)
+        case GeneratorOutputType.VIDEO:
+            attrs = VideoAttributes(**gen.output_attributes)
+        case GeneratorOutputType.THREE_D:
+            attrs = ThreeDAttributes(**gen.output_attributes)
+
+    return GeneratorOutput(
+        id=gen.id,
+        name=gen.name,
+        code_name=gen.code_name,
+        workflow_json=gen.workflow_json,
+        positive_prompt_title=gen.positive_prompt_title,
+        negative_prompt_title=gen.negative_prompt_title,
+        output_type=gen.output_type,
+        output_attributes=attrs,
+        output_node_class_type=gen.output_node_class_type,
+        output_node_title=gen.output_node_title,
+        has_random_seed=gen.has_random_seed,
     )
 
 

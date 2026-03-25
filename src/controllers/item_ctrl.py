@@ -17,6 +17,7 @@ from src.controllers.serializers import serialize_item
 from src.core.config import Config
 from src.core.utils import lora_downloader
 from src.core.utils.auto_masking import auto_create_masks
+from src.core.utils.paginator import PaginatedOutput
 from src.db.records import ItemRecord
 
 
@@ -284,6 +285,27 @@ async def list_items(group_id: int) -> list[ItemOutput]:
         io = serialize_item(rec)
         outs.append(io)
     return outs
+
+
+async def list_items_paginated(
+    group_id: int,
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedOutput:
+    offset = (page - 1) * page_size
+
+    total = await ItemRecord.filter(group_id=group_id).count()
+    items = (
+        await ItemRecord.filter(group_id=group_id).offset(offset).limit(page_size).all()
+    )
+
+    return PaginatedOutput(
+        items=[serialize_item(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=(total + page_size - 1) // page_size,
+    )
 
 
 async def add_civitai_lora_as_item(

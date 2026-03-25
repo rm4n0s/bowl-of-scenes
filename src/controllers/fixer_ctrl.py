@@ -1,5 +1,6 @@
 from src.controllers.ctrl_types import FixerInput, FixerOutput
 from src.controllers.serializers import serialize_fixer
+from src.core.utils.paginator import PaginatedOutput
 from src.db.records import FixerRecord
 
 
@@ -11,6 +12,24 @@ async def list_fixers() -> list[FixerOutput]:
         outs.append(f)
 
     return outs
+
+
+async def list_fixers_paginated(
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedOutput:
+    offset = (page - 1) * page_size
+
+    total = await FixerRecord.all().count()
+    items = await FixerRecord.all().offset(offset).limit(page_size)
+
+    return PaginatedOutput(
+        items=[serialize_fixer(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=(total + page_size - 1) // page_size,
+    )
 
 
 async def add_fixer(input: FixerInput):

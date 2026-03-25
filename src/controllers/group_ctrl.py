@@ -16,6 +16,7 @@ from src.controllers.item_ctrl import add_item
 from src.controllers.serializers import serialize_group
 from src.core.config import Config
 from src.core.utils import lora_downloader
+from src.core.utils.paginator import PaginatedOutput
 from src.db.records import GroupRecord, ItemRecord
 
 
@@ -109,6 +110,24 @@ async def list_groups() -> list[GroupOutput]:
     return outs
 
 
+async def list_groups_paginated(
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedOutput:
+    offset = (page - 1) * page_size
+
+    total = await GroupRecord.all().count()
+    items = await GroupRecord.all().offset(offset).limit(page_size)
+
+    return PaginatedOutput(
+        items=[serialize_group(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=(total + page_size - 1) // page_size,
+    )
+
+
 async def get_group(id: int) -> GroupOutput | None:
     rec = await GroupRecord.get_or_none(id=id)
     if rec is None:
@@ -188,6 +207,8 @@ async def add_group_of_loras_civitai(
             coordinated_regions=None,
             ipadapter=None,
             mask_region_reference_image=None,
+            generator_output_attributes=None,
+            generator_output_type=None,
             thumbnail_image=None,
         )
         await add_item(cfg, item_input)
