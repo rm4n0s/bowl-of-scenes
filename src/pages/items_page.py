@@ -537,17 +537,17 @@ class ItemsPage:
             generator_attributes_input: Textarea | None = None
             if self.group.use_type_attributes:
                 options = {e: e.value for e in GeneratorOutputType}
+                if "generator_output_type" in item.keys():
+                    generator_type_input = ui.select(
+                        options=options,
+                        value=item["generator_output_type"],
+                        label="Generator Output Type",
+                    ).props("outlined")
 
-                generator_type_input = ui.select(
-                    options=options,
-                    value=item["generator_output_type"],
-                    label="Generator Output Type",
-                ).props("outlined")
-
-                generator_attributes_input = ui.textarea(
-                    "Generator Output Attributes in JSON",
-                    value=item["generator_output_attributes"],
-                ).props("outlined")
+                    generator_attributes_input = ui.textarea(
+                        "Generator Output Attributes in JSON",
+                        value=item["generator_output_attributes"],
+                    ).props("outlined")
 
             ipadapter_form = None
             if self.group.use_ip_adapter:

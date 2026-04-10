@@ -87,7 +87,8 @@ class CommandsPage:
     async def show_create_dialog(self):
         with ui.dialog() as dialog, ui.card():
             ui.label("Create New Item").classes("text-h6")
-
+            name_input = ui.input("Name").props("outlined")
+            description_input = ui.input("Description").props("outlined")
             code_input = ui.textarea("Code").props("outlined")
             error_label = ui.label("").classes("text-red-600")
             with ui.row():
@@ -97,16 +98,19 @@ class CommandsPage:
                     on_click=lambda: self.handle_create(
                         dialog,
                         code_input.value,
+                        name_input.value,
+                        description_input.value,
                         error_label,
                     ),
                 ).props("color=primary")
 
         dialog.open()
 
-    async def handle_create(self, dialog, code: str, error_label: Label):
+    async def handle_create(
+        self, dialog, code: str, name: str, description: str, error_label: Label
+    ):
         input = CommandInput(
-            project_id=self.project.id,
-            code=code,
+            project_id=self.project.id, code=code, name=name, description=description
         )
 
         errors = await add_command(self.conf, input)
@@ -121,7 +125,10 @@ class CommandsPage:
     async def show_edit_dialog(self, item):
         with ui.dialog() as dialog, ui.card():
             ui.label("Edit Command").classes("text-h6")
-
+            name_input = ui.input("Name", value=item["name"]).props("outlined")
+            description_input = ui.input(
+                "Description", value=item["description"]
+            ).props("outlined")
             code_input = ui.textarea("Code", value=item["command_code"]).props(
                 "outlined"
             )
@@ -135,6 +142,8 @@ class CommandsPage:
                         dialog,
                         item["id"],
                         code_input.value,
+                        name_input.value,
+                        description_input.value,
                         error_label,
                     ),
                 ).props("color=primary")
@@ -146,11 +155,15 @@ class CommandsPage:
         dialog,
         item_id,
         code: str,
+        name: str,
+        description: str,
         error_label,
     ):
         input = CommandInput(
             project_id=self.project.id,
             code=code,
+            name=name,
+            description=description,
         )
 
         errors = await edit_command(self.conf, item_id, input)

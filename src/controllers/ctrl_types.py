@@ -7,6 +7,14 @@ from nicegui.elements.upload_files import FileUpload
 from yet_another_comfy_client import YetAnotherComfyClient
 
 
+class JobStatus(enum.StrEnum):
+    IDLE = "idle"
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    ERROR = "error"
+    FINISHED = "finished"
+
+
 @dataclass
 class ImageAttributes:
     width: int | None = None
@@ -47,6 +55,8 @@ class GeneratorOutputType(enum.Enum):
 class CommandInput:
     project_id: int
     code: str
+    name: str
+    description: str
 
 
 @dataclass
@@ -54,6 +64,9 @@ class CommandOutput:
     id: int
     project_id: int
     order: int
+    name: str
+    description: str
+    status: JobStatus
     command_code: str
     command_json: dict[str, Any]
     finished_jobs: int = 0
@@ -115,14 +128,6 @@ CONTROLNET_PREPROCESSORS = {
     ControlNetType.SCRIBBLE: "ScribblePreprocessor",
     ControlNetType.NORMAL: "BAE-NormalMapPreprocessor",
 }
-
-
-class JobStatus(enum.StrEnum):
-    IDLE = "idle"
-    QUEUED = "queued"
-    PROCESSING = "processing"
-    ERROR = "error"
-    FINISHED = "finished"
 
 
 @dataclass
