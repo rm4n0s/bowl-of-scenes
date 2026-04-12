@@ -11,7 +11,6 @@ from src.controllers.group_ctrl import (
     add_group_of_positives_from_text_file,
     delete_group,
     edit_group,
-    list_groups,
     list_groups_paginated,
 )
 from src.core.config import Config
@@ -48,9 +47,7 @@ class GroupsPage:
         with ui.dialog() as dialog, ui.card():
             ui.label("Create New Group From Text File").classes("text-h6")
             categories = await list_categories()
-            cat_dicts = {}
-            for cat in categories:
-                cat_dicts[cat.id] = cat.name
+            cat_dicts = {cat.id: cat.name for cat in categories}
 
             name_input = ui.input("Name").props("outlined")
             description_input = ui.input("Description").props("outlined")
@@ -58,20 +55,38 @@ class GroupsPage:
             category_id_input = ui.select(
                 cat_dicts, label="Categories", value=categories[0].id
             )
-            text_content = ""
 
             async def handle_upload(event: UploadEventArguments):
-                nonlocal text_content
-                text_content = await event.file.text()
+                content = await event.file.text()
+                textarea.set_value(content)
 
-            ui.label(
-                "Upload text file with positive prompts seperated by line"
-            ).classes("text-h6")
-            ui.upload(
-                on_upload=lambda e: handle_upload(e),
-                auto_upload=True,
-                max_files=1,
-            ).props('accept=".txt"')
+            ui.label("Positive Prompts Content").classes("text-h6")
+
+            with ui.tabs() as tabs:
+                upload_tab = ui.tab("Upload File")
+                text_tab = ui.tab("Enter Text")
+
+            with ui.tab_panels(tabs, value=upload_tab):
+                with ui.tab_panel(upload_tab):
+                    ui.label(
+                        "Upload a .txt file with prompts separated by line"
+                    ).classes("text-caption text-grey")
+                    ui.upload(
+                        on_upload=lambda e: handle_upload(e),
+                        auto_upload=True,
+                        max_files=1,
+                    ).props('accept=".txt"')
+
+                with ui.tab_panel(text_tab):
+                    ui.label("Enter prompts separated by line").classes(
+                        "text-caption text-grey"
+                    )
+                    textarea = (
+                        ui.textarea(placeholder="Enter prompts here...")
+                        .props("outlined")
+                        .style("width: 100%; min-height: 150px;")
+                    )
+
             with ui.row():
                 ui.button("Cancel", on_click=dialog.close)
                 ui.button(
@@ -83,7 +98,7 @@ class GroupsPage:
                             description_input.value,
                             code_name_input.value,
                             category_id_input.value,  # pyright: ignore[reportArgumentType]
-                            text_content,
+                            textarea.value,
                         )
                     ),
                 ).props("color=primary")
@@ -99,6 +114,9 @@ class GroupsPage:
         category_id: int,
         text_content: str,
     ):
+        if text_content == "":
+            raise Exception("empty text_content")
+
         await add_group_of_positives_from_text_file(
             name, description, code_name, category_id, text_content
         )
@@ -349,7 +367,9 @@ class GroupsPage:
                 ui.button(
                     "Add group of LoRAs from Civitai",
                     icon="add",
-                    on_click=lambda: show_create_group_civitai_loras(self.conf),
+                    on_click=lambda: show_create_group_civitai_loras(
+                        self.conf, self.load_items
+                    ),
                 ).props("color=primary")
 
             ui.button("Refresh", icon="refresh", on_click=self.load_items)

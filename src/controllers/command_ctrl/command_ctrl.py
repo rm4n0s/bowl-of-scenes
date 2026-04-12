@@ -668,6 +668,8 @@ async def add_command(
     cmd_rec = await CommandRecord.create(
         project_id=input.project_id,
         order=next_order,
+        name=input.name,
+        description=input.description,
         command_code=input.code,
         command_json=command.to_dict(),
     )
@@ -690,6 +692,8 @@ async def edit_command(conf: Config, id: int, input: CommandInput) -> list[str] 
         print("command_json", command)
         cmd.command_code = input.code
         cmd.command_json = command.to_dict()
+        cmd.name = input.name
+        cmd.description = input.description
         await cmd.save()
         await delete_jobs_from_command(cmd.id)
         await create_jobs(conf, cmd)

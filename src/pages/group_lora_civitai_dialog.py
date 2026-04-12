@@ -105,7 +105,7 @@ def refresh_civitai_loras(container, form_data: CivitaiLoraFormData):
                     ).classes("text-red-400 hover:text-red-600")
 
 
-async def show_create_group_civitai_loras(cfg: Config):
+async def show_create_group_civitai_loras(cfg: Config, acb):
     """Opens the main form dialog."""
     form_data = CivitaiLoraFormData()
     categories = await list_categories()
@@ -190,6 +190,7 @@ async def show_create_group_civitai_loras(cfg: Config):
                 comfyui_path_input.value,
                 comfyui_lora_subfolder_name.value,
             )
+            await acb()
             # ✅ Here you'd do something with form_data
             ui.notify(
                 f"Saved '{form_data.name}' with {len(form_data.civitai_loras)} item(s).",
