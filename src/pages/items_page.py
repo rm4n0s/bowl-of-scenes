@@ -116,28 +116,34 @@ class ItemsPage:
             error_label = ui.label("").classes("text-red-500 text-sm hidden")
 
             async def confirm_add():
+                save_button.disable()
                 # Validate
                 if not model_id_input.value:
                     error_label.set_text("Model ID is required.")
                     error_label.classes(remove="hidden")
+                    save_button.enable()
                     return
                 if model_strength_input.value is None:
                     error_label.set_text("Model Strength is required.")
                     error_label.classes(remove="hidden")
+                    save_button.enable()
                     return
                 if model_clip_input.value is None:
                     error_label.set_text("Model Clip is required.")
                     error_label.classes(remove="hidden")
+                    save_button.enable()
                     return
 
                 if comfyui_path_input.value is None:
                     error_label.set_text("Comfyui's folder path is required.")
                     error_label.classes(remove="hidden")
+                    save_button.enable()
                     return
 
                 if comfyui_lora_subfolder_name.value is None:
                     error_label.set_text("Comfyui's lora subfolder name is required.")
                     error_label.classes(remove="hidden")
+                    save_button.enable()
                     return
 
                 lora = CivitaiLora(
@@ -160,7 +166,9 @@ class ItemsPage:
                 ui.button("Cancel", on_click=add_dialog.close).props("flat").classes(
                     "text-gray-500"
                 )
-                ui.button("Add", on_click=confirm_add).classes("bg-blue-600 text-white")
+                save_button = ui.button("Add", on_click=confirm_add).classes(
+                    "bg-blue-600 text-white"
+                )
 
         add_dialog.open()
 

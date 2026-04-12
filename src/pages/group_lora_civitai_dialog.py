@@ -159,13 +159,16 @@ async def show_create_group_civitai_loras(cfg: Config, acb):
         error_label = ui.label("").classes("text-red-500 text-sm hidden")
 
         async def submit():
+            save_button.disable()  # prevent double-clicks
             if not name_input.value:
                 error_label.set_text("Name is required.")
                 error_label.classes(remove="hidden")
+                save_button.enable()
                 return
             if not code_name_input.value:
                 error_label.set_text("Code Name is required.")
                 error_label.classes(remove="hidden")
+                save_button.enable()
                 return
 
             form_data.name = name_input.value
@@ -202,6 +205,8 @@ async def show_create_group_civitai_loras(cfg: Config, acb):
             ui.button("Cancel", on_click=main_dialog.close).props("flat").classes(
                 "text-gray-500"
             )
-            ui.button("Save", on_click=submit).classes("bg-blue-600 text-white")
+            save_button = ui.button("Save", on_click=submit).classes(
+                "bg-blue-600 text-white"
+            )
 
     main_dialog.open()
