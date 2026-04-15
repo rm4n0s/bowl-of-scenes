@@ -31,5 +31,6 @@ class JobRecord(TimestampMixin, Model):
     ipadapter_list = fields.JSONField(null=True)
     lora_list = fields.JSONField(null=True)
     result_img = fields.TextField()
+    is_last = fields.BooleanField(default=False)  # it is the last job of a command
     error = fields.TextField(null=True, default=None)
     traceback = fields.TextField(null=True, default=None)

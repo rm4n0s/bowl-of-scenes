@@ -31,6 +31,7 @@ from src.core.utils.generator_type_util import update_workflow_ksampler
 from src.core.utils.ipadapter_injector import add_multiple_ipadapters_to_workflow
 from src.core.utils.mask_injector import inject_masks
 from src.db.records import (
+    CommandRecord,
     FixerRecord,
     GeneratorRecord,
     JobRecord,
@@ -304,6 +305,17 @@ class Manager:
 
             job.status = JobStatus.FINISHED
             await job.save()
+
+            if job.is_last:
+                cmd_rec = await CommandRecord.get_or_none(id=job.command_id)
+                if cmd_rec:
+                    cmd_rec.status = JobStatus.FINISHED
+                    await cmd_rec.save()
+
+                # TODO: don't put it back, make it optionally in the command
+                # await client.free_resources(True, True)
+                # await asyncio.sleep(3)
+
             print("Finished job", job.id)
             self._notifctrl.set_notification(
                 NotificationType.FINISHED, job.id, job.command_id, job.project_id

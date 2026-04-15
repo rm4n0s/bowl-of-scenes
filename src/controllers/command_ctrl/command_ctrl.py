@@ -575,6 +575,11 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
 
             process_jobs = new_process_jobs.copy()
 
+    if len(res) > 0:
+        last_job = res[len(res) - 1]
+        last_job.is_last = True
+        await last_job.save()
+
     return res
 
 
