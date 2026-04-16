@@ -17,6 +17,7 @@ from src.controllers.serializers import serialize_group
 from src.core.config import Config
 from src.core.utils import lora_downloader
 from src.core.utils.paginator import PaginatedOutput
+from src.core.utils.utils import list_template_tags
 from src.db.records import GroupRecord, ItemRecord
 
 
@@ -62,12 +63,13 @@ async def add_group_of_positives_from_text_file(
     )
 
     for i, v in enumerate(text_content.splitlines()):
+        list_tags = list_template_tags(v)
         await ItemRecord.create(
             group_id=group.id,
             name=f"{i}",
             code_name=f"{i}",
             positive_prompt=v,
-            negative_prompt="",
+            negative_prompt=",".join(list_tags),
         )
 
 
