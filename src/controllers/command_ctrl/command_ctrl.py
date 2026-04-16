@@ -592,6 +592,9 @@ async def run_command(manager: Manager, command_id: int):
         status=JobStatus.QUEUED
     )
 
+    cmd.status = JobStatus.QUEUED
+    await cmd.save()
+
     await manager.add_command(cmd.id)
 
 
@@ -603,6 +606,8 @@ async def stop_command(command_id: int):
     await JobRecord.filter(command_id=command_id, status=JobStatus.QUEUED).update(
         status=JobStatus.IDLE
     )
+    cmd.status = JobStatus.IDLE
+    await cmd.save()
 
 
 async def recreate_command(conf: Config, command_id: int):

@@ -14,7 +14,7 @@ from src.controllers.command_ctrl.command_ctrl import (
     run_command,
     stop_command,
 )
-from src.controllers.ctrl_types import CommandInput
+from src.controllers.ctrl_types import CommandInput, JobStatus
 from src.controllers.manager_ctrl import Manager
 from src.controllers.notification_ctrl import NotificationCtrl
 from src.controllers.project_ctrl import ProjectOutput, get_project
@@ -51,6 +51,11 @@ class CommandsPage:
 
     async def _update_table(self, items):
         rows = [asdict(cmd) for cmd in items]
+        for v in rows:
+            v["is_running"] = (
+                v["status"] == JobStatus.PROCESSING.value
+                or v["status"] == JobStatus.QUEUED.value
+            )
         if self.table:
             self.table.rows = rows
             self.table.update()
@@ -62,9 +67,12 @@ class CommandsPage:
         notif = self.notifctrl.get_notification()
         if notif is None:
             if len(self.running_cmd_ids) > 0:
-                for item in self.paginator.items:
-                    item_dict = asdict(item)
-                    item_dict["is_running"] = False
+                # for item in self.paginator.items:
+                #     item_dict = asdict(item)
+                #     item_dict["is_running"] = (
+                #         item_dict["status"] == JobStatus.PROCESSING.value
+                #         or item_dict["status"] == JobStatus.QUEUED.value
+                #     )
                 self.running_cmd_ids = {}
                 await self.paginator.load()
             return
@@ -198,6 +206,14 @@ class CommandsPage:
         ui.notify("Command deleted successfully", type="positive")
         dialog.close()
 
+    async def _run_command(self, id):
+        await run_command(self.manager, id)
+        await self.load_items()
+
+    async def _stop_command(self, id):
+        await stop_command(id)
+        await self.load_items()
+
     async def render(self):
         """Render the CRUD page"""
         ui.label("Commands Management").classes("text-h4 q-mb-md")
@@ -267,10 +283,8 @@ class CommandsPage:
             self.table.on("edit", lambda e: self.show_edit_dialog(e.args))
             self.table.on("delete", lambda e: self.show_delete_dialog(e.args))
             self.table.on("show_jobs", lambda e: self.redirect_to_jobs(e.args))
-            self.table.on(
-                "run_command", lambda e: run_command(self.manager, e.args["id"])
-            )
-            self.table.on("stop_command", lambda e: stop_command(e.args["id"]))
+            self.table.on("run_command", lambda e: self._run_command(e.args["id"]))
+            self.table.on("stop_command", lambda e: self._stop_command(e.args["id"]))
             self.table.on(
                 "recreate_command",
                 lambda e: recreate_command(self.conf, e.args["id"]),

@@ -9,7 +9,7 @@ class JobRecord(TimestampMixin, Model):
     id = fields.IntField(primary_key=True)
     project_id = fields.IntField()
     command_id = fields.IntField()
-    group_item_id_list = fields.JSONField()
+    group_item_id_list = fields.JSONField()  # list[{group_id, item_id}]
     code_str = fields.TextField()
     server_code_name = fields.CharField(max_length=100)
     server_host = fields.CharField(max_length=100)

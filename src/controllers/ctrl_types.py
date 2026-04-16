@@ -16,6 +16,12 @@ class JobStatus(enum.StrEnum):
 
 
 @dataclass
+class JobInput:
+    positive: str
+    negative: str
+
+
+@dataclass
 class ImageAttributes:
     width: int | None = None
     height: int | None = None

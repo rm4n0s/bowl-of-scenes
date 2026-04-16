@@ -1,5 +1,6 @@
 import time
 from dataclasses import asdict
+from turtle import pos
 
 from fastapi import HTTPException
 from nicegui import ui
@@ -9,8 +10,10 @@ from src.controllers.ctrl_types import (
     CommandOutput,
     GeneratorOutputType,
     ImageAttributes,
+    JobInput,
 )
 from src.controllers.job_ctrl import (
+    edit_job,
     list_jobs,
     list_jobs_paginated,
     reload_job,
@@ -82,6 +85,42 @@ class JobsPage:
         elif len(items) == 1 and items[0].id == notif.job_id:
             await self.paginator.load()
             self._prev_notif_job_id = notif.job_id
+
+    async def show_edit_dialog(self, item):
+        with ui.dialog() as dialog, ui.card():
+            ui.label("Edit Job").classes("text-h6")
+
+            positive_input = ui.textarea("Positive", value=item["description"]).props(
+                "outlined"
+            )
+            negative_input = ui.textarea("Positive", value=item["description"]).props(
+                "outlined"
+            )
+
+            with ui.row():
+                ui.button("Cancel", on_click=dialog.close)
+                ui.button(
+                    "Update",
+                    on_click=lambda: self.handle_update(
+                        dialog, item["id"], positive_input.value, negative_input.value
+                    ),
+                ).props("color=primary")
+
+        dialog.open()
+
+    async def handle_update(
+        self,
+        dialog,
+        item_id,
+        positive: str,
+        negative: str,
+    ):
+        input = JobInput(positive=positive, negative=negative)
+
+        await edit_job(item_id, input)
+        await self.load_items()
+        ui.notify("Job updated successfully", type="positive")
+        dialog.close()
 
     async def render(self):
         """Render the CRUD page"""
@@ -155,13 +194,17 @@ class JobsPage:
                 <q-td :props="props">
                     <q-btn flat dense icon="start" class="q-mr-xl"   @click="$parent.$emit('run_job', props.row)" />
                     <q-btn flat dense icon="stop" class="q-mr-xl"   @click="$parent.$emit('stop_job', props.row)" />
+                    <q-btn flat dense icon="edit" class="q-mr-xl"   @click="$parent.$emit('edit_job', props.row)" />
+
                     <q-btn flat dense icon="autorenew" class="q-mr-xl"   @click="$parent.$emit('reload_job', props.row)" />
                 </q-td>
             """,
             )
             self.table.on("show_image", show_image)
+            self.table.on("edit_job", lambda e: self.show_edit_dialog(e.args))
             self.table.on("run_job", lambda e: run_job(self.manager, e.args["id"]))
             self.table.on("stop_job", lambda e: stop_job(self.manager, e.args["id"]))
+
             self.table.on(
                 "reload_job", lambda e: reload_job(self.manager, e.args["id"])
             )

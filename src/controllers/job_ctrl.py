@@ -1,6 +1,7 @@
-from src.controllers.ctrl_types import IPAdapter, JobOutput, JobStatus
+from src.controllers.ctrl_types import IPAdapter, JobInput, JobOutput, JobStatus
 from src.controllers.manager_ctrl import Manager
 from src.controllers.serializers import serialize_job
+from src.core.utils import utils
 from src.core.utils.paginator import PaginatedOutput
 from src.db.records import ItemRecord, JobRecord
 
@@ -24,6 +25,16 @@ async def stop_job(manager: Manager, job_id: int):
     if job.status == JobStatus.QUEUED:
         job.status = JobStatus.IDLE
         await job.save()
+
+
+async def edit_job(job_id: int, input: JobInput):
+    job = await JobRecord.get_or_none(id=job_id)
+    if job is None:
+        raise ValueError("job doesn't exist")
+
+    job.prompt_positive = input.positive
+    job.prompt_negative = input.negative
+    await job.save()
 
 
 async def reload_job(manager: Manager, job_id: int):
@@ -52,6 +63,8 @@ async def reload_job(manager: Manager, job_id: int):
         if item.lora_list is not None:
             lora_list.append(item.lora_list)
 
+    prompt_positive = utils.remove_template_tags(prompt_positive)
+    prompt_negative = utils.remove_template_tags(prompt_negative)
     job.prompt_positive = prompt_positive
     job.prompt_negative = prompt_negative
     job.status = JobStatus.IDLE
