@@ -214,4 +214,5 @@ async def add_group_of_loras_civitai(
             thumbnail_image=None,
         )
         await add_item(cfg, item_input)
-        await asyncio.sleep(15)
+        if len(models) > 1:
+            await asyncio.sleep(15)

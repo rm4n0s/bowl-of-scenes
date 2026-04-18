@@ -14,7 +14,6 @@ from src.controllers.ctrl_types import (
 )
 from src.controllers.job_ctrl import (
     edit_job,
-    list_jobs,
     list_jobs_paginated,
     reload_job,
     run_job,
@@ -44,7 +43,7 @@ class JobsPage:
         self.manager = manager
         self.command = command
         self.notifctrl = notifctrl
-        self._prev_notif_job_id = None
+        self._cache_notif = None
 
         self.paginator = Paginator(
             fetch_fn=lambda page, page_size: list_jobs_paginated(
@@ -64,38 +63,27 @@ class JobsPage:
 
     async def check_notif_and_update(self):
         notif = self.notifctrl.get_notification()
-        items = self.paginator.items
-
         if notif is None:
-            if self._prev_notif_job_id is not None:
-                await self.paginator.load()
-                self._prev_notif_job_id = None
             return
 
-        if self._prev_notif_job_id == notif.job_id:
+        if self._cache_notif is None or self._cache_notif != notif:
+            self._cache_notif = notif
+        else:
             return
 
-        if len(items) > 1:
-            first_id = items[0].id
-            last_id = items[-1].id
-            if first_id <= notif.job_id <= last_id:
-                await self.paginator.load()
-                self._prev_notif_job_id = notif.job_id
-
-        elif len(items) == 1 and items[0].id == notif.job_id:
-            await self.paginator.load()
-            self._prev_notif_job_id = notif.job_id
+        await self.paginator.load()
 
     async def show_edit_dialog(self, item):
+        print(item)
         with ui.dialog() as dialog, ui.card():
             ui.label("Edit Job").classes("text-h6")
 
-            positive_input = ui.textarea("Positive", value=item["description"]).props(
-                "outlined"
-            )
-            negative_input = ui.textarea("Positive", value=item["description"]).props(
-                "outlined"
-            )
+            positive_input = ui.textarea(
+                "Positive", value=item["prompt_positive"]
+            ).props("outlined")
+            negative_input = ui.textarea(
+                "Negative", value=item["prompt_negative"]
+            ).props("outlined")
 
             with ui.row():
                 ui.button("Cancel", on_click=dialog.close)

@@ -837,9 +837,17 @@ async def list_commands_paginated(
     query = CommandRecord.filter(project_id=project_id).order_by("order")
     total = await query.count()
     items = await query.offset(offset).limit(page_size).all()
+    cmds = [await serialize_command(item) for item in items]
+    for cmd in cmds:
+        total_jobs = await JobRecord.filter(command_id=cmd.id).count()
+        finished_jobs = await JobRecord.filter(
+            command_id=cmd.id, status=JobStatus.FINISHED
+        ).count()
+        cmd.total_jobs = total_jobs
+        cmd.finished_jobs = finished_jobs
 
     return PaginatedOutput(
-        items=[await serialize_command(item) for item in items],
+        items=cmds,
         total=total,
         page=page,
         page_size=page_size,

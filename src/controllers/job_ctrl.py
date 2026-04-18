@@ -6,6 +6,14 @@ from src.core.utils.paginator import PaginatedOutput
 from src.db.records import ItemRecord, JobRecord
 
 
+async def get_job(job_id: int):
+    job = await JobRecord.get_or_none(id=job_id)
+    if job is None:
+        raise ValueError("job doesn't exist")
+
+    return serialize_job(job)
+
+
 async def run_job(manager: Manager, job_id: int):
     job = await JobRecord.get_or_none(id=job_id)
     if job is None:

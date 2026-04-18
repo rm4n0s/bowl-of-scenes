@@ -8,13 +8,14 @@ from src.controllers.command_ctrl.command_ctrl import (
     add_command,
     delete_command,
     edit_command,
-    list_commands,
+    get_command,
     list_commands_paginated,
     recreate_command,
     run_command,
     stop_command,
 )
 from src.controllers.ctrl_types import CommandInput, JobStatus
+from src.controllers.job_ctrl import get_job
 from src.controllers.manager_ctrl import Manager
 from src.controllers.notification_ctrl import NotificationCtrl
 from src.controllers.project_ctrl import ProjectOutput, get_project
@@ -37,13 +38,13 @@ class CommandsPage:
         self.manager = manager
         self.project = project
         self.notifctrl = notifctrl
-        self.running_cmd_ids = {}
         self.paginator = Paginator(
             fetch_fn=lambda page, page_size: list_commands_paginated(
                 self.project.id, page=page, page_size=page_size
             ),
             on_change=self._update_table,
         )
+        self._catch_notif = None
 
     @property
     def items(self):
@@ -66,25 +67,24 @@ class CommandsPage:
     async def check_notif_and_update(self):
         notif = self.notifctrl.get_notification()
         if notif is None:
-            if len(self.running_cmd_ids) > 0:
-                # for item in self.paginator.items:
-                #     item_dict = asdict(item)
-                #     item_dict["is_running"] = (
-                #         item_dict["status"] == JobStatus.PROCESSING.value
-                #         or item_dict["status"] == JobStatus.QUEUED.value
-                #     )
-                self.running_cmd_ids = {}
-                await self.paginator.load()
+            return
+        if self._catch_notif is None or self._catch_notif != notif:
+            self._catch_notif = notif
+        else:
             return
 
         if notif.project_id == self.project.id:
+            await self.load_items()
+            print(notif)
             has_changed = False
             rows = self.table.rows if self.table else []
             for idx, cmd in enumerate(rows):
                 if notif.cmd_id == cmd["id"]:
                     if not cmd.get("is_running"):
-                        rows[idx]["is_running"] = True
-                        self.running_cmd_ids[notif.cmd_id] = True
+                        rows[idx]["is_running"] = (
+                            rows[idx]["status"] == JobStatus.PROCESSING.value
+                            or rows[idx]["status"] == JobStatus.QUEUED.value
+                        )
                         has_changed = True
                     break
 
@@ -214,6 +214,10 @@ class CommandsPage:
         await stop_command(id)
         await self.load_items()
 
+    async def _recreate_command(self, id):
+        await recreate_command(self.conf, id)
+        await self.load_items()
+
     async def render(self):
         """Render the CRUD page"""
         ui.label("Commands Management").classes("text-h4 q-mb-md")
@@ -287,7 +291,7 @@ class CommandsPage:
             self.table.on("stop_command", lambda e: self._stop_command(e.args["id"]))
             self.table.on(
                 "recreate_command",
-                lambda e: recreate_command(self.conf, e.args["id"]),
+                lambda e: self._recreate_command(e.args["id"]),
             )
 
         self.paginator.render_controls()

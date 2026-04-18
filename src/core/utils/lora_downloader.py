@@ -43,7 +43,10 @@ def copy_lora_to_comfyui(file_path: str, comfyui_path: str, subfolder: str = "")
 
 
 async def download_lora_from_civitai(
-    model_id: int, output_folder: str, api_token: str | None = None
+    model_id: int,
+    output_folder: str,
+    api_token: str | None = None,
+    host="https://civitai.com",
 ) -> dict:
     """
     Async — downloads a LoRA model from Civitai along with its metadata.
@@ -80,7 +83,7 @@ async def download_lora_from_civitai(
         # -------------------------------------------------------------- #
         # 1. Fetch model metadata                                          #
         # -------------------------------------------------------------- #
-        meta_url = f"https://civitai.com/api/v1/models/{model_id}"
+        meta_url = f"{host}/api/v1/models/{model_id}"
 
         async with session.get(
             meta_url, timeout=aiohttp.ClientTimeout(total=30)
@@ -141,7 +144,7 @@ async def download_lora_from_civitai(
         # -------------------------------------------------------------- #
         # 4. Download .safetensors                                         #
         # -------------------------------------------------------------- #
-        download_url = f"https://civitai.com/api/download/models/{version_id}"
+        download_url = f"{host}/api/download/models/{version_id}"
         if api_token:
             download_url += f"?token={api_token}"
 
