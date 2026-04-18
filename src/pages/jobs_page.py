@@ -11,11 +11,11 @@ from src.controllers.ctrl_types import (
     GeneratorOutputType,
     ImageAttributes,
     JobInput,
+    JobStatus,
 )
 from src.controllers.job_ctrl import (
     edit_job,
     list_jobs_paginated,
-    reload_job,
     run_job,
     stop_job,
 )
@@ -54,6 +54,13 @@ class JobsPage:
 
     async def _update_table(self, items: list):
         rows = [asdict(job) for job in items]
+        for idx, v in enumerate(rows):
+            if not v.get("is_running"):
+                rows[idx]["is_running"] = (
+                    rows[idx]["status"] == JobStatus.PROCESSING.value
+                    or rows[idx]["status"] == JobStatus.QUEUED.value
+                )
+
         if self.table:
             self.table.rows = rows
             self.table.update()
@@ -70,7 +77,7 @@ class JobsPage:
             self._cache_notif = notif
         else:
             return
-
+        print(notif)
         await self.paginator.load()
 
     async def show_edit_dialog(self, item):
@@ -180,11 +187,9 @@ class JobsPage:
                 "body-cell-actions",
                 """
                 <q-td :props="props">
-                    <q-btn flat dense icon="start" class="q-mr-xl"   @click="$parent.$emit('run_job', props.row)" />
-                    <q-btn flat dense icon="stop" class="q-mr-xl"   @click="$parent.$emit('stop_job', props.row)" />
-                    <q-btn flat dense icon="edit" class="q-mr-xl"   @click="$parent.$emit('edit_job', props.row)" />
-
-                    <q-btn flat dense icon="autorenew" class="q-mr-xl"   @click="$parent.$emit('reload_job', props.row)" />
+                    <q-btn v-if="!props.row['is_running']" flat dense icon="start" class="q-mr-xl" @click="$parent.$emit('run_job', props.row)" />
+                    <q-btn v-if="props.row['is_running']" flat dense icon="stop" class="q-mr-xl" @click="$parent.$emit('stop_job', props.row)" />
+                    <q-btn v-if="!props.row['is_running']" flat dense icon="edit" class="q-mr-xl"   @click="$parent.$emit('edit_job', props.row)" />
                 </q-td>
             """,
             )
@@ -192,10 +197,6 @@ class JobsPage:
             self.table.on("edit_job", lambda e: self.show_edit_dialog(e.args))
             self.table.on("run_job", lambda e: run_job(self.manager, e.args["id"]))
             self.table.on("stop_job", lambda e: stop_job(self.manager, e.args["id"]))
-
-            self.table.on(
-                "reload_job", lambda e: reload_job(self.manager, e.args["id"])
-            )
 
         self.paginator.render_controls()
 

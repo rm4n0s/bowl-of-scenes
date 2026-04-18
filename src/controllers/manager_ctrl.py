@@ -127,7 +127,6 @@ class Manager:
     async def execute_commands(self):
         print("ready for commands")
         while True:
-            self._notifctrl.set_notification_to_none()
             cmd_id = await self._cmdid_queue.get()
             print("received command", cmd_id)
             jobs = await JobRecord.filter(command_id=cmd_id).values("id")
@@ -149,7 +148,6 @@ class Manager:
     async def execute_jobs(self):
         print("ready for jobs from queue")
         while True:
-            self._notifctrl.set_notification_to_none()
             job_id = await self._jobid_queue.get()
             print("Received job", job_id)
             job = await JobRecord.get_or_none(id=job_id)
@@ -305,7 +303,11 @@ class Manager:
 
             job.status = JobStatus.FINISHED
             await job.save()
-
+            print("Finished job", job.id)
+            self._notifctrl.set_notification(
+                NotificationType.FINISHED, job.id, job.command_id, job.project_id
+            )
+            print("notification sent", job)
             if job.is_last:
                 cmd_rec = await CommandRecord.get_or_none(id=job.command_id)
                 if cmd_rec:
@@ -316,10 +318,6 @@ class Manager:
                 # await client.free_resources(True, True)
                 # await asyncio.sleep(3)
 
-            print("Finished job", job.id)
-            self._notifctrl.set_notification(
-                NotificationType.FINISHED, job.id, job.command_id, job.project_id
-            )
         except Exception as ex:
             print("failed on job", job.id, " reason ", ex)
             stack_str = traceback.format_exc()

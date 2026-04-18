@@ -29,4 +29,12 @@ class NotificationCtrl:
         self._latest_notification = n
 
     def get_notification(self) -> Notification | None:
+        if self._latest_notification is None:
+            return None
+
+        end_time = datetime.now()
+        elapsed = end_time - self._latest_notification.created_at
+        if elapsed.total_seconds() >= 4:
+            self._latest_notification = None
+
         return self._latest_notification

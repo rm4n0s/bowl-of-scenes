@@ -75,7 +75,6 @@ class CommandsPage:
 
         if notif.project_id == self.project.id:
             await self.load_items()
-            print(notif)
             has_changed = False
             rows = self.table.rows if self.table else []
             for idx, cmd in enumerate(rows):

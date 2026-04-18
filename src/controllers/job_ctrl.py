@@ -40,47 +40,11 @@ async def edit_job(job_id: int, input: JobInput):
     if job is None:
         raise ValueError("job doesn't exist")
 
-    job.prompt_positive = input.positive
-    job.prompt_negative = input.negative
-    await job.save()
-
-
-async def reload_job(manager: Manager, job_id: int):
-    job = await JobRecord.get_or_none(id=job_id)
-    if job is None:
-        raise ValueError("job doesn't exist")
-
-    prompt_positive = ""
-    prompt_negative = ""
-    ipadapters: list[IPAdapter] = []
-    lora_list = []
-
-    for v in job.group_item_id_list:
-        item = await ItemRecord.get_or_none(id=v["item_id"])
-        if item is None:
-            continue
-
-        if len(item.positive_prompt) > 0:
-            prompt_positive += item.positive_prompt + " "
-        if len(item.negative_prompt) > 0:
-            prompt_negative += item.negative_prompt + " "
-
-        if item.ipadapter is not None:
-            ipadapters.append(item.ipadapter)
-
-        if item.lora_list is not None:
-            lora_list.append(item.lora_list)
-
-    prompt_positive = utils.remove_template_tags(prompt_positive)
-    prompt_negative = utils.remove_template_tags(prompt_negative)
-    job.prompt_positive = prompt_positive
-    job.prompt_negative = prompt_negative
-    job.status = JobStatus.IDLE
-    job.ipadapter_list = ipadapters
-    job.lora_list = lora_list
-    await job.save()
-
-    await manager.add_job(job.id)
+    if input.positive != job.prompt_positive or input.negative != job.prompt_negative:
+        job.prompt_positive = input.positive
+        job.prompt_negative = input.negative
+        job.status = JobStatus.IDLE
+        await job.save()
 
 
 async def list_jobs(command_id: int) -> list[JobOutput]:
