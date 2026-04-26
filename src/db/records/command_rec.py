@@ -14,3 +14,4 @@ class CommandRecord(TimestampMixin, Model):
     description = fields.TextField()
     command_code = fields.TextField()
     command_json = fields.JSONField()
+    download_file = fields.TextField(null=True)

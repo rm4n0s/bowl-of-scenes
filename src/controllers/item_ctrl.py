@@ -326,7 +326,10 @@ async def add_civitai_lora_as_item(
         )
 
     civitai_metadata = await lora_downloader.download_lora_from_civitai(
-        model.model_id, cfg.civitai_lora_path, cfg.civitai_api_token
+        model.model_id,
+        cfg.civitai_lora_path,
+        cfg.civitai_api_token,
+        cfg.civitai_host,
     )
     print("civitai metadata", civitai_metadata)
     file_name = str(model.model_id) + ".safetensors"

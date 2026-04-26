@@ -7,15 +7,14 @@ from nicegui.elements.label import Label
 from src.controllers.command_ctrl.command_ctrl import (
     add_command,
     delete_command,
+    download_file_for_command,
     edit_command,
-    get_command,
     list_commands_paginated,
     recreate_command,
     run_command,
     stop_command,
 )
 from src.controllers.ctrl_types import CommandInput, JobStatus
-from src.controllers.job_ctrl import get_job
 from src.controllers.manager_ctrl import Manager
 from src.controllers.notification_ctrl import NotificationCtrl
 from src.controllers.project_ctrl import ProjectOutput, get_project
@@ -217,6 +216,10 @@ class CommandsPage:
         await recreate_command(self.conf, id)
         await self.load_items()
 
+    async def _download(self, id):
+        await download_file_for_command(self.conf, id)
+        # ui.download(df)
+
     async def render(self):
         """Render the CRUD page"""
         ui.label("Commands Management").classes("text-h4 q-mb-md")
@@ -278,6 +281,7 @@ class CommandsPage:
                     <q-btn v-if="!props.row['is_running']" flat dense icon="start" class="q-mr-xl" @click="$parent.$emit('run_command', props.row)" />
                     <q-btn v-if="props.row['is_running']" flat dense icon="stop" class="q-mr-xl" @click="$parent.$emit('stop_command', props.row)" />
                     <q-btn v-if="!props.row['is_running']" flat dense icon="autorenew" class="q-mr-xl" @click="$parent.$emit('recreate_command', props.row)" />
+                    <q-btn v-if="props.row['status'] == 'finished'" flat dense icon="download" class="q-mr-xl"  color="negative" @click="$parent.$emit('download', props.row)" />
                     <q-btn flat dense icon="table"   @click="$parent.$emit('show_jobs', props.row)" />
                 </q-td>
             """,
@@ -288,6 +292,7 @@ class CommandsPage:
             self.table.on("show_jobs", lambda e: self.redirect_to_jobs(e.args))
             self.table.on("run_command", lambda e: self._run_command(e.args["id"]))
             self.table.on("stop_command", lambda e: self._stop_command(e.args["id"]))
+            self.table.on("download", lambda e: self._download(e.args["id"]))
             self.table.on(
                 "recreate_command",
                 lambda e: self._recreate_command(e.args["id"]),

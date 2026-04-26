@@ -76,6 +76,7 @@ def main():
     os.makedirs(GLOBAL_CONF.ipadapter_references_path, exist_ok=True)
     os.makedirs(GLOBAL_CONF.colored_region_path, exist_ok=True)
     os.makedirs(GLOBAL_CONF.thumbnails_path, exist_ok=True)
+    os.makedirs(GLOBAL_CONF.downloads_path, exist_ok=True)
     app.add_static_files("/result_path", GLOBAL_CONF.result_path)
     app.add_static_files(
         "/controlnet_references_path", GLOBAL_CONF.controlnet_references_path
@@ -85,6 +86,7 @@ def main():
     )
     app.add_static_files("/colored_region_path", GLOBAL_CONF.colored_region_path)
     app.add_static_files("/thumbnails_path", GLOBAL_CONF.thumbnails_path)
+    app.add_static_files("/downloads_path", GLOBAL_CONF.downloads_path)
     home_page.init()
     servers_page.init()
     generators_page.init()

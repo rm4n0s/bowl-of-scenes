@@ -1,9 +1,12 @@
 import copy
 import hashlib
+import json
 import os
 from dataclasses import dataclass
 from itertools import product
+from pathlib import Path
 
+import aiofiles
 from tortoise.expressions import F
 
 from src.controllers.command_ctrl.command_parser import (
@@ -27,6 +30,7 @@ from src.controllers.serializers import serialize_command
 from src.core.config import Config
 from src.core.utils import utils
 from src.core.utils.paginator import PaginatedOutput
+from src.core.utils.zip import create_zip
 from src.db.records import (
     CommandRecord,
     GeneratorRecord,
@@ -853,3 +857,34 @@ async def list_commands_paginated(
         page_size=page_size,
         total_pages=(total + page_size - 1) // page_size,
     )
+
+
+async def download_file_for_command(conf: Config, command_id: int) -> str:
+    cmd = await CommandRecord.get_or_none(id=command_id)
+    if cmd is None:
+        raise ValueError("command doesn't exist")
+
+    if cmd.status != JobStatus.FINISHED:
+        raise ValueError("command is not finished")
+
+    jobs = await JobRecord.filter(command_id=cmd.id)
+
+    job_filenames = [Path(job.result_img) for job in jobs]
+    cmd.download_file = os.path.abspath(
+        os.path.join(conf.downloads_path, str(cmd.id) + ".zip")
+    )
+
+    job_dicts = await JobRecord.filter(command_id=cmd.id).values(
+        "prompt_positive", "prompt_negative", "lora_list"
+    )
+    print(job_dicts)
+    json_str = json.dumps(job_dicts, indent=2, ensure_ascii=False)
+    json_path = os.path.abspath(
+        os.path.join(conf.downloads_path, str(cmd.id) + ".json")
+    )
+    async with aiofiles.open(json_path, mode="w", encoding="utf-8") as f:
+        await f.write(json_str)
+    job_filenames.append(Path(json_path))
+    await create_zip(job_filenames, cmd.download_file)
+    await cmd.save()
+    return cmd.download_file
