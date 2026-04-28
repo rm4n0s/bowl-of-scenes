@@ -622,6 +622,8 @@ async def recreate_command(conf: Config, command_id: int):
     await delete_jobs_from_command(command_id)
 
     await create_jobs(conf, cmd)
+    cmd.status = JobStatus.IDLE
+    await cmd.save()
 
 
 async def get_command(command_id: int) -> CommandOutput:
