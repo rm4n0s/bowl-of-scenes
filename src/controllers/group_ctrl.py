@@ -69,7 +69,7 @@ async def add_group_of_positives_from_text_file(
             name=f"{i}",
             code_name=f"{i}",
             positive_prompt=v,
-            negative_prompt=",".join(list_tags),
+            negative_prompt=",".join([f"<tmpl:{tag}>" for tag in list_tags]),
         )
 
 
