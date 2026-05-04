@@ -19,8 +19,6 @@ class JobRecord(TimestampMixin, Model):
         enum_type=GeneratorOutputType, null=True
     )
     generator_output_attributes = fields.JSONField(null=True)
-    fixer_code_name = fields.CharField(max_length=100, null=True)
-    fix_job_id = fields.IntField(null=True)
     comfyui_prompt_id = fields.CharField(max_length=200, null=True, default=None)
     prompt_positive = fields.TextField()
     prompt_negative = fields.TextField()
@@ -34,3 +32,7 @@ class JobRecord(TimestampMixin, Model):
     is_last = fields.BooleanField(default=False)  # it is the last job of a command
     error = fields.TextField(null=True, default=None)
     traceback = fields.TextField(null=True, default=None)
+    total_fixers = fields.JSONField(default=[])  # list[FixerRecord.ID]
+    finished_fixers = fields.JSONField(default=[])  # list[FixerRecord.ID]
+    is_generated = fields.BooleanField(default=False)
+    is_fixed = fields.BooleanField(default=False)

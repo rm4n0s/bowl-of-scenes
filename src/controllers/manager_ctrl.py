@@ -131,19 +131,22 @@ class Manager:
             print("received command", cmd_id)
             jobs = await JobRecord.filter(command_id=cmd_id).values("id")
             for v in jobs:
-                job = await JobRecord.get_or_none(id=v["id"])
-                if job is None:
-                    continue
+                await self.add_job(v["id"])
+                # job = await JobRecord.get_or_none(id=v["id"])
+                # if job is None:
+                #     continue
 
-                if job.status != JobStatus.QUEUED:
-                    continue
+                # if job.status != JobStatus.QUEUED:
+                #     continue
 
-                if job.server_code_name in self._servers.keys():
-                    client = self._servers[job.server_code_name].client
-                    if job.generator_code_name is not None:
-                        await self.generate_image(client, job)
-                    elif job.fixer_code_name is not None:
-                        await self.fix_image(client, job)
+                # if job.server_code_name in self._servers.keys():
+                #     client = self._servers[job.server_code_name].client
+                #     if not job.is_generated:
+                #         await self.generate_image(client, job)
+                #     elif not job.is_fixed and len(job.total_fixers) > len(
+                #         job.finished_fixers
+                #     ):
+                #         await self.fix_image(client, job)
 
     async def execute_jobs(self):
         print("ready for jobs from queue")
@@ -159,21 +162,28 @@ class Manager:
 
             if job.server_code_name in self._servers.keys():
                 client = self._servers[job.server_code_name].client
-                if job.generator_code_name is not None:
+                if not job.is_generated:
                     await self.generate_image(client, job)
-                elif job.fixer_code_name is not None:
+                elif not job.is_fixed and len(job.total_fixers) > len(
+                    job.finished_fixers
+                ):
                     await self.fix_image(client, job)
 
     async def fix_image(self, client: YetAnotherComfyClient, job: JobRecord):
-        fixer = await FixerRecord.get_or_none(code_name=job.fixer_code_name)
+        current_fixer_id = None
+        for fixer_id in job.total_fixers:
+            if fixer_id not in job.finished_fixers:
+                current_fixer_id = fixer_id
+                break
+
+        if current_fixer_id is None:
+            return
+
+        fixer = await FixerRecord.get_or_none(id=current_fixer_id)
         if fixer is None:
             return
 
-        original_job = await JobRecord.get_or_none(id=job.fix_job_id)
-        if original_job is None:
-            return
-
-        img_path = os.path.abspath(original_job.result_img)
+        img_path = os.path.abspath(job.result_img)
         prompt = edit_prompt(
             fixer.workflow_json,
             fixer.load_image_title,
@@ -200,9 +210,27 @@ class Manager:
                     image = Image.open(io.BytesIO(image_data))
                     image.save(job.result_img)
 
-        job.status = JobStatus.FINISHED
+        job.finished_fixers.append(current_fixer_id)
+        if job.finished_fixers == job.total_fixers:
+            job.is_fixed = True
+            job.status = JobStatus.FINISHED
+            if job.is_last:
+                cmd_rec = await CommandRecord.get_or_none(id=job.command_id)
+                if cmd_rec:
+                    cmd_rec.status = JobStatus.FINISHED
+                    await cmd_rec.save()
+        else:
+            job.status = JobStatus.QUEUED
         await job.save()
-        print("Finished job", job.id)
+        if not job.is_fixed:
+            print("Queued job", job.id, " for another fix")
+            await self.add_job(job.id)
+        else:
+            print("Finished job", job.id)
+
+        self._notifctrl.set_notification(
+            NotificationType.FINISHED, job.id, job.command_id, job.project_id
+        )
 
     async def generate_image(self, client: YetAnotherComfyClient, job: JobRecord):
         gen = await GeneratorRecord.get_or_none(code_name=job.generator_code_name)
@@ -301,18 +329,25 @@ class Manager:
                         image = Image.open(io.BytesIO(image_data))
                         image.save(job.result_img)
 
-            job.status = JobStatus.FINISHED
+            job.is_generated = True
+            if len(job.total_fixers) > len(job.finished_fixers):
+                job.status = JobStatus.QUEUED
+            else:
+                job.status = JobStatus.FINISHED
+                if job.is_last:
+                    cmd_rec = await CommandRecord.get_or_none(id=job.command_id)
+                    if cmd_rec:
+                        cmd_rec.status = JobStatus.FINISHED
+                        await cmd_rec.save()
+
             await job.save()
             print("Finished job", job.id)
             self._notifctrl.set_notification(
                 NotificationType.FINISHED, job.id, job.command_id, job.project_id
             )
             print("notification sent", job)
-            if job.is_last:
-                cmd_rec = await CommandRecord.get_or_none(id=job.command_id)
-                if cmd_rec:
-                    cmd_rec.status = JobStatus.FINISHED
-                    await cmd_rec.save()
+            if job.status == JobStatus.QUEUED:
+                await self.add_job(job.id)
 
                 # TODO: don't put it back, make it optionally in the command
                 # await client.free_resources(True, True)

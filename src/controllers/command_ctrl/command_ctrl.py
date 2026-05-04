@@ -520,6 +520,7 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                     controlnets=controlnet_list,
                     lora_list=lora_list,
                     result_img=result_img,
+                    total_fixers=[fix.id for fix in fixers],
                 )
                 res.append(job)
         else:
@@ -542,42 +543,9 @@ async def create_jobs(conf: Config, command: CommandRecord) -> list[JobRecord]:
                 controlnets=controlnet_list,
                 lora_list=lora_list,
                 result_img=result_img,
+                total_fixers=[fix.id for fix in fixers],
             )
             res.append(job)
-
-    if len(fixers) > 0:
-        process_jobs = res.copy()
-        for fixer in fixers:
-            new_process_jobs = []
-            for pj in process_jobs:
-                result_filename_img = os.path.basename(pj.result_img)
-                result_img = os.path.join(
-                    conf.result_path, fixer.code_name + "_" + result_filename_img
-                )
-
-                job = await JobRecord.create(
-                    project_id=command.project_id,
-                    command_id=command.id,
-                    group_item_id_list=pj.group_item_id_list,
-                    code_str=command.command_code,
-                    server_code_name=server.code_name,
-                    server_host=server.host,
-                    fixer_code_name=fixer.code_name,
-                    fix_job_id=pj.id,
-                    generator_code_name=None,
-                    generator_output_type=None,
-                    generator_output_attributes=None,
-                    prompt_positive="",
-                    prompt_negative="",
-                    reference_ipadapter_img=None,
-                    lora_list=None,
-                    controlnets=None,
-                    result_img=result_img,
-                )
-                res.append(job)
-                new_process_jobs.append(job)
-
-            process_jobs = new_process_jobs.copy()
 
     if len(res) > 0:
         last_job = res[len(res) - 1]

@@ -158,7 +158,6 @@ def serialize_job(rec: JobRecord) -> JobOutput:
         generator_code_name=rec.generator_code_name,
         generator_output_type=rec.generator_output_type,
         generator_output_attributes=rec.generator_output_attributes,
-        fixer_code_name=rec.fixer_code_name,
         comfyui_prompt_id=rec.comfyui_prompt_id,
         prompt_positive=rec.prompt_positive,
         prompt_negative=rec.prompt_negative,
@@ -167,6 +166,10 @@ def serialize_job(rec: JobRecord) -> JobOutput:
         lora_list=rec.lora_list,
         result_img=rec.result_img,
         show_result_img=f"/result_path/{os.path.basename(rec.result_img)}",
+        total_fixers=rec.total_fixers,
+        finished_fixers=rec.finished_fixers,
+        is_generated=rec.is_generated,
+        is_fixed=rec.is_fixed,
     )
 
 

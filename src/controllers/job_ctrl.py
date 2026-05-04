@@ -31,6 +31,9 @@ async def stop_job(manager: Manager, job_id: int):
         raise ValueError("job doesn't exist")
 
     if job.status == JobStatus.QUEUED:
+        job.is_generated = False
+        job.is_fixed = False
+        job.finished_fixers = []
         job.status = JobStatus.IDLE
         await job.save()
 
@@ -43,6 +46,9 @@ async def edit_job(job_id: int, input: JobInput):
     if input.positive != job.prompt_positive or input.negative != job.prompt_negative:
         job.prompt_positive = input.positive
         job.prompt_negative = input.negative
+        job.is_generated = False
+        job.is_fixed = False
+        job.finished_fixers = []
         job.status = JobStatus.IDLE
         await job.save()
 

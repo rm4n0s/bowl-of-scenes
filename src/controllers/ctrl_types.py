@@ -333,7 +333,6 @@ class JobOutput:
     generator_code_name: str | None
     generator_output_type: GeneratorOutputType
     generator_output_attributes: dict[str, Any]
-    fixer_code_name: str | None
     comfyui_prompt_id: str | None
     prompt_positive: str
     prompt_negative: str
@@ -342,6 +341,10 @@ class JobOutput:
     lora_list: list[dict[str, Any]]
     result_img: str
     show_result_img: str
+    total_fixers: list[int]
+    finished_fixers: list[int]
+    is_generated: bool
+    is_fixed: bool
 
 
 @dataclass
